@@ -25,8 +25,6 @@ class RigidBody(sRigidBody,ReferenceFrame):
         self.cm = Point(self.name+'cm')
         self.cm.set_acc(self,0)
         self.cm.set_vel(self,0)
-        
-        interti_kwargs = { key.lower(): val for key,val in locals().items() if key.startswith('I') and len(key)==3 and val is not None }
             
         sRigidBody.__init__(self, name, self.cm, self, mass,
          (inertia(self, Ixx or 0,Iyy or 0,Izz or 0,Ixz or 0,Ixy or 0,Iyz or 0), self.cm))
