@@ -1,0 +1,1 @@
+# SympyMechanicsHelpers
