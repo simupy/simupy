@@ -5,6 +5,7 @@ from sympy.physics.mechanics import inertia, Point
 from sympy.physics.vector import Dyadic
 
 # TODO: Point class that automatically applies 1/2-pt A/V theorem to dynamic symbol variables?
+# TODO: Add express_as_quaternion translator helpers? 
 
 class ReferenceFrame(sReferenceFrame):
     def __init__(self, *args, **kwargs):
