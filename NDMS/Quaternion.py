@@ -1,4 +1,4 @@
-import sympy as S
+import sympy as sp
 from sympy import symbols, sin, cos, atan2, asin, acos, tan
 from sympy.matrices import ones, eye, zeros, diag
 """
@@ -8,11 +8,11 @@ to formulate dynamics and relating to Euler stuff
 """
 
 def quaternion_conjugate(q):
-    return S.ImmutableMatrix([q[0]] + (-q)[1:])
+    return sp.ImmutableMatrix([q[0]] + (-q)[1:])
 
 # Setup and basic definitions
 def cross_product_matrix(x):
-    return S.ImmutableMatrix([
+    return sp.ImmutableMatrix([
         [0, -x[2], x[1]],
         [x[2], 0, -x[0]],
         [-x[1], x[0], 0]
@@ -24,10 +24,10 @@ def quaternion_matrix(q):
     out[0,1:] = -q[1:,:].T
     out[1:,0] = q[1:,:]
     out[1:,1:] = q[0]*eye(3)+cross_product_matrix(q[1:,0])
-    return S.ImmutableMatrix(out)
+    return sp.ImmutableMatrix(out)
 
 def quaternionrate_eulerrate_matrix(eulerrates):
-    return S.Rational(1,2)*S.ImmutableMatrix([
+    return sp.Rational(1,2)*sp.ImmutableMatrix([
         [0, -eulerrates[0], -eulerrates[1], -eulerrates[2]],
         [eulerrates[0], 0, eulerrates[2], -eulerrates[1]],
         [eulerrates[1], -eulerrates[2], 0, eulerrates[0]],
@@ -35,7 +35,7 @@ def quaternionrate_eulerrate_matrix(eulerrates):
     ])
     
 def angle_def_from_rot_matrices(eul_mat, quat_mat, angle):
-    x = S.Wild('x')
+    x = sp.Wild('x')
     definitions = []
     for i in range(len(eul_mat)):
         for j in range(i):

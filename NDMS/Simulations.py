@@ -1,13 +1,13 @@
 from scipy.integrate import ode
-import numpy as N
+import numpy as np
 import types
 from .utils import process_vector_args
 
 class SimulationResult(object):
     def __init__(self, system, controller):
-        self.t = N.empty(0)
-        self.x = N.empty([0,system.n_states])
-        self.u = N.empty([0,system.n_inputs])
+        self.t = np.empty(0)
+        self.x = np.empty([0,system.n_states])
+        self.u = np.empty([0,system.n_inputs])
         self.u_history = {}
         self.system = system
         self.controller = controller
@@ -16,12 +16,12 @@ class SimulationResult(object):
         if hasattr(controller, 'dt') and not system.dt:
             self.hybrid = True
             
-        # self.y_out = N.empty([0,n_sys_output])
+        # self.y_out = np.empty([0,n_sys_output])
     
     def get_key(self,t,x):
         if self.hybrid:
             # integrator must also do piecewise!
-            key = process_vector_args((N.floor(t/self.controller.dt),))
+            key = process_vector_args((np.floor(t/self.controller.dt),))
         else:
             key = process_vector_args((t,x))
         
@@ -29,14 +29,14 @@ class SimulationResult(object):
             
 
 def IntegrateDiscreteTimeSystem(f, out, tspan, x0, dt):
-    if N.isscalar(tspan):
+    if np.isscalar(tspan):
         t0 = 0
         tF = tspan
     else:
         t0 = tspan[0]
         tF = tspan[-1]
     
-    T = N.arange(t0, tF+dt, dt)
+    T = np.arange(t0, tF+dt, dt)
     # x = x0
     # f(0, x, out)
     # TODO: check math!
@@ -63,15 +63,15 @@ def IntegrateDiscreteTimeSystem(f, out, tspan, x0, dt):
         if t == t0:
             x = x0
         
-        out.t = N.append(out.t,[t],0)
-        out.x = N.append(out.x,x.reshape((1,-1)),0)
-        # out.u = N.zeros((1,)+(out.u.shape[1],)) # this line makes it so u(k) is shifted by 1 time interval
+        out.t = np.append(out.t,[t],0)
+        out.x = np.append(out.x,x.reshape((1,-1)),0)
+        # out.u = np.zeros((1,)+(out.u.shape[1],)) # this line makes it so u(k) is shifted by 1 time interval
 
         x = f(t, x, out)
-        if N.max(N.isnan(x)):
+        if np.max(np.isnan(x)):
             break
         u = out.u_history[out.get_key(t,out.x[-1])]
-        out.u = N.append(out.u,u,0)
+        out.u = np.append(out.u,u,0)
     
     # TODO: Figure out how to filter dense output to meshed output
     
@@ -88,24 +88,24 @@ def IntegrateContinuousTimeSystem(f, out, tspan, x0):
              
         I believe this is how I am collecting the results
         """
-        if N.max(N.isnan(x)):
+        if np.max(np.isnan(x)):
             return -1
         if result.t.size == 0:
-            result.t = N.array([t])
+            result.t = np.array([t])
             result.x = x.reshape((1,)+x.shape)
             result.u = u.copy() # u.reshape((1,)+u.shape)
             # y_out = r.y.reshape(1,n_sys_output+1)
         else:
-            result.t = N.append(result.t,t)
-            result.x = N.append(result.x,x.reshape((1,)+x.shape),0)
-            result.u = N.append(result.u,u,0)
-            # result.u = N.append(result.u,u.reshape(1,system.n_inputs),0)
-            # y_out = N.append(y_out,N.array(r.y).reshape(1,n_sys_output+1),0)
+            result.t = np.append(result.t,t)
+            result.x = np.append(result.x,x.reshape((1,)+x.shape),0)
+            result.u = np.append(result.u,u,0)
+            # result.u = np.append(result.u,u.reshape(1,system.n_inputs),0)
+            # y_out = np.append(y_out,np.array(r.y).reshape(1,n_sys_output+1),0)
             
     dense_output = False
     meshed_output = False
     piecewise_output = False
-    if N.isscalar(tspan):
+    if np.isscalar(tspan):
         t0 = 0
         tF = tspan
         dense_output = True
@@ -147,7 +147,7 @@ def IntegrateContinuousTimeSystem(f, out, tspan, x0):
             r.integrate(tF)
         else:
             original_tspan = tspan
-            tspan = N.arange(t0, tF+out.controller.dt, out.controller.dt)
+            tspan = np.arange(t0, tF+out.controller.dt, out.controller.dt)
     if meshed_output or piecewise_output:
         for count_t, next_t in enumerate(tspan):
             if count_t == 0:
@@ -195,15 +195,15 @@ def SimulateControlledSystem(tspan, system, controller=None, x0=None):
     
     if controller is None:
         def controller(*args):
-            return N.zeros((system.n_inputs,1))
+            return np.zeros((system.n_inputs,1))
             
     if x0 is None:
-        # x0 = N.zeros((n_sys_output,1))
-        x0 = N.zeros((system.n_states,1))
+        # x0 = np.zeros((n_sys_output,1))
+        x0 = np.zeros((system.n_states,1))
     # TODO: I'll just trust that x0 is the right size/shape. Maybe add some 
     # helper code?
     if x0.shape != (system.n_states,1):
-        x0 = N.concatenate((x0.reshape(x0.size,1), N.zeros((system.n_states - x0.size, 1))), 0)
+        x0 = np.concatenate((x0.reshape(x0.size,1), np.zeros((system.n_states - x0.size, 1))), 0)
 
     def function_to_integrate(t, x, result):
         # u = controller(t, y[f.n_states:f.n_outputs+f.n_states]) 
@@ -211,10 +211,10 @@ def SimulateControlledSystem(tspan, system, controller=None, x0=None):
         # input args. "controller" should also include observer? or is that a
         # third issue?
         key = sim_result.get_key(t,x)
-        if key not in result.u_history and not N.isnan(t):
+        if key not in result.u_history and not np.isnan(t):
             result.u_history[key] = controller(t, x, result) # history seems legit
-        elif N.isnan(t):
-            return N.nan*N.ones((system.n_states,1))
+        elif np.isnan(t):
+            return np.nan*np.ones((system.n_states,1))
         try:
             u = result.u_history[key].copy()
         except:

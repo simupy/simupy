@@ -1,4 +1,4 @@
-import sympy as S, numpy as N
+import sympy as sp, numpy as np
 from .utils import process_vector_args, lambdify_with_vector_args
 
 class NonlinearSystem(object):
@@ -22,7 +22,7 @@ class NonlinearSystem(object):
         self.n_inputs = n_inputs
         self.dt = dt
             
-        self.callable_function = lambdify_with_vector_args(S.flatten(states) + S.flatten(inputs), \
+        self.callable_function = lambdify_with_vector_args(sp.flatten(states) + sp.flatten(inputs), \
             state_equations.subs(constants_values), modules="numpy")
     
     def copy(self):
@@ -33,6 +33,6 @@ class NonlinearSystem(object):
 
 def grad(f, basis):
     n = len(basis)
-    return S.Matrix([ 
-        [ S.diff(f[x],basis[y]) for y in range(len(basis)) ] \
+    return sp.Matrix([ 
+        [ sp.diff(f[x],basis[y]) for y in range(len(basis)) ] \
             for x in range(len(f)) ])

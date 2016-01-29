@@ -1,13 +1,13 @@
-import sympy as S, numpy as N
+import sympy as sp, numpy as np
 from numpy.core.numeric import isscalar
 from sympy.utilities.lambdify import implemented_function
 
-sinc = implemented_function(S.Function('sinc'), lambda x: N.sinc(x/N.pi) )
+sinc = implemented_function(sp.Function('sinc'), lambda x: np.sinc(x/np.pi) )
 
 def process_vector_args(args):
     new_args = []
     for arg in args:
-        if isinstance(arg,(S.Matrix,N.ndarray)):
+        if isinstance(arg,(sp.Matrix,np.ndarray)):
             shape = arg.shape
             if (min(shape) != 1 and len(shape) == 2) or len(shape) > 2:
                 raise AttributeError("Arguments should only contain vectors")
@@ -28,13 +28,13 @@ def process_vector_args(args):
 
     return tuple(new_args)
     
-def lambdify_with_vector_args(args, expr, modules=({'ImmutableMatrix': N.matrix}, "numpy", {"Mod": N.mod})):
+def lambdify_with_vector_args(args, expr, modules=({'ImmutableMatrix': np.matrix}, "numpy", {"Mod": np.mod})):
     new_args = process_vector_args(args)
     
     # TODO: check what later verisons of SymPy need for modules/handling Mod  
     # TODO: apparently lambdify can't be trusted?? Eventually move to 
     # codeprinter? http://stackoverflow.com/a/10138307/854909
-    f = S.lambdify(new_args, expr, modules=modules)
+    f = sp.lambdify(new_args, expr, modules=modules)
     
     def lambda_function_with_vector_args(*func_args):
         new_func_args = process_vector_args(func_args)
