@@ -40,4 +40,21 @@ def lambdify_with_vector_args(args, expr, modules=({'ImmutableMatrix': np.matrix
         new_func_args = process_vector_args(func_args)
         return f(*new_func_args)
     lambda_function_with_vector_args.__doc__ = f.__doc__
-    return lambda_function_with_vector_args
+    return lambda_function_with_vector_args\
+
+def callable_from_trajectory(data):
+    # TODO: Could write pre-allow passing pre-/post- processing functions??
+    # Is there a better design for guessing how everything is split up??
+    # let's make it be concatenated
+    tck_splprep = interpolate.splprep(x=data[:,1:], u=data[:,0])
+    def interpolated_callable(t,*args):
+        return interpolate.splev(t, tck_splprep[0], der=0)
+    return interpolated_callable
+
+def grad(f, basis):
+    n = len(basis)
+    return sp.Matrix([ 
+        [ sp.diff(f[x],basis[y]) for y in range(len(basis)) ] \
+            for x in range(len(f)) ])
+
+
