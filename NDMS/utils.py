@@ -1,6 +1,7 @@
 import sympy as sp, numpy as np
 from numpy.core.numeric import isscalar
 from sympy.utilities.lambdify import implemented_function
+from scipy import interpolate
 
 sinc = implemented_function(sp.Function('sinc'), lambda x: np.sinc(x/np.pi) )
 
@@ -40,13 +41,13 @@ def lambdify_with_vector_args(args, expr, modules=({'ImmutableMatrix': np.matrix
         new_func_args = process_vector_args(func_args)
         return f(*new_func_args)
     lambda_function_with_vector_args.__doc__ = f.__doc__
-    return lambda_function_with_vector_args\
+    return lambda_function_with_vector_args
 
-def callable_from_trajectory(data):
+def callable_from_trajectory(t,curves):
     # TODO: Could write pre-allow passing pre-/post- processing functions??
     # Is there a better design for guessing how everything is split up??
     # let's make it be concatenated
-    tck_splprep = interpolate.splprep(x=data[:,1:], u=data[:,0])
+    tck_splprep = interpolate.splprep(x=[curves[:,i] for i in range(curves.shape[1]) ], u=t, s=0)
     def interpolated_callable(t,*args):
         return interpolate.splev(t, tck_splprep[0], der=0)
     return interpolated_callable
@@ -56,5 +57,3 @@ def grad(f, basis):
     return sp.Matrix([ 
         [ sp.diff(f[x],basis[y]) for y in range(len(basis)) ] \
             for x in range(len(f)) ])
-
-

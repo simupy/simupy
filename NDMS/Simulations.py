@@ -190,6 +190,7 @@ def SimulateControlledSystem(tspan, system, controller=None, x0=None):
     # inherit? Or just stimulate fuzzy control systems?
     
     # TODO: fix for outputs
+    # TODO: separate function_to_integrate constructor? User constructs feedback model?
     
     sim_result = SimulationResult(system, controller)
     
@@ -221,8 +222,11 @@ def SimulateControlledSystem(tspan, system, controller=None, x0=None):
             pass
         # TODO: figure out when I need to copy and when I don't
         # I know `x` coming from ode integrator will not be matrix, so I should 
-        # cast it here to the right shape 
-        return system(x, u)
+        # cast it here to the right shape
+        if system.n_inputs != 0:
+            return system(x, u)
+        else:
+            return system(x)
 
     num_time_points = 1
     if system.dt is None:
