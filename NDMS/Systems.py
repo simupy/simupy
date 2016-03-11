@@ -11,7 +11,14 @@ class DynamicalSystem(object):
 
         TODO: This should really have output equations (functions)
 
-        descriptions?
+        var name and description? (machine/human name)
+
+        needs a "set vars to ___ then do ___" function. Used for eq points, phase plane, etc
+        could be a "with" context??
+
+        handle non-autonomous
+        mappings for call function
+        a "prepare to integrate" to do CSE for performance? later!
 
         """
         n_states, one_test = states.shape
