@@ -58,10 +58,9 @@ def callable_from_trajectory(t,curves):
     return interpolated_callable
 
 def grad(f, basis):
-    n = len(basis)
     return sp.Matrix([ 
         [ sp.diff(f[x],basis[y]) for y in range(len(basis)) ] \
-            for x in range(len(f)) ])
+            for x in range(len(f)) ]).T
 
 def augment_inputs(system):
     # Augment inputs, useful to construct control-affine systems

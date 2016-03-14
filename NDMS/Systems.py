@@ -1,8 +1,9 @@
 import sympy as sp, numpy as np
+from sympy.physics.mechanics import dynamicsymbols
 from .utils import process_vector_args, lambdify_with_vector_args, grad
 
 class DynamicalSystem(object): 
-    def __init__(self, state_equations, states, inputs=sp.Matrix([]), constants_values={}, dt=None):
+    def __init__(self, state_equations, states=None, inputs=None, outputs=None, constants_values={}, dt=None):
         """
         state_equations is a vector valued expression, the derivative of each state.        
 
@@ -22,7 +23,11 @@ class DynamicalSystem(object):
 
         """
         n_states, one_test = states.shape
-        n_inputs, one_test = inputs.shape 
+        if inputs is not None:
+            n_inputs, one_test = inputs.shape
+        else:
+            n_inputs = 0
+            inputs = sp.Matrix([])
         n_states_test = len(state_equations)
         
         self.state_equations = state_equations
