@@ -224,12 +224,12 @@ def SimulateControlledSystem(tspan, system, controller=None, x0=None):
         # I know `x` coming from ode integrator will not be matrix, so I should 
         # cast it here to the right shape
         if system.n_inputs != 0:
-            return system(x, u)
+            return system.state_equation_function(t,x, u)
         else:
-            return system(x)
+            return system.state_equation_function(t,x)
 
     num_time_points = 1
-    if system.dt is None:
+    if system.dt == 0:
         IntegrateContinuousTimeSystem(function_to_integrate, sim_result, tspan, x0)
     else:
         IntegrateDiscreteTimeSystem(function_to_integrate, sim_result, tspan, x0, system.dt)

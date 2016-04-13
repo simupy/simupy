@@ -2,6 +2,7 @@ import sympy as sp, numpy as np
 from numpy.core.numeric import isscalar
 from sympy.utilities.lambdify import implemented_function
 from scipy import interpolate
+from sympy.physics.mechanics import dynamicsymbols
 #from .Systems
 
 sinc = implemented_function(sp.Function('sinc'), lambda x: np.sinc(x/np.pi) )
@@ -62,26 +63,24 @@ def grad(f, basis):
         [ sp.diff(f[x],basis[y]) for y in range(len(basis)) ] \
             for x in range(len(f)) ])
 
-def augment_inputs(system):
-    # Augment inputs, useful to construct control-affine systems
-    if isinstance(system, TSFM) and system.dt:
-        def new_call_function(self, x, u):
-            return N.append(self.old_callable_function(x[:self.n_states-self.n_inputs], x[-self.n_inputs:] + u), x[-self.n_inputs:] + u, 0)
-    elif isinstance(system, TSFM):
-        def new_call_function(self, x, u):
-            return N.append(self.old_callable_function(x), u, 0)
-    elif isinstance(system, NonlinearSystem) and system.dt:
-        def new_call_function(self, x, u):
-            return N.append(self.old_callable_function(x[:self.n_states-self.n_inputs], x[-self.n_inputs:] + u), x[-self.n_inputs:] + u, 0)
-    elif isinstance(system, NonlinearSystem):
-        def new_call_function(self, x, u):
-            return N.append(self.old_callable_function(x), u, 0)
-    else:
-        raise ValueError
+def augment_inputs(system,inputs=[],update_outputs=True):
+    # Augment inputs, useful to construct control-affine systems    
+    # accept list, etc of symbols to augment
+    augmented_system = system.copy()
+    if inputs==[]:
+        # augment all
+        inputs = system.inputs
     
-    system = system.copy()
-    system.old_callable_function = system.callable_function
-    system.callable_function = types.MethodType(new_call_function, system)
-    system.n_states = system.n_inputs + system.n_states
-    return system
+    inputs_to_augment = np.matrix(inputs)
+
+    np_inputs = np.matrix(augmented_system.inputs)
+
+    augmented_system.states = sp.Matrix.vstack(system.states,inputs)
+    augmented_system.inputs = sp.Matrix([ dynamicsymbols(str(input_var.func) + '\'') for input_var in inputs ])
+    augmented_system.state_equations = sp.Matrix.vstack(system.state_equations,augmented_system.inputs)
+
+    if update_outputs and system.output_equations == system.states:
+        augmented_system.output_equations = augmented_system.states
+
+    return augmented_system
         
