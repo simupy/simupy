@@ -243,13 +243,15 @@ class BlockDiagram(object):
                 r.set_initial_value(r.y,r.t)
                 r.integrate(next_t)
                 if not dense_output:
-                    collect_integrator_results(r.t,r.y)
+                    latest_states, latest_outputs = continuous_time_integration_step(r.t,r.y,False)
                 dt_time_selector = (np.mod(next_t,self.dts)==0)
                 if np.any(np.isnan(results.y)):
                     break
             else:
+                latest_states = results.x[-1,:] # inherently not dense
+                latest_outputs = results.y[-1,:]
                 dt_time_selector = ((np.mod(next_t,self.dts)==0)|(self.dts==0))
-            new_states,new_outputs = computation_step(next_t,results.x[-1,:],results.y[-1,:],dt_time_selector)
+            new_states,new_outputs = computation_step(next_t,latest_states,latest_outputs,dt_time_selector)
             results.t = np.append(results.t, next_t)
             results.x = np.vstack((results.x, new_states.reshape((1,-1))))
             results.y = np.vstack((results.y, new_outputs.reshape((1,-1))))
