@@ -34,7 +34,7 @@ BD.connect(ctr_sys,sys)
 tF = 10
 
 # case 1
-sys.initial_condition = np.matrix([1, 1, 2.25])
+sys.initial_condition = np.matrix([1, 1, 2.25]).T
 result1 = BD.simulate(tF)
 
 plt.figure()
@@ -44,7 +44,7 @@ plt.title('controlled system with unstable initial conditions')
 plt.xlabel('time (s)')
 
 # case 2
-sys.initial_condition = np.matrix([5, -3, 1])
+sys.initial_condition = np.matrix([5, -3, 1]).T
 result2 = BD.simulate(tF)
 plt.figure(2)
 plt.plot(result2.t,result2.y)

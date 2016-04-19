@@ -1,5 +1,6 @@
 import sympy as sp, numpy as np
 from sympy.physics.mechanics import dynamicsymbols
+from sympy.physics.mechanics.functions import find_dynamicsymbols
 from .utils import process_vector_args, lambdify_with_vector_args, grad
 
 class DynamicalSystem(object): 
@@ -27,16 +28,13 @@ class DynamicalSystem(object):
         check for memory(less)? just use n-state
 
         """
+        # TODO: when constant_values is set, update callables?
         self.constants_values = constants_values
         self.states = states
+        self.initial_condition = initial_condition
         self.inputs = inputs
         self.state_equations = state_equations
         self.output_equations = output_equations
-
-        if initial_condition is not None:
-            self.initial_condition = initial_condition
-        else:
-            self.initial_condition = np.zeros(self.n_states)
         
         self.dt = dt
 
@@ -71,6 +69,8 @@ class DynamicalSystem(object):
         if state_equations is None: # or other checks?
             state_equations = sp.Matrix([])
         assert len(state_equations) == len(self.states)
+        assert find_dynamicsymbols(state_equations) <= set(self.states) | set(self.inputs)
+        assert state_equations.atoms(sp.Symbol) <= set(self.constants_values.keys()) | set([dynamicsymbols._t])
         self._state_equations = state_equations
         # TODO: decouple code generator. Perhaps allow  PyDy and/or PyODEsys
         self.state_equation_function = lambdify_with_vector_args( \
@@ -87,16 +87,34 @@ class DynamicalSystem(object):
             output_equations = self.states
         self.n_outputs = len(output_equations)
         self._output_equations = output_equations
-
-        # TODO: decouple code generator. Perhaps allow  PyDy and/or PyODEsys
+        assert output_equations.atoms(sp.Symbol) <= set(self.constants_values.keys()) | set([dynamicsymbols._t])
+        
         if self.n_states:
+            assert find_dynamicsymbols(output_equations) <= set(self.states)
+
+            # TODO: decouple code generator. Perhaps allow  PyDy and/or PyODEsys
             self.output_equation_function = lambdify_with_vector_args( \
                 [dynamicsymbols._t] + sp.flatten(self.states), \
                 output_equations.subs(self.constants_values), modules="numpy")
         else:
+            assert find_dynamicsymbols(output_equations) <= set(self.inputs)
+
+            # TODO: decouple code generator. Perhaps allow  PyDy and/or PyODEsys
             self.output_equation_function = lambdify_with_vector_args( \
                 [dynamicsymbols._t] + sp.flatten(self.inputs), \
                 output_equations.subs(self.constants_values), modules="numpy")
+
+    @property
+    def initial_condition(self):
+        return self._initial_condition
+
+    @initial_condition.setter
+    def initial_condition(self,initial_condition):
+        if initial_condition is not None:
+            assert len(initial_condition) == self.n_states
+            self._initial_condition = initial_condition
+        else:
+            self._initial_condition = np.zeros(self.n_states)
 
     def prepare_to_integrate(self):
         pass
@@ -119,19 +137,57 @@ class DynamicalSystem(object):
 class DescriptorSystem(DynamicalSystem):
     # ideally, take advantage of DAE solvers eventually
     # since I'm on my own, I will use my generalized momentum nomenclature
-    def __init__(self):
+    def __init__(self, mass_matrix=None, impulse_equations=None, states=None, 
+        inputs=None, output_equations=None, constants_values={}, dt=0, 
+        initial_condition=None):
 
-        self.mass_matrix = kwargs.pop('mass_matrix',None)
-        if self.mass_matrix is not None:
-            self.state_eq_explicit = kwargs.pop('state_eq_explicit', None)
-            if self.state_eq_explicit is None:
-                self.state_eq_explicit = self.mass_matrix.LUsolve(self.state_equations)
-        else:
-            self.state_eq_explicit = self.state_equations
+        self.constants_values = constants_values
+        self.states = states
+        self.initial_condition = initial_condition
+        self.inputs = inputs
+        self.output_equations = output_equations
+        self.impulse_equations = impulse_equations
+        self.mass_matrix = mass_matrix
+        self.dt = dt
+
+    @property 
+    def impulse_equations(self):
+        return self._impulse_equations
+
+    @impulse_equations.setter
+    def impulse_equations(self, impulse_equations):
+        assert find_dynamicsymbols(impulse_equations) <= set(self.states) | set(self.inputs)
+        assert impulse_equations.atoms(sp.Symbol) <= set(self.constants_values.keys()) | set([dynamicsymbols._t])
+        self._impulse_equations = impulse_equations
+
+    @property
+    def mass_matrix(self):
+        return self._mass_matrix
+
+    @mass_matrix.setter
+    def mass_matrix(self,mass_matrix):
+        if mass_matrix is None:
+            mass_matrix = sp.eye(self.n_states)
+        assert mass_matrix.shape[1] == len(self.states)
+        assert mass_matrix.shape[0] == len(self.impulse_equations)
+        assert find_dynamicsymbols(mass_matrix) <= set(self.states) | set(self.inputs)
+        assert mass_matrix.atoms(sp.Symbol) <= set(self.constants_values.keys()) | set([dynamicsymbols._t])
+
+        self.state_equations = mass_matrix.LUsolve(self.impulse_equations)
+        self._mass_matrix = mass_matrix
+        # TODO: callable for mass matrices and impulse_equations for DAE solvers
 
 class MemorylessSystem(DynamicalSystem):
-    # a system with no states
-    # if no inputs are used, can represent a signal
+    """
+    a system with no states
+    
+    if no inputs are used, can represent a signal (function of time only)
+    for example, a stochastic signal could interpolate points and use 
+    prepare_to_integrate to re-seed the data, or something.
+
+    when I decouple code generator, maybe output_equations could even be a
+    stochastic representation? 
+    """
     def __init__(self, inputs=None, output_equations=None, constants_values={}, dt=0):
         super(MemorylessSystem,self).__init__(inputs=inputs,  output_equations=output_equations,
            constants_values=constants_values, dt=dt)
@@ -152,5 +208,7 @@ class LTISystem(DynamicalSystem):
 
         or for a memoryless linear system (aka, state feedback), pass in K/D matrix
         y = Ku
+
+        hold symbolic and/or numeric matrices, plus callables
         """
         pass

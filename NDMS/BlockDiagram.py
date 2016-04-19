@@ -58,7 +58,7 @@ class BlockDiagram(object):
         self.dts = np.append(self.dts,system.dt)
         self.connections = np.pad(self.connections,((0,system.n_outputs),(0,system.n_inputs)),'constant',constant_values=0)
 
-    def simulate(self, tspan):
+    def simulate(self, tspan, integrator_name='dopri5', integrator_options={}):
         """
         TODO: recreate into giant expression, hopefully with CSE? This would
         speed up CT systems, but most likely the interesting ones are algorithmic.
@@ -82,9 +82,9 @@ class BlockDiagram(object):
 
         # generate tspan based on DTs, add hybrid flag
         if len(np.unique(self.dts)) > 1:
-            self.hybrid = True
+            hybrid = True
         else:
-            self.hybrid = False
+            hybrid = False
 
         dense_output = True
         if np.isscalar(tspan):
@@ -98,7 +98,7 @@ class BlockDiagram(object):
             t0 = tspan[0]
             tF = tspan[-1]
 
-        if self.hybrid:
+        if hybrid:
             tspan = np.array([])
             for dt in np.unique(self.dts):
                 if dt:
@@ -223,7 +223,7 @@ class BlockDiagram(object):
         # setup the integrator if we have CT states
         if len(ct_x0) > 0:
             r = ode(continuous_time_integration_step)
-            r.set_integrator('dopri5')
+            r.set_integrator(integrator_name, **integrator_options)
             r.set_initial_value(ct_x0,t0)
             if dense_output:
                 r.set_solout(collect_integrator_results)
@@ -244,6 +244,10 @@ class BlockDiagram(object):
                 r.integrate(next_t)
                 if not dense_output:
                     latest_states, latest_outputs = continuous_time_integration_step(r.t,r.y,False)
+                else:
+                    latest_states = results.x[-1,:] 
+                    latest_outputs = results.y[-1,:]
+
                 dt_time_selector = (np.mod(next_t,self.dts)==0)
                 if np.any(np.isnan(results.y)):
                     break
