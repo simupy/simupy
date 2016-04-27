@@ -58,9 +58,10 @@ def callable_from_trajectory(t,curves):
         return interpolate.splev(t, tck_splprep[0], der=0)
     return interpolated_callable
 
-def grad(f, basis):
+def grad(f, basis, for_numerical=True):
     return sp.Matrix([ 
-        [ sp.diff(f[x],basis[y]) for y in range(len(basis)) ] \
+        [ sp.diff(f[x],basis[y]) if not for_numerical or not f[x].has(sp.sign(basis[y])) else 0 
+            for y in range(len(basis)) ] \
             for x in range(len(f)) ])
 
 def augment_inputs(system,inputs=[],update_outputs=True):

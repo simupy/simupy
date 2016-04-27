@@ -42,7 +42,7 @@ class BlockDiagram(object):
         outputs = outputs+self.cum_outputs[np.where(self.systems==from_system_output)]
 
         if inputs==[]:
-            inputs = np.arange(from_system_output.n_outputs)
+            inputs = np.arange(to_system_input.n_inputs)
         else:
             inputs = np.asarray(inputs)
         inputs = inputs+self.cum_inputs[np.where(self.systems==to_system_input)]
