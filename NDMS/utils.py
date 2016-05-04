@@ -10,6 +10,7 @@ sinc = implemented_function(sp.Function('sinc'), lambda x: np.sinc(x/np.pi) )
 def process_vector_args(args):
     # TODO: any combination of vectors for each arg should be allowed
     # TODO: be more vectorizable? allow vectors for each arg
+    # TODO: create wrapper of this?
     new_args = []
     for arg in args:
         if isinstance(arg,(sp.Matrix,np.ndarray)):

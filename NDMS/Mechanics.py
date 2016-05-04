@@ -10,7 +10,7 @@ from sympy.physics.vector import Dyadic
 class ReferenceFrame(sReferenceFrame):
     def __init__(self, *args, **kwargs):
         super(ReferenceFrame,self).__init__(*args,**kwargs)
-        self.o = Point(self.name+'o')
+        self.o = Point(self.name+'_o')
         self.o.set_acc(self,0)
         self.o.set_vel(self,0)
 
@@ -23,7 +23,7 @@ class RigidBody(sRigidBody,ReferenceFrame):
         ReferenceFrame.__init__(self,name,indices,latexs)
         
         
-        self.cm = Point(self.name+'cm')
+        self.cm = Point(self.name+'_cm')
         self.cm.set_acc(self,0)
         self.cm.set_vel(self,0)
             

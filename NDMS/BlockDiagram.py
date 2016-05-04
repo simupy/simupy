@@ -3,6 +3,9 @@ import numpy as np
 import types
 from .utils import process_vector_args
 
+# TODO: use pandas for the results (symbol column index)
+# TODO: create custom dataframe that automatically computes column expressions if all atoms are present
+# TODO: make it so strings get sympified to try to find columns?
 class SimulationResult(object):
     def __init__(self, n_states, n_outputs):
         self.t = np.array([])
