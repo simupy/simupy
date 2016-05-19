@@ -56,7 +56,7 @@ def callable_from_trajectory(t,curves):
     # let's make it be concatenated
     tck_splprep = interpolate.splprep(x=[curves[:,i] for i in range(curves.shape[1]) ], u=t, s=0)
     def interpolated_callable(t,*args):
-        return interpolate.splev(t, tck_splprep[0], der=0)
+        return np.array(interpolate.splev(t, tck_splprep[0], der=0))
     return interpolated_callable
 
 def grad(f, basis, for_numerical=True):
