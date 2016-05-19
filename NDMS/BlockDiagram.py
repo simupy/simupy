@@ -6,6 +6,7 @@ from .utils import process_vector_args
 # TODO: use pandas for the results (symbol column index)
 # TODO: create custom dataframe that automatically computes column expressions if all atoms are present
 # TODO: make it so strings get sympified to try to find columns?
+# TODO: enforce naming so things don't clash? and then a mechanism to simplify names? and naming schemes for non DynamicalSystem systems.
 class SimulationResult(object):
     def __init__(self, n_states, n_outputs):
         self.t = np.array([])
@@ -152,8 +153,7 @@ class BlockDiagram(object):
                 output_end = self.cum_outputs[sysidx+1]
                 input_start = self.cum_inputs[sysidx]
                 input_end = self.cum_inputs[sysidx+1]
-                input_where_x,input_where_y = np.where(self.connections[:,input_start:input_end])
-                input_values = outputs[input_where_x[input_where_y]]
+                input_values = outputs[np.where(self.connections[:,input_start:input_end].T)[1]]
                 if len(input_values):
                     outputs[output_start:output_end] = sys.output_equation_function(t,input_values).reshape(-1)
                 else:
@@ -169,8 +169,7 @@ class BlockDiagram(object):
 
                 input_start = self.cum_inputs[sysidx]
                 input_end = self.cum_inputs[sysidx+1]
-                input_where_x,input_where_y = np.where(self.connections[:,input_start:input_end])
-                input_values = outputs[input_where_x[input_where_y]]
+                input_values = outputs[np.where(self.connections[:,input_start:input_end].T)[1]]
 
                 states[state_start:state_end] = sys.state_equation_function(t,state_values,input_values).reshape(-1)
 
