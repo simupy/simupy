@@ -78,7 +78,7 @@ def augment_inputs(system,inputs=[],update_outputs=True):
     np_inputs = np.matrix(augmented_system.inputs)
 
     augmented_system.states = sp.Matrix.vstack(system.states,inputs)
-    augmented_system.inputs = sp.Matrix([ dynamicsymbols(str(input_var.func) + '\'') for input_var in inputs ])
+    augmented_system.inputs = sp.Matrix([ dynamicsymbols(str(input_var.func) + 'prime') for input_var in inputs ])
     augmented_system.state_equations = sp.Matrix.vstack(system.state_equations,augmented_system.inputs)
 
     if update_outputs and system.output_equations == system.states:
