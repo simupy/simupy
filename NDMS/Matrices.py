@@ -20,12 +20,17 @@ def construct_explicit_matrix(name, n, m, symmetric=False, dynamic=False, **kwas
                 matrix[i,j] = matrix[j,i]
         return matrix
 
-def matrix_subs(subs):
+def matrix_subs(*subs):
     # I guess checking symmetry would be better, this will do for now.
+    if len(subs)==2:
+        subs = [subs]
     if isinstance(subs,(list,tuple)):
         return tuple( (sub[0][i,j], sub[1][i,j]) for sub in subs for i in range(sub[0].shape[0]) for j in range(sub[0].shape[1]))
     elif isinstance(subs,dict):
         return { sub[0][i,j]: sub[1][i,j] for sub in subs.items() for i in range(sub[0].shape[0]) for j in range(sub[0].shape[1]) }
+
+def block_matrix(blocks):
+    return sp.Matrix.col_join(*tuple(sp.Matrix.row_join(*tuple(mat for mat in row)) for row in blocks))
     
 def matrix_callable_from_vector_trajectory(t,x,unraveled,raveled):
     xn,xm = x.shape
