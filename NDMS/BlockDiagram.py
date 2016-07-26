@@ -196,7 +196,7 @@ class BlockDiagram(object):
             comp_states,comp_out = computation_step(t,states,outputs,selector=ct_selector)
 
             if not for_integrator: # i.e., to collect the results
-                return comp_states,comp_out
+                return ct_states,comp_out
 
             # return the comptued derivatives to the integrator
             ct_derivative = np.zeros_like(ct_states)
