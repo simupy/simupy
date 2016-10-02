@@ -2,11 +2,11 @@
 
 from distutils.core import setup
 
-setup(name='Nonlinear Dynamical Modeling and Simulation',
+setup(name='SimuPy',
       version='0.1',
-      description='Simulation and modeling of nonlinear dynamical systems',
+      description='Simulation dynamical systems',
       author='Benjamin Margolis',
       author_email='ben@sixpearls.com',
       url='http://www.sixpearls.com/',
-      packages=['NDMS'],
+      packages=['simupy'],
      )

@@ -1,10 +1,10 @@
 import numpy as np, sympy as sp,  matplotlib.pyplot as plt, numpy.matlib
-from NDMS.Systems import DynamicalSystem, SystemFromCallable
-from NDMS.BlockDiagram import BlockDiagram
-from NDMS.utils import grad
+from simupy.Systems import DynamicalSystem, SystemFromCallable
+from simupy.BlockDiagram import BlockDiagram
+from simupy.utils import grad
 from sympy.physics.mechanics import dynamicsymbols
 import control
-from NDMS.Matrices import construct_explicit_matrix, matrix_subs, matrix_callable_from_vector_trajectory, system_from_matrix_DE
+from simupy.Matrices import construct_explicit_matrix, matrix_subs, matrix_callable_from_vector_trajectory, system_from_matrix_DE
 
 x = sp.Matrix(dynamicsymbols('x1:4'))
 u = dynamicsymbols('u')

@@ -5,6 +5,8 @@ from .utils import callable_from_trajectory
 
 def construct_explicit_matrix(name, n, m, symmetric=False, diagonal=0, dynamic=False, **kwass):
     """
+    construct a matrix of symbolic elements 
+
     args:
     name - string base name for variables; each variable is name_ij, which admitedly only works clearly for n,m < 10
     n - number of rows
@@ -51,7 +53,7 @@ def matrix_subs(*subs):
 
 def block_matrix(blocks):
     """
-    Actually construct a block matrix, element by element
+    construct a block matrix, element by element
     """
     return sp.Matrix.col_join(*tuple(sp.Matrix.row_join(*tuple(mat for mat in row)) for row in blocks))
     

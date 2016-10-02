@@ -1,9 +1,9 @@
 import numpy as np, matplotlib.pyplot as plt, sympy as sp, numpy.matlib
 from sympy.physics.mechanics import dynamicsymbols
-from NDMS.Systems import DynamicalSystem
-from NDMS.Simulation import SimulateControlledSystem
-from NDMS.utils import callable_from_trajectory
-from NDMS.Matrices import construct_explicit_matrix, matrix_subs, matrix_callable_from_vector_trajectory, system_from_matrix_DE
+from simupy.Systems import DynamicalSystem
+from simupy.Simulation import SimulateControlledSystem
+from simupy.utils import callable_from_trajectory
+from simupy.Matrices import construct_explicit_matrix, matrix_subs, matrix_callable_from_vector_trajectory, system_from_matrix_DE
 
 
 As = construct_explicit_matrix('a',2,2,dynamic=True)

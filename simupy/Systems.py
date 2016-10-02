@@ -16,7 +16,7 @@ class DynamicalSystem(object):
 
         inputs is a sympy matrix (vector) of the inputs, in desired order
 
-        output_equations is avector valued expression, the output of the system.
+        output_equations is a vector valued expression, the output of the system.
 
         needs a "set vars to ___ then do ___" function. Used for eq points, phase plane, etc
         could be a "with" context??
@@ -77,6 +77,16 @@ class DynamicalSystem(object):
             [dynamicsymbols._t] + sp.flatten(self.states) + sp.flatten(self.inputs), \
             state_equations.subs(self.constants_values), modules="numpy")
 
+        self.state_jacobian_equation = grad(self.state_equations, self.states)
+        self.state_jacobian_equation_function = lambdify_with_vector_args( \
+            [dynamicsymbols._t] + sp.flatten(self.states) + sp.flatten(self.inputs), \
+            self.state_jacobian_equation.subs(self.constants_values), modules="numpy")
+
+        self.input_jacobian_equation = grad(self.state_equations, self.inputs)
+        self.input_jacobian_equation_function = lambdify_with_vector_args( \
+            [dynamicsymbols._t] + sp.flatten(self.states) + sp.flatten(self.inputs), \
+            self.input_jacobian_equation.subs(self.constants_values), modules="numpy")
+
     @property
     def output_equations(self):
         return self._output_equations
@@ -127,9 +137,6 @@ class DynamicalSystem(object):
         copy.output_equation_function = self.output_equation_function
         copy.state_equation_function = self.state_equation_function
         return copy
-
-    def jacobian(self):
-        return grad(self.state_equations, self.states)
 
     def equilibrium_points(self,inputs=None):
         return sp.solve(self.state_equations, self.states, dict=True)
@@ -210,5 +217,8 @@ class LTISystem(DynamicalSystem):
         y = Ku
 
         hold symbolic and/or numeric matrices, plus callables
+
+        should have a generator that takes just the numerical, and creates the symbolic with the same
+        states. can also do the standard, define symbolic matrices with constants
         """
         pass

@@ -1,6 +1,6 @@
 import numpy as np, sympy as sp,  matplotlib.pyplot as plt, numpy.matlib
-from NDMS.Systems import DynamicalSystem, SystemFromCallable
-from NDMS.BlockDiagram import BlockDiagram
+from simupy.Systems import DynamicalSystem, SystemFromCallable
+from simupy.BlockDiagram import BlockDiagram
 from sympy.physics.mechanics import dynamicsymbols
 
 x = sp.Matrix(dynamicsymbols('x1:3'))

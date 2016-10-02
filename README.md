@@ -1,1 +1,1 @@
-A package for nonlinear dynamical system modeling and simulation.
+A framework for modeling and simulating dynamical systems.
