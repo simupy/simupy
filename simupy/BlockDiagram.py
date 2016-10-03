@@ -1,7 +1,8 @@
 from scipy.integrate import ode
 import numpy as np
-import types
 from .utils import process_vector_args
+
+import warnings
 
 # TODO: use pandas for the results (symbol column index)
 # TODO: create custom dataframe that automatically computes column expressions if all atoms are present
@@ -65,7 +66,7 @@ class BlockDiagram(object):
     def simulate(self, tspan, integrator_name='dopri5', integrator_options={}):
         """
         TODO: recreate into giant expression, hopefully with CSE? This would
-        speed up CT systems, but most likely the interesting ones are algorithmic.
+        speed up CT systems, but most likely the interesting ones are hybrid.
 
         So goal of symbolic manipulation is to create efficient callable
         that is only a function of states and possibly time. Then efficient 
@@ -74,7 +75,10 @@ class BlockDiagram(object):
 
         Related: do we ever benefit from implicit form? explicit is probably
         always fine numerically? With DT and especially algorithmic, these
-        inefficiencies may be neglible. 
+        inefficiencies may be neglible.
+
+        Some will require a jacobian, not sure how inaccurate or inefficient it
+        would be just to follow the same computation procedure used here
 
         Could also group symbolic discrete time systems by dt. But ultimately 
         this still needs to handle "algorithmic" systems (controllers?) actually,
@@ -213,6 +217,10 @@ class BlockDiagram(object):
         # store the results from each continuous integration step
         def collect_integrator_results(t,ct_states):
             new_states,new_outputs = continuous_time_integration_step(t,ct_states,False)
+
+            if t in results.t and new_states in results.x and new_outputs in results.y:
+                return
+
             results.t = np.append(results.t, t)
             results.x = np.vstack((results.x, new_states.reshape((1,-1))))
             results.y = np.vstack((results.y, new_outputs.reshape((1,-1))))
@@ -221,7 +229,7 @@ class BlockDiagram(object):
                 print("aborting")
                 return -1
 
-        # TODO: decouple integrator; perhaps use PyDy, PyODEsys, PyDStool, etc
+        # TODO: decouple integrator; perhaps use PyDy, PyODEsys, PyDStool, Sundials, etc
         # setup the integrator if we have CT states
         if len(ct_x0) > 0:
             r = ode(continuous_time_integration_step)
@@ -237,7 +245,9 @@ class BlockDiagram(object):
         and initial outputs to results"""
         y0_zeros = np.zeros(self.cum_outputs[-1])
 
-        dt_time_selector = (np.mod(tspan[1],self.dts)==0)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            dt_time_selector = (np.mod(tspan[1],self.dts)==0)
         initial_computation = computation_step(t0,all_x0,y0_zeros,(dt_time_selector|(self.dts==0)))
         # right now, initial_computation[0] get's thrown away, but it should really be kept
         # at least for DT systems
@@ -260,15 +270,22 @@ class BlockDiagram(object):
                     latest_states = results.x[-1,:]
                     latest_outputs = results.y[-1,:]
 
-                dt_time_selector = (np.mod(next_t,self.dts)==0)
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    dt_time_selector = (np.mod(next_t,self.dts)==0)
             else: # get previous computed states to begin discrete time integration step
                 latest_states = results.x[-1,:] # inherently not dense
                 latest_outputs = results.y[-1,:]
-                dt_time_selector = ((np.mod(next_t,self.dts)==0)|(self.dts==0))
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    dt_time_selector = ((np.mod(next_t,self.dts)==0)|(self.dts==0))
 
             # handle discrete integration steps
             latest_states = latest_states.copy()
-            for sysidx in np.where((np.diff(self.cum_states)>0)&(np.mod(next_t,self.dts)==0))[0]:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                ct_time_slector = (np.diff(self.cum_states)>0)&(np.mod(next_t,self.dts)==0)
+            for sysidx in np.where(ct_time_slector)[0]:
                 sys = self.systems[sysidx]
                 state_start = self.cum_states[sysidx]
                 state_end = self.cum_states[sysidx+1]
@@ -277,10 +294,10 @@ class BlockDiagram(object):
 
             next_states,current_outputs = computation_step(next_t,latest_states,latest_outputs,dt_time_selector)
 
-
-            results.t = np.append(results.t, next_t)
-            results.y = np.vstack((results.y, current_outputs.reshape((1,-1))))
-            results.x = np.vstack((results.x, latest_states.reshape((1,-1))))
+            if not dense_output:
+                results.t = np.append(results.t, next_t)
+                results.y = np.vstack((results.y, current_outputs.reshape((1,-1))))
+                results.x = np.vstack((results.x, latest_states.reshape((1,-1))))
 
             if next_t != tF:
                 next_dt_x = next_states
