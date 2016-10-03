@@ -3,6 +3,8 @@ from simupy.Systems import DynamicalSystem, SystemFromCallable
 from simupy.BlockDiagram import BlockDiagram
 from sympy.physics.mechanics import dynamicsymbols
 
+plt.ion()
+
 x = sp.Matrix(dynamicsymbols('x1:3'))
 x1, x2 = x
 
@@ -10,7 +12,7 @@ mu = sp.symbols('mu')
 
 sys = DynamicalSystem( sp.Matrix([x2, -x1+mu*(1-x1**2)*x2]), x, constants_values={mu: 5})
 
-sys.initial_condition = np.matrix([1,1])
+sys.initial_condition = np.matrix([1,1]).T
 
 BD = BlockDiagram(sys)
 res = BD.simulate(10)
