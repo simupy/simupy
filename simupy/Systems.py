@@ -142,8 +142,13 @@ class DynamicalSystem(object):
         return sp.solve(self.state_equations, self.states, dict=True)
 
 class DescriptorSystem(DynamicalSystem):
-    # ideally, take advantage of DAE solvers eventually
-    # since I'm on my own, I will use my generalized momentum nomenclature
+    """
+    ideally, take advantage of DAE solvers eventually
+    since I'm on my own, I will use my generalized momentum nomenclature
+
+    M(t,x) * x_dot = F(t,x,u)
+
+    """
     def __init__(self, mass_matrix=None, impulse_equations=None, states=None, 
         inputs=None, output_equations=None, constants_values={}, dt=0, 
         initial_condition=None):
@@ -207,7 +212,7 @@ def SystemFromCallable(incallable,n_inputs,n_outputs,dt=0):
     return system
 
 class LTISystem(DynamicalSystem):
-    def __init__(self, *args):
+    def __init__(self, *args, dt=0):
         """
         Pass in ABC/FGH matrices
         x' = Fx+Gu
@@ -221,4 +226,31 @@ class LTISystem(DynamicalSystem):
         should have a generator that takes just the numerical, and creates the symbolic with the same
         states. can also do the standard, define symbolic matrices with constants
         """
-        pass
+        self.dt = 0
+        if len(args) == 1:
+            self.K = args[0]
+            self.n_inputs = self.K.shape[1]
+            self.n_outputs = self.K.shape[0]
+            self.output_equation_function = lambda t,x: K*np.asmatrix(x).reshape((-1,1))
+
+        if len(args) not in (2,3):
+            raise ValueError("LTI system expects 1, 2, or 3 args")
+
+        if len(args) == 2:
+            F,G = args
+            H = np.matlib.eye(F.shape[0])
+
+        elif len(args) == 3:
+            F,G,H = args
+
+        self.F = F
+        self.G = G
+        self.H = H
+
+        self.n_states = F.shape[0]
+        self.n_inputs = G.shape[1]
+        self.n_outputs = H.shape[0]
+        self.state_equation_function = lambda t,x,u: F*np.asmatrix(x).reshape((-1,1))+G*np.asmatrix(u).reshape((-1,1))
+        self.output_equation_function = lambda t,x: H*np.asmatrix(x).reshape((-1,1))
+
+
