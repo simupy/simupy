@@ -46,6 +46,8 @@ class DynamicalSystem(object):
     def states(self,states):
         if states is None: # or other checks?
             states = sp.Matrix([])
+        if isinstance(states,sp.Expr):
+            states = sp.Matrix([states])  
         self.n_states = len(states)
         self._states = states
 
@@ -57,6 +59,8 @@ class DynamicalSystem(object):
     def inputs(self,inputs):
         if inputs is None: # or other checks?
             inputs = sp.Matrix([])
+        if isinstance(inputs,sp.Expr):
+            inputs = sp.Matrix([inputs])  
         self.n_inputs = len(inputs)
         self._inputs = inputs
 
@@ -146,8 +150,9 @@ class DescriptorSystem(DynamicalSystem):
     ideally, take advantage of DAE solvers eventually
     since I'm on my own, I will use my generalized momentum nomenclature
 
-    M(t,x) * x_dot = F(t,x,u)
+    M(t,x) * x_dot = f(t,x,u)
 
+    M is the mass matrix and f is the impulse equations
     """
     def __init__(self, mass_matrix=None, impulse_equations=None, states=None, 
         inputs=None, output_equations=None, constants_values={}, dt=0, 
@@ -212,7 +217,7 @@ def SystemFromCallable(incallable,n_inputs,n_outputs,dt=0):
     return system
 
 class LTISystem(DynamicalSystem):
-    def __init__(self, *args, dt=0):
+    def __init__(self, *args, constants_values={}, dt=0):
         """
         Pass in ABC/FGH matrices
         x' = Fx+Gu
@@ -221,20 +226,25 @@ class LTISystem(DynamicalSystem):
         or for a memoryless linear system (aka, state feedback), pass in K/D matrix
         y = Ku
 
-        hold symbolic and/or numeric matrices, plus callables
-
-        should have a generator that takes just the numerical, and creates the symbolic with the same
-        states. can also do the standard, define symbolic matrices with constants
+        possible features:
+            - hold symbolic structured matrices (0's where appropriate) 
+            - functions to convert between different canonical forms
+            - stability analysis, controlability, observability, etc 
+            - discretize, z-transform
+            - frequency response analysis
+            - nyquist, root locus, etc
         """
-        self.dt = 0
+        super(LTISystem,self).__init__(constants_values=constants_values, dt=dt)
+
+        if len(args) not in (1,2,3):
+            raise ValueError("LTI system expects 1, 2, or 3 args")
+
         if len(args) == 1:
-            self.K = args[0]
+            self.K = K = args[0]
             self.n_inputs = self.K.shape[1]
             self.n_outputs = self.K.shape[0]
             self.output_equation_function = lambda t,x: K*np.asmatrix(x).reshape((-1,1))
-
-        if len(args) not in (2,3):
-            raise ValueError("LTI system expects 1, 2, or 3 args")
+            return 
 
         if len(args) == 2:
             F,G = args

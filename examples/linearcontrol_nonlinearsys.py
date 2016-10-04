@@ -1,10 +1,9 @@
 import numpy as np, sympy as sp,  matplotlib.pyplot as plt, numpy.matlib
-from simupy.Systems import DynamicalSystem, SystemFromCallable
+from simupy.Systems import DynamicalSystem, SystemFromCallable, LTISystem
 from simupy.BlockDiagram import BlockDiagram
 from simupy.utils import grad
 from sympy.physics.mechanics import dynamicsymbols
 import control
-from simupy.Matrices import construct_explicit_matrix, matrix_subs, matrix_callable_from_vector_trajectory, system_from_matrix_DE
 
 plt.ion()
 x = sp.Matrix(dynamicsymbols('x1:4'))
@@ -29,7 +28,7 @@ Kgain = np.matrix(lqrres[0])
 legends = [r'$x_1$',r'$x_2$',r'$x_3$',r'$u$']
 
 ctr_call = lambda t,x,*args: -Kgain*np.matrix(x).T
-ctr_sys = SystemFromCallable(ctr_call, 3, 1)
+ctr_sys = LTISystem(-Kgain) # SystemFromCallable(ctr_call, 3, 1)
 
 BD = BlockDiagram(sys,ctr_sys)
 

@@ -140,6 +140,8 @@ class BlockDiagram(object):
             outputs = np.copy(outputs_in)
 
             # compute outputs for full systems, y[t_k]=g(t_k,x[t_k])
+            # TODO: Is it possible to refactor these loops using a function that
+            # takes the total selector, input name, output name, and callable name?
             for sysidx in np.where((np.diff(self.cum_states)>0)&selector)[0]:
                 sys = self.systems[sysidx]
                 output_start = self.cum_outputs[sysidx]
