@@ -3,10 +3,19 @@ from sympy.physics.mechanics import dynamicsymbols
 from sympy.physics.mechanics.functions import find_dynamicsymbols
 from .utils import process_vector_args, lambdify_with_vector_args, grad
 
+DEFAULT_CODE_GENERATOR = lambdify_with_vector_args
+DEFAULT_CODE_GENERATOR_ARGS = {
+    'modules': "numpy"    
+}
+
+# TODO: A base System class? Enforces definition of n_states, n_inputs, n_outputs, and functions
+# before adding to BD (BD already does this for n's) and simulation (def needed to enforce functions)
+# could even test dimensions of actual output to make sure its correct, but it will fail on sim w/o
+
 class DynamicalSystem(object): 
     def __init__(self, state_equations=None, states=None, inputs=None, 
             output_equations=None, constants_values={}, dt=0, 
-            initial_condition=None):
+            initial_condition=None, code_generator=None, code_generator_args={}):
 
         """
         state_equations is a vector valued expression, the derivative of each state.        
@@ -33,9 +42,16 @@ class DynamicalSystem(object):
         self.states = states
         self.initial_condition = initial_condition
         self.inputs = inputs
+
+        self.code_generator = code_generator or DEFAULT_CODE_GENERATOR
+
+        code_gen_args_to_set = DEFAULT_CODE_GENERATOR_ARGS.copy()
+        code_gen_args_to_set.update(code_generator_args)
+        self.code_generator_args = code_gen_args_to_set
+
         self.state_equations = state_equations
         self.output_equations = output_equations
-        
+
         self.dt = dt
 
     @property
@@ -59,7 +75,7 @@ class DynamicalSystem(object):
     def inputs(self,inputs):
         if inputs is None: # or other checks?
             inputs = sp.Matrix([])
-        if isinstance(inputs,sp.Expr):
+        if isinstance(inputs,sp.Expr): # check it's a single dynamicsymbol? 
             inputs = sp.Matrix([inputs])  
         self.n_inputs = len(inputs)
         self._inputs = inputs
@@ -75,21 +91,15 @@ class DynamicalSystem(object):
         assert len(state_equations) == len(self.states)
         assert find_dynamicsymbols(state_equations) <= set(self.states) | set(self.inputs)
         assert state_equations.atoms(sp.Symbol) <= set(self.constants_values.keys()) | set([dynamicsymbols._t])
+
         self._state_equations = state_equations
-        # TODO: decouple code generator. Perhaps allow  PyDy and/or PyODEsys
-        self.state_equation_function = lambdify_with_vector_args( \
-            [dynamicsymbols._t] + sp.flatten(self.states) + sp.flatten(self.inputs), \
-            state_equations.subs(self.constants_values), modules="numpy")
+        self.update_state_equation_function()
 
         self.state_jacobian_equation = grad(self.state_equations, self.states)
-        self.state_jacobian_equation_function = lambdify_with_vector_args( \
-            [dynamicsymbols._t] + sp.flatten(self.states) + sp.flatten(self.inputs), \
-            self.state_jacobian_equation.subs(self.constants_values), modules="numpy")
+        self.update_state_jacobian_function()
 
         self.input_jacobian_equation = grad(self.state_equations, self.inputs)
-        self.input_jacobian_equation_function = lambdify_with_vector_args( \
-            [dynamicsymbols._t] + sp.flatten(self.states) + sp.flatten(self.inputs), \
-            self.input_jacobian_equation.subs(self.constants_values), modules="numpy")
+        self.update_input_jacobian_function()
 
     @property
     def output_equations(self):
@@ -102,21 +112,45 @@ class DynamicalSystem(object):
         self.n_outputs = len(output_equations)
         self._output_equations = output_equations
         assert output_equations.atoms(sp.Symbol) <= set(self.constants_values.keys()) | set([dynamicsymbols._t])
-        
         if self.n_states:
             assert find_dynamicsymbols(output_equations) <= set(self.states)
-
-            # TODO: decouple code generator. Perhaps allow  PyDy and/or PyODEsys
-            self.output_equation_function = lambdify_with_vector_args( \
-                [dynamicsymbols._t] + sp.flatten(self.states), \
-                output_equations.subs(self.constants_values), modules="numpy")
         else:
             assert find_dynamicsymbols(output_equations) <= set(self.inputs)
+        self.update_output_equation_function()
 
-            # TODO: decouple code generator. Perhaps allow  PyDy and/or PyODEsys
-            self.output_equation_function = lambdify_with_vector_args( \
+    def update_state_equation_function(self):
+        if not self.n_states:
+            return
+        self.state_equation_function = self.code_generator( \
+            [dynamicsymbols._t] + sp.flatten(self.states) + sp.flatten(self.inputs), \
+            self.state_equations.subs(self.constants_values), **self.code_generator_args)
+
+    def update_state_jacobian_function(self):
+        if not self.n_states:
+            return
+        self.state_jacobian_equation_function = self.code_generator( \
+            [dynamicsymbols._t] + sp.flatten(self.states) + sp.flatten(self.inputs), \
+            self.state_jacobian_equation.subs(self.constants_values), **self.code_generator_args)
+
+    def update_input_jacobian_function(self):
+        # TODO: state-less systems should have an input/output jacobian
+        if not self.n_states:
+            return
+        self.input_jacobian_equation_function = self.code_generator( \
+            [dynamicsymbols._t] + sp.flatten(self.states) + sp.flatten(self.inputs), \
+            self.input_jacobian_equation.subs(self.constants_values), **self.code_generator_args)
+
+    def update_output_equation_function(self):
+        if not self.n_outputs:
+            return
+        if self.n_states:
+            self.output_equation_function = self.code_generator( \
+                [dynamicsymbols._t] + sp.flatten(self.states), \
+                self.output_equations.subs(self.constants_values), **self.code_generator_args)
+        else:
+            self.output_equation_function = self.code_generator( \
                 [dynamicsymbols._t] + sp.flatten(self.inputs), \
-                output_equations.subs(self.constants_values), modules="numpy")
+                self.output_equations.subs(self.constants_values), **self.code_generator_args)
 
     @property
     def initial_condition(self):
@@ -155,14 +189,11 @@ class DescriptorSystem(DynamicalSystem):
     M is the mass matrix and f is the impulse equations
     """
     def __init__(self, mass_matrix=None, impulse_equations=None, states=None, 
-        inputs=None, output_equations=None, constants_values={}, dt=0, 
-        initial_condition=None):
+        inputs=None, output_equations=None, **kwargs):
 
-        self.constants_values = constants_values
-        self.states = states
-        self.initial_condition = initial_condition
-        self.inputs = inputs
-        self.output_equations = output_equations
+        super(DescriptorSystem,self).__init__(states=states, inputs=inputs,  output_equations=output_equations,
+           **kwargs)
+
         self.impulse_equations = impulse_equations
         self.mass_matrix = mass_matrix
         self.dt = dt
@@ -205,7 +236,9 @@ class MemorylessSystem(DynamicalSystem):
     when I decouple code generator, maybe output_equations could even be a
     stochastic representation? 
     """
-    def __init__(self, inputs=None, output_equations=None, constants_values={}, dt=0):
+    def __init__(self, inputs=None, output_equations=None, **kwargs):
+        if 'states' in kwargs or 'state_equations' in kwargs:
+            raise ValueError("Memoryless system should not have states or state_equations")
         super(MemorylessSystem,self).__init__(inputs=inputs,  output_equations=output_equations,
            constants_values=constants_values, dt=dt)
 
@@ -239,6 +272,7 @@ class LTISystem(DynamicalSystem):
         if len(args) not in (1,2,3):
             raise ValueError("LTI system expects 1, 2, or 3 args")
 
+        # TODO: setup jacobian functions
         if len(args) == 1:
             self.K = K = args[0]
             self.n_inputs = self.K.shape[1]
@@ -253,9 +287,9 @@ class LTISystem(DynamicalSystem):
         elif len(args) == 3:
             F,G,H = args
 
-        self.F = F
-        self.G = G
-        self.H = H
+        self.F = np.asmatrix(F)
+        self.G = np.asmatrix(G)
+        self.H = np.asmatrix(H)
 
         self.n_states = F.shape[0]
         self.n_inputs = G.shape[1]

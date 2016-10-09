@@ -13,7 +13,15 @@ u = dynamicsymbols('u')
 sys = DynamicalSystem(sp.Matrix([-x1+x2-x3, -x1*x2-x2+u, -x1+u]), x, u)
 ```
 
-which will automatically create callable functions for the state equations and jacobians using ``sympy.lambdify``. A number of helper classes/functions exist to simplify the construction of models. For example, a linear feedback controller can be defined as
+which will automatically create callable functions for the state equations, output equations, and jacobians. By default, the code generator uses a wrapper for ``sympy.lambdify``. You can change it by passing the system initialization arguments ``code_generator`` (the function) and additional key-word arguments to the generator in a dictionary ``code_generator_args``. You can change the defaults for future systems by changing the module values
+
+``python
+import simupy.Systems
+simupy.Systems.DEFAULT_CODE_GENERATOR = your_code_generator_function
+simupy.Systems.DEFAULT_CODE_GENERATOR_ARGS = {'extra_arg': value}
+``
+
+A number of helper classes/functions exist to simplify the construction of models. For example, a linear feedback controller can be defined as
 
 ```python
 from simupy.Systems import LTISystem
@@ -64,9 +72,9 @@ and
 y(t) = h(t,u)
 ```
 
-are both valid formulations. A system in a ``BlockDiagram`` needs to provide ``n_states``, ``n_inputs``, ``n_outputs``, ``output_equation_function``. If ``n_states`` > 0 then ``state_equation_function`` must also be provided. In the future, providing a jacobian will be required if paired with an integrator that requires it.
+are both valid formulations. A system in a ``BlockDiagram`` needs to provide ``n_states``, ``n_inputs``, ``n_outputs``, ``output_equation_function``. If ``n_states`` > 0 then ``state_equation_function`` must also be provided. In the future, providing jacobian functions will be used to construct ``BlockDiagram`` jacobians to use with solvers that support them.
 
-Setting system property ``dt``>0 will determine the sample rate that the outputs and states are computed; ``dt``=0 is treated as a continuous-time system. In hybrid-time BlockDiagrams, the system is automatically integrated piecewise to improve accuracy. Assumes systems are defined as
+Setting system property ``dt``>0 will determine the sample rate that the outputs and states are computed; ``dt``=0 is treated as a continuous-time system. In hybrid-time ``BlockDiagram``s, the system is automatically integrated piecewise to improve accuracy. Assumes systems are defined as
 
 ```
 x[k+] = f([k],x(k),u(k)])
@@ -88,11 +96,12 @@ y[k] = h([k], x[k])
 
 and makes sense in general for hybrid-time simulation.
 
-Currently, control design is outside the scope of SimuPy. So controller design tools (for example, feedback linearization, sliding mode, "adapative", etc) should be in its own library, but analysis tools that might help in controller design could be appropriate here (Lie algebra, features described in future goals, etc)
+By choice, control design is outside the scope of SimuPy. So controller design tools (for example, feedback linearization, sliding mode, "adapative", etc) should be in its own library, but analysis tools that might help in controller design could be appropriate here (Lie Algebra, features described in future goals, etc)
 
 ## Future goals
-- Hooks to allow code generators other than ``sympy.lambdify``
-- Hooks to allow integrators other than ``scipy.integrate.ode`` including DAE solvers and/or event handling
+- Add new code generator/wrappers (theano, ufuncify, ?). First 
+- Make sure there is a consistent convention for ordering. I think this is important for the trajectory callable (time, states) including matrices, as well as jacobians and vectorized state/output/jacobian functions inputs and outputs. 
+- Hooks to allow integrators other than ``scipy.integrate.ode`` including DAE solvers and/or event handling and/or homeotopic methods for discontinuities
 - Construct BlockDiagram level jacobians (of the continuous systems)
 - Linear and Non-linear system analysis tools, such as
   - helpers for Lyapunov analysis
@@ -104,4 +113,6 @@ Currently, control design is outside the scope of SimuPy. So controller design t
     - selectors based on time and state conditions (end-points are interpolated)
     - algebraic manipulation to create new columns
     - convert sympy expressions when naming or getting columns
+    - tool to plot reults together (collect on column names)
   - plotting tools to compare results from similar simulation runs
+- special constants dict that tracks Systems, updates on key change.
