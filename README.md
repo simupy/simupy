@@ -15,11 +15,11 @@ sys = DynamicalSystem(sp.Matrix([-x1+x2-x3, -x1*x2-x2+u, -x1+u]), x, u)
 
 which will automatically create callable functions for the state equations, output equations, and jacobians. By default, the code generator uses a wrapper for ``sympy.lambdify``. You can change it by passing the system initialization arguments ``code_generator`` (the function) and additional key-word arguments to the generator in a dictionary ``code_generator_args``. You can change the defaults for future systems by changing the module values
 
-``python
+```python
 import simupy.Systems
 simupy.Systems.DEFAULT_CODE_GENERATOR = your_code_generator_function
 simupy.Systems.DEFAULT_CODE_GENERATOR_ARGS = {'extra_arg': value}
-``
+```
 
 A number of helper classes/functions exist to simplify the construction of models. For example, a linear feedback controller can be defined as
 
