@@ -239,8 +239,8 @@ class MemorylessSystem(DynamicalSystem):
     def __init__(self, inputs=None, output_equations=None, **kwargs):
         if 'states' in kwargs or 'state_equations' in kwargs:
             raise ValueError("Memoryless system should not have states or state_equations")
-        super(MemorylessSystem,self).__init__(inputs=inputs,  output_equations=output_equations,
-           constants_values=constants_values, dt=dt)
+        super(MemorylessSystem,self).__init__(inputs=inputs,  
+            output_equations=output_equations, **kwargs)
 
 def SystemFromCallable(incallable,n_inputs,n_outputs,dt=0):
     system = MemorylessSystem(dt=dt)
