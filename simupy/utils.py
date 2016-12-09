@@ -6,6 +6,7 @@ from sympy.physics.mechanics import dynamicsymbols
 #from .Systems
 
 sinc = implemented_function(sp.Function('sinc'), lambda x: np.sinc(x/np.pi) )
+step = implemented_function(sp.Function('step'), lambda x: 1.0*(x>=0))
 
 def process_vector_args(args):
     # TODO: any combination of vectors for each arg should be allowed
