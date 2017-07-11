@@ -259,6 +259,10 @@ class LTISystem(DynamicalSystem):
         or for a memoryless linear system (aka, state feedback), pass in K/D matrix
         y = Ku
 
+        just wrappers for jacobian equations/functions?
+        need to decide how to use symbolic vs numeric
+
+
         possible features:
             - hold symbolic structured matrices (0's where appropriate) 
             - functions to convert between different canonical forms

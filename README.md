@@ -98,21 +98,3 @@ and makes sense in general for hybrid-time simulation.
 
 By choice, control design is outside the scope of SimuPy. So controller design tools (for example, feedback linearization, sliding mode, "adapative", etc) should be in its own library, but analysis tools that might help in controller design could be appropriate here (Lie Algebra, features described in future goals, etc)
 
-## Future goals
-- Add new code generator/wrappers (theano, ufuncify, ?). First 
-- Make sure there is a consistent convention for ordering. I think this is important for the trajectory callable (time, states) including matrices, as well as jacobians and vectorized state/output/jacobian functions inputs and outputs. 
-- Hooks to allow integrators other than ``scipy.integrate.ode`` including DAE solvers and/or event handling and/or homeotopic methods for discontinuities
-- Construct BlockDiagram level jacobians (of the continuous systems)
-- Linear and Non-linear system analysis tools, such as
-  - helpers for Lyapunov analysis
-  - phase plane plotters
-  - describing functions, 
-  - stability, controllability, observability, frequency response
-- Tools to manipulate and present the results more easily:
-  - a ``Pandas`` subclass:
-    - selectors based on time and state conditions (end-points are interpolated)
-    - algebraic manipulation to create new columns
-    - convert sympy expressions when naming or getting columns
-    - tool to plot reults together (collect on column names)
-  - plotting tools to compare results from similar simulation runs
-- special constants dict that tracks Systems, updates on key change.
