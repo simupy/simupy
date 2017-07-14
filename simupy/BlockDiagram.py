@@ -9,10 +9,10 @@ import warnings
 # TODO: make it so strings get sympified to try to find columns?
 # TODO: enforce naming so things don't clash? and then a mechanism to simplify names? and naming schemes for non DynamicalSystem systems.
 class SimulationResult(object):
-    def __init__(self, n_states, n_outputs):
-        self.t = np.array([])
-        self.x = np.array([]).reshape([0,n_states])
-        self.y = np.array([]).reshape([0,n_outputs])
+    def __init__(self, n_states, n_outputs, initial_size=0):
+        self.t = np.zeros(initial_size)
+        self.x = np.zeros((initial_size,n_states))
+        self.y = np.zeros((initial_size,n_outputs))
 
 class BlockDiagram(object):
     def __init__(self, *systems):
@@ -115,6 +115,11 @@ class BlockDiagram(object):
             for dt in np.unique(self.dts):
                 if dt:
                     tspan = np.unique(np.append(tspan,np.arange(t0,tF+dt,dt)))
+            
+            all_dts = np.zeros((tspan.size, self.dts.size))+t0
+            for dt_idx,dt in enumerate(self.dts):
+                if dt != 0:
+                    all_dts[:,dt_idx] = np.arange(t0,tF+dt,dt)
         """
         tspan is used to indicate which times must be computed
         these are the time-steps for a discrete simulation, end-points for
@@ -123,14 +128,22 @@ class BlockDiagram(object):
         for (time) hybrid systems
         """
         # generate tresult arrays; initialize x0
-        results = SimulationResult(self.cum_states[-1],self.cum_outputs[-1])
-        all_x0 = np.array([])
+        results = SimulationResult(self.cum_states[-1],self.cum_outputs[-1],tspan.size)
+        res_idx = 0
+
+        all_x0 = np.array([]) # TODO: pre-allocate
         ct_x0 = np.array([])
         for sys in self.systems:
             sys.prepare_to_integrate()
             all_x0 = np.append(all_x0,sys.initial_condition)
             if sys.dt == 0:
                 ct_x0 = np.append(ct_x0,sys.initial_condition)
+
+        def allocate_space(t):
+            more_rows = (tspan[-1]-t)*results.t.size//(t-tspan[0])
+            results.t = np.r_[results.t, np.zeros(more_rows)]
+            results.x = np.r_[results.x, np.zeros((more_rows, results.x.shape[1]))]
+            results.y = np.r_[results.y, np.zeros((more_rows, results.y.shape[1]))]
 
         def computation_step(t,states_in,outputs_in,selector=None):
             """
@@ -187,8 +200,8 @@ class BlockDiagram(object):
             to pass to between computation_step and integrator
             """
             ct_selector = (self.dts==0)
-            outputs = np.copy(results.y[-1,:])
-            states = np.copy(results.x[-1,:])
+            outputs = np.copy(results.y[res_idx-1,:])
+            states = np.copy(results.x[res_idx-1,:])
 
             # pass the integrator's current values to the computation step
             ct_state_accumulator = 0
@@ -223,9 +236,15 @@ class BlockDiagram(object):
             if t in results.t and new_states in results.x and new_outputs in results.y:
                 return
 
-            results.t = np.append(results.t, t)
-            results.x = np.vstack((results.x, new_states.reshape((1,-1))))
-            results.y = np.vstack((results.y, new_outputs.reshape((1,-1))))
+            if res_idx >= results.t.size:
+                allocate_space(t)
+            results.t[res_idx] = t
+            results.x[res_idx,:] = new_states
+            results.y[res_idx,:] = new_outputs
+            res_idx += 1
+            # results.t = np.append(results.t, t)
+            # results.x = np.vstack((results.x, new_states.reshape((1,-1))))
+            # results.y = np.vstack((results.y, new_outputs.reshape((1,-1))))
 
             if np.any(np.isnan(new_outputs)):
                 print("aborting")
@@ -253,14 +272,18 @@ class BlockDiagram(object):
         initial_computation = computation_step(t0,all_x0,y0_zeros,(dt_time_selector|(self.dts==0)))
         # right now, initial_computation[0] get's thrown away, but it should really be kept
         # at least for DT systems
-        results.t = np.append(results.t, t0)
-        results.x = np.vstack((results.x, all_x0.reshape((1,-1))))
-        results.y = np.vstack((results.y, initial_computation[1].reshape((1,-1))))
+        results.t[res_idx] = t0
+        results.x[res_idx,:] = all_x0
+        results.y[res_idx,:] = initial_computation[1]
+        res_idx += 1
+        # results.t = np.append(results.t, t0)
+        # results.x = np.vstack((results.x, all_x0.reshape((1,-1))))
+        # results.y = np.vstack((results.y, initial_computation[1].reshape((1,-1))))
         
         next_dt_x = initial_computation[0]
 
         for next_t in tspan[1:]:
-            if np.any(np.isnan(results.y)):
+            if np.any(np.isnan(results.y[:res_idx,:])):
                 break
 
             if len(ct_x0) > 0: # handle continuous time integration
@@ -269,15 +292,15 @@ class BlockDiagram(object):
                 if not dense_output:
                     latest_states, latest_outputs = continuous_time_integration_step(r.t,r.y,False)
                 else:
-                    latest_states = results.x[-1,:]
-                    latest_outputs = results.y[-1,:]
+                    latest_states = results.x[res_idx-1,:]
+                    latest_outputs = results.y[res_idx-1,:]
 
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     dt_time_selector = (np.mod(next_t,self.dts)==0)
             else: # get previous computed states to begin discrete time integration step
-                latest_states = results.x[-1,:] # inherently not dense
-                latest_outputs = results.y[-1,:]
+                latest_states = results.x[res_idx-1,:] # inherently not dense
+                latest_outputs = results.y[res_idx-1,:]
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     dt_time_selector = ((np.mod(next_t,self.dts)==0)|(self.dts==0))
@@ -296,14 +319,22 @@ class BlockDiagram(object):
 
             next_states,current_outputs = computation_step(next_t,latest_states,latest_outputs,dt_time_selector)
 
-            if not dense_output:
-                results.t = np.append(results.t, next_t)
-                results.y = np.vstack((results.y, current_outputs.reshape((1,-1))))
-                results.x = np.vstack((results.x, latest_states.reshape((1,-1))))
+            # if not dense_output:
+            if dense_output and res_idx >= results.t.size:
+                allocate_space(next_t)
+            results.t[res_idx] = next_t
+            results.x[res_idx,:] = latest_states
+            results.y[res_idx,:] = current_outputs
+            res_idx += 1
+            # results.t = np.append(results.t, next_t)
+            # results.y = np.vstack((results.y, current_outputs.reshape((1,-1))))
+            # results.x = np.vstack((results.x, latest_states.reshape((1,-1))))
 
             if next_t != tF:
                 next_dt_x = next_states
-
+        results.t = results.t[:res_idx+1]
+        results.x = results.x[:res_idx+1,:]
+        results.y = results.y[:res_idx+1,:]
         return results
 
 
