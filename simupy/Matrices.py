@@ -57,23 +57,32 @@ def block_matrix(blocks):
     """
     return sp.Matrix.col_join(*tuple(sp.Matrix.row_join(*tuple(mat for mat in row)) for row in blocks))
     
-def matrix_callable_from_vector_trajectory(t,x,unraveled,raveled):
+def matrix_callable_from_vector_trajectory(tt,x,unraveled,raveled):
+    """
+    convert a trajectory into an interpolating callable that returns a matrix.
+
+    tt: m time indeces 
+    x: n x m or m x n vector of samples
+    unravled: list of symbols in the same order of the data x
+    raveled: matrix-like of symbols in the desired positions 
+
+    """
     xn,xm = x.shape
-    if xm == t.size:
+    if xm == tt.size:
         time_axis = 1
         data_axis = 0
     else:
         time_axis = 0
         data_axis = 1
         
-    vector_callable = callable_from_trajectory(t,x)
+    vector_callable = callable_from_trajectory(tt,x)
     if isinstance(unraveled,sp.Matrix):
         unraveled = sp.flatten(unraveled.tolist())
     def matrix_callable(t):
         vector_result = vector_callable(t)
         as_array = False
         if isinstance(t,(list,tuple,np.ndarray)) and len(t)>1:
-            matrix_result = np.zeros(raveled.shape+(len(t),))
+            matrix_result = np.zeros((len(t),)+raveled.shape)
             as_array = True
         else:
             matrix_result = np.matlib.zeros(raveled.shape)
@@ -83,7 +92,7 @@ def matrix_callable_from_vector_trajectory(t,x,unraveled,raveled):
             i,j = iterator.multi_index
             idx = unraveled.index(raveled[i,j])
             if as_array:
-                matrix_result[i,j,:] = vector_result[idx]
+                matrix_result[...,i,j] = vector_result[idx]
             else:
                 matrix_result[i,j] = vector_result[idx]
         
