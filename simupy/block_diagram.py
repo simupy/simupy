@@ -24,7 +24,7 @@ class SimulationResult(object):
 
     def allocate_space(self, t):
         more_rows = int((self.tF-t)*self.t.size/(t-self.t0))+1
-        more_rows = min(more_rows, max_allocation)
+        more_rows = min(more_rows, self.max_allocation)
 
         self.t = np.r_[self.t, np.empty(more_rows)]
         self.x = np.r_[self.x, np.empty((more_rows, self.x.shape[1]))]

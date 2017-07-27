@@ -1,9 +1,9 @@
 import numpy as np, matplotlib.pyplot as plt, sympy as sp, numpy.matlib
 from sympy.physics.mechanics import dynamicsymbols
-from simupy.Systems import DynamicalSystem, SystemFromCallable, LTISystem
+from simupy.systems import DynamicalSystem, SystemFromCallable, LTISystem
 from simupy.utils import callable_from_trajectory
-from simupy.BlockDiagram import BlockDiagram
-from simupy.Matrices import construct_explicit_matrix, matrix_subs, matrix_callable_from_vector_trajectory, system_from_matrix_DE
+from simupy.block_diagram import BlockDiagram
+from simupy.matrices import construct_explicit_matrix, matrix_subs, matrix_callable_from_vector_trajectory, system_from_matrix_DE
 
 plt.ion()
 
@@ -35,14 +35,16 @@ RiccatiBD = BlockDiagram(SG_sys, ref_input_ctr_sys)
 RiccatiBD.connect(ref_input_ctr_sys, SG_sys)
 sg_sim_res = RiccatiBD.simulate(tF)
 
-mat_sg_result = matrix_callable_from_vector_trajectory(np.flipud(tF-sg_sim_res.t),np.flipud(sg_sim_res.x), SG_sys.states, SG)
-vec_sg_result = matrix_callable_from_vector_trajectory(np.flipud(tF-sg_sim_res.t),np.flipud(sg_sim_res.x), SG_sys.states, SG_sys.states)
+sim_data_unique_t, sim_data_unique_t_idx = np.unique(sg_sim_res.t, return_index=True)
+
+mat_sg_result = matrix_callable_from_vector_trajectory(np.flipud(tF-sg_sim_res.t[sim_data_unique_t_idx]),np.flipud(sg_sim_res.x[sim_data_unique_t_idx]), SG_sys.states, SG)
+vec_sg_result = matrix_callable_from_vector_trajectory(np.flipud(tF-sg_sim_res.t[sim_data_unique_t_idx]),np.flipud(sg_sim_res.x[sim_data_unique_t_idx]), SG_sys.states, SG_sys.states)
 
 plt.plot() # Plot S components
-plt.plot(sg_sim_res.t, mat_sg_result(sg_sim_res.t)[[0,0,1],[0,1,1],:].T)
+plt.plot(sg_sim_res.t, mat_sg_result(sg_sim_res.t)[:,[0,0,1],[0,1,1]])
 plt.title('unforced component of solution to Riccatti differential equation')
 plt.figure() # Plot G components
-plt.plot(sg_sim_res.t, mat_sg_result(sg_sim_res.t)[:,-1,:].T)
+plt.plot(sg_sim_res.t, mat_sg_result(sg_sim_res.t)[:,:,-1])
 plt.title('forced component of solution to Riccatti differential equation')
 
 

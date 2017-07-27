@@ -1,6 +1,6 @@
 import numpy as np, sympy as sp, numpy.matlib
 from sympy.physics.mechanics import dynamicsymbols
-from .Systems import DynamicalSystem
+from .systems import DynamicalSystem
 from .utils import callable_from_trajectory
 
 def construct_explicit_matrix(name, n, m, symmetric=False, diagonal=0, dynamic=False, **kwass):

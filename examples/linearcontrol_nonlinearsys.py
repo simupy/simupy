@@ -1,6 +1,6 @@
 import numpy as np, sympy as sp,  matplotlib.pyplot as plt, numpy.matlib
-from simupy.Systems import DynamicalSystem, SystemFromCallable, LTISystem
-from simupy.BlockDiagram import BlockDiagram
+from simupy.systems import DynamicalSystem, SystemFromCallable, LTISystem
+from simupy.block_diagram import BlockDiagram
 from simupy.utils import grad
 from sympy.physics.mechanics import dynamicsymbols
 import control
