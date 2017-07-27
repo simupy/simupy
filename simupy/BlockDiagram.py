@@ -9,6 +9,8 @@ import warnings
 # TODO: make it so strings get sympified to try to find columns?
 # TODO: enforce naming so things don't clash? and then a mechanism to simplify names? and naming schemes for non DynamicalSystem systems.
 class SimulationResult(object):
+
+    max_allocation = 2**7
     def __init__(self, n_states, n_outputs, tspan, initial_size=0 ):
         if initial_size == 0:
             initial_size = tspan.size
@@ -21,7 +23,9 @@ class SimulationResult(object):
         self.tF = tspan[-1]
 
     def allocate_space(self, t):
-        more_rows = int((self.tF-t)*self.t.size/(t-self.t0))
+        more_rows = int((self.tF-t)*self.t.size/(t-self.t0))+1
+        more_rows = min(more_rows, max_allocation)
+
         self.t = np.r_[self.t, np.empty(more_rows)]
         self.x = np.r_[self.x, np.empty((more_rows, self.x.shape[1]))]
         self.y = np.r_[self.y, np.empty((more_rows, self.y.shape[1]))]
