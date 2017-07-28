@@ -1,7 +1,7 @@
 import sympy as sp, numpy as np
 from sympy.physics.mechanics import dynamicsymbols
 from sympy.physics.mechanics.functions import find_dynamicsymbols
-from .utils import process_vector_args, lambdify_with_vector_args, grad
+from simupy.utils import process_vector_args, lambdify_with_vector_args, grad
 
 DEFAULT_CODE_GENERATOR = lambdify_with_vector_args
 DEFAULT_CODE_GENERATOR_ARGS = {
@@ -53,6 +53,8 @@ class DynamicalSystem(object):
         self.output_equations = output_equations
 
         self.dt = dt
+
+        self.n_events = 0
 
     @property
     def states(self):
@@ -179,51 +181,6 @@ class DynamicalSystem(object):
     def equilibrium_points(self,inputs=None):
         return sp.solve(self.state_equations, self.states, dict=True)
 
-class DescriptorSystem(DynamicalSystem):
-    """
-    ideally, take advantage of DAE solvers eventually
-    since I'm on my own, I will use my generalized momentum nomenclature
-
-    M(t,x) * x_dot = f(t,x,u)
-
-    M is the mass matrix and f is the impulse equations
-    """
-    def __init__(self, mass_matrix=None, impulse_equations=None, states=None, 
-        inputs=None, output_equations=None, **kwargs):
-
-        super(DescriptorSystem,self).__init__(states=states, inputs=inputs,  output_equations=output_equations,
-           **kwargs)
-
-        self.impulse_equations = impulse_equations
-        self.mass_matrix = mass_matrix
-        self.dt = dt
-
-    @property 
-    def impulse_equations(self):
-        return self._impulse_equations
-
-    @impulse_equations.setter
-    def impulse_equations(self, impulse_equations):
-        assert find_dynamicsymbols(impulse_equations) <= set(self.states) | set(self.inputs)
-        assert impulse_equations.atoms(sp.Symbol) <= set(self.constants_values.keys()) | set([dynamicsymbols._t])
-        self._impulse_equations = impulse_equations
-
-    @property
-    def mass_matrix(self):
-        return self._mass_matrix
-
-    @mass_matrix.setter
-    def mass_matrix(self,mass_matrix):
-        if mass_matrix is None:
-            mass_matrix = sp.eye(self.n_states)
-        assert mass_matrix.shape[1] == len(self.states)
-        assert mass_matrix.shape[0] == len(self.impulse_equations)
-        assert find_dynamicsymbols(mass_matrix) <= set(self.states) | set(self.inputs)
-        assert mass_matrix.atoms(sp.Symbol) <= set(self.constants_values.keys()) | set([dynamicsymbols._t])
-
-        self.state_equations = mass_matrix.LUsolve(self.impulse_equations)
-        self._mass_matrix = mass_matrix
-        # TODO: callable for mass matrices and impulse_equations for DAE solvers
 
 class MemorylessSystem(DynamicalSystem):
     """

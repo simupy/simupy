@@ -1,7 +1,7 @@
 import numpy as np, sympy as sp, numpy.matlib
 from sympy.physics.mechanics import dynamicsymbols
-from .systems import DynamicalSystem
-from .utils import callable_from_trajectory
+from simupy.systems import DynamicalSystem
+from simupy.utils import callable_from_trajectory
 
 def construct_explicit_matrix(name, n, m, symmetric=False, diagonal=0, dynamic=False, **kwass):
     """

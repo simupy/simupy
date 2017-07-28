@@ -1,8 +1,5 @@
 from scipy.integrate import ode
 import numpy as np
-from .utils import process_vector_args
-
-import warnings
 
 # TODO: use pandas for the results (symbol column index)
 # TODO: create custom dataframe that automatically computes column expressions if all atoms are present
@@ -54,22 +51,28 @@ class BlockDiagram(object):
             self.systems = np.array([], dtype=object)
             self.connections = np.array([],dtype=np.int_).reshape((0,0)) # or bool??
             self.dts = np.array([],dtype=np.float_)
+            self.events = np.array([],dtype=np.float_)
             self.cum_inputs = np.array([0],dtype=np.int_)
             self.cum_outputs = np.array([0],dtype=np.int_)
             self.cum_states = np.array([0],dtype=np.int_)
+            self.cum_events = np.array([0],dtype=np.int_)
         else:
             self.systems = np.array(systems, dtype=object)
 
             self.dts = np.zeros_like(self.systems,dtype=np.float_)
+            self.events = np.zeros_like(self.systems,dtype=np.float_)
             self.cum_inputs = np.zeros(self.systems.size+1,dtype=np.int_)
             self.cum_outputs = np.zeros(self.systems.size+1,dtype=np.int_)
             self.cum_states = np.zeros(self.systems.size+1,dtype=np.int_)
+            self.cum_events = np.array(self.systems.size+1,dtype=np.int_)
 
             for i,sys in enumerate(self.systems):
                 self.dts[i] = sys.dt
+                self.events[i] = sys.n_events
                 self.cum_inputs[i+1] = self.cum_inputs[i]+sys.n_inputs
                 self.cum_outputs[i+1] = self.cum_outputs[i]+sys.n_outputs
                 self.cum_states[i+1] = self.cum_states[i]+sys.n_states
+                self.cum_events[i+1] = self.cum_events[i]+sys.n_events
 
             self.connections = np.zeros((self.cum_outputs[-1],self.cum_inputs[-1]),dtype=np.bool_)
 
@@ -94,6 +97,8 @@ class BlockDiagram(object):
         self.cum_states = np.append(self.cum_states,self.cum_states[-1]+system.n_states)
         self.cum_inputs = np.append(self.cum_inputs,self.cum_inputs[-1]+system.n_inputs)
         self.cum_outputs = np.append(self.cum_outputs,self.cum_outputs[-1]+system.n_outputs)
+        self.cum_outputs = np.append(self.cum_outputs,self.cum_outputs[-1]+system.n_outputs)
+        self.cum_events = np.append(self.cum_events,self.cum_events[-1]+system.n_events)
         self.dts = np.append(self.dts,system.dt)
         self.connections = np.pad(self.connections,((0,system.n_outputs),(0,system.n_inputs)),'constant',constant_values=0)
 
@@ -167,7 +172,7 @@ class BlockDiagram(object):
         # generate tresult arrays; initialize x0
         results = SimulationResult(self.cum_states[-1],self.cum_outputs[-1],tspan)
 
-        all_x0 = np.array([]) # TODO: pre-allocate?
+        all_x0 = np.array([]) # TODO: pre-allocate? 
         ct_x0 = np.array([])
         for sys in self.systems:
             sys.prepare_to_integrate()
@@ -182,7 +187,7 @@ class BlockDiagram(object):
             states = np.copy(states_in)
             outputs = np.copy(outputs_in)
 
-            # compute outputs for full systems, y[t_k]=g(t_k,x[t_k])
+            # compute outputs for full systems, y[t_k]=h(t_k,x[t_k])
             # TODO: Is it possible to refactor these loops using a function that
             # takes the total selector, input name, output name, and callable name?
             for sysidx in np.where((np.diff(self.cum_states)>0)&selector)[0]:
@@ -195,7 +200,7 @@ class BlockDiagram(object):
                 state_values = states[state_start:state_end]
                 outputs[output_start:output_end] = sys.output_equation_function(t,state_values).reshape(-1)
 
-            # compute outputs for memoryless systems, y[t_k]=g(t_k,u[t_k])
+            # compute outputs for memoryless systems, y[t_k]=h(t_k,u[t_k])
             for sysidx in np.where((np.diff(self.cum_states)==0)&selector)[0]:
                 sys = self.systems[sysidx]
                 output_start = self.cum_outputs[sysidx]
@@ -208,7 +213,7 @@ class BlockDiagram(object):
                 else:
                     outputs[output_start:output_end] = sys.output_equation_function(t).reshape(-1)
 
-            # compute outputs for full systems, x[t_k+dt]=f(t_k,x[t_k],u[t_k])
+            # compute state equation for full systems, x[t_k']=f(t_k,x[t_k],u[t_k])
             for sysidx in np.where((np.diff(self.cum_states)>0)&selector)[0]:
                 sys = self.systems[sysidx]
 
@@ -267,9 +272,10 @@ class BlockDiagram(object):
                new_outputs in results.y[test_sel,:]):
                 return
 
+            # check for events here -- before saving, because it is potentially invalid
             results.new_result(t,new_states,new_outputs)
 
-            if np.any(np.isnan(new_outputs)):
+            if np.any(np.isnan(new_outputs)): 
                 print("aborting")
                 return -1
 
@@ -303,6 +309,7 @@ class BlockDiagram(object):
             if len(ct_x0) > 0: # handle continuous time integration
                 r.set_initial_value(r.y,r.t)
                 r.integrate(next_t)
+                # event detection processing for CT systems here
                 if not dense_output:
                     latest_states, latest_outputs = continuous_time_integration_step(r.t,r.y,False)
                 else:
@@ -324,7 +331,6 @@ class BlockDiagram(object):
                 latest_states[state_start:state_end] = next_dt_x[state_start:state_end]
 
             next_states,current_outputs = computation_step(next_t,latest_states,latest_outputs,dt_time_selector)
-
             results.new_result(next_t,latest_states,current_outputs)
 
             if next_t != tF:
