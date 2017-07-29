@@ -66,21 +66,21 @@ def grad(f, basis, for_numerical=True):
             for y in range(len(basis)) ] \
             for x in range(len(f)) ])
 
-def augment_inputs(system,inputs=[],update_outputs=True):
-    # Augment inputs, useful to construct control-affine systems    
+def augment_input(system,input_=[],update_outputs=True):
+    # Augment input, useful to construct control-affine systems    
     # accept list, etc of symbols to augment
     augmented_system = system.copy()
-    if inputs==[]:
+    if input_==[]:
         # augment all
-        inputs = system.inputs
+        input_ = system.input
     
-    inputs_to_augment = np.matrix(inputs)
+    input_to_augment = np.matrix(input_)
 
-    np_inputs = np.matrix(augmented_system.inputs)
+    np_input = np.matrix(augmented_system.input)
 
-    augmented_system.state = sp.Matrix.vstack(system.state,inputs)
-    augmented_system.inputs = sp.Matrix([ dynamicsymbols(str(input_var.func) + 'prime') for input_var in inputs ])
-    augmented_system.state_equation = sp.Matrix.vstack(system.state_equation,augmented_system.inputs)
+    augmented_system.state = sp.Matrix.vstack(system.state,input_)
+    augmented_system.input = sp.Matrix([ dynamicsymbols(str(input_var.func) + 'prime') for input_var in input_ ])
+    augmented_system.state_equation = sp.Matrix.vstack(system.state_equation,augmented_system.input)
 
     if update_outputs and system.output_equation == system.state:
         augmented_system.output_equation = augmented_system.state

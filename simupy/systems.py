@@ -13,7 +13,7 @@ DEFAULT_CODE_GENERATOR_ARGS = {
 # could even test dimensions of actual output to make sure its correct, but it will fail on sim w/o
 
 class DynamicalSystem(object): 
-    def __init__(self, state_equation=None, state=None, input=None, 
+    def __init__(self, state_equation=None, state=None, input_=None, 
             output_equation=None, constants_values={}, dt=0, 
             initial_condition=None, code_generator=None, code_generator_args={}):
 
@@ -23,7 +23,7 @@ class DynamicalSystem(object):
         state is a sympy matrix (vector) of the state components, in desired order, matching 
         state_equation.
 
-        input is a sympy matrix (vector) of the input vector, in desired order
+        input_ is a sympy matrix (vector) of the input vector, in desired order
 
         output_equation is a vector valued expression, the output of the system.
 
@@ -41,7 +41,7 @@ class DynamicalSystem(object):
         self.constants_values = constants_values
         self.state = state
         self.initial_condition = initial_condition
-        self.input = input
+        self.input = input_
 
         self.code_generator = code_generator or DEFAULT_CODE_GENERATOR
 
@@ -74,13 +74,13 @@ class DynamicalSystem(object):
         return self._inputs
 
     @input.setter
-    def input(self,input):
-        if input is None: # or other checks?
-            input = sp.Matrix([])
-        if isinstance(input,sp.Expr): # check it's a single dynamicsymbol? 
-            input = sp.Matrix([input])  
-        self.dim_input = len(input)
-        self._inputs = input
+    def input(self,input_):
+        if input_ is None: # or other checks?
+            input_ = sp.Matrix([])
+        if isinstance(input_,sp.Expr): # check it's a single dynamicsymbol? 
+            input_ = sp.Matrix([input_])  
+        self.dim_input = len(input_)
+        self._inputs = input_
 
     @property
     def state_equation(self):
@@ -171,14 +171,14 @@ class DynamicalSystem(object):
 
     def copy(self):
         copy = self.__class__(state_equation=self.state_equation, \
-            state=self.state, input=self.input, \
+            state=self.state, input_=self.input, \
             output_equation=self.output_equation, 
             constants_values=self.constants_values, dt=self.dt)
         copy.output_equation_function = self.output_equation_function
         copy.state_equation_function = self.state_equation_function
         return copy
 
-    def equilibrium_points(self,input=None):
+    def equilibrium_points(self,input_=None):
         return sp.solve(self.state_equation, self.state, dict=True)
 
 
@@ -193,10 +193,10 @@ class MemorylessSystem(DynamicalSystem):
     when I decouple code generator, maybe output_equation could even be a
     stochastic representation? 
     """
-    def __init__(self, input=None, output_equation=None, **kwargs):
+    def __init__(self, input_=None, output_equation=None, **kwargs):
         if 'state' in kwargs or 'state_equation' in kwargs:
             raise ValueError("Memoryless system should not have state or state_equation")
-        super(MemorylessSystem,self).__init__(input=input,  
+        super(MemorylessSystem,self).__init__(input_=input_,  
             output_equation=output_equation, **kwargs)
 
 def SystemFromCallable(incallable,dim_input,dim_output,dt=0):

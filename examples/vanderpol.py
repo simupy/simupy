@@ -15,7 +15,10 @@ sys = DynamicalSystem( sp.Matrix([x2, -x1+mu*(1-x1**2)*x2]), x, constants_values
 sys.initial_condition = np.matrix([1,1]).T
 
 BD = BlockDiagram(sys)
-res = BD.simulate(10)
+res = BD.simulate(30)
 
 plt.plot(res.t,res.y)
 plt.legend([sp.latex(s, mode='inline') for s in sys.state])
+
+plt.figure()
+plt.plot(*res.y.T)
