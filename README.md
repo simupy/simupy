@@ -59,7 +59,7 @@ A number of utilities for constructing and manipulating systems and the simulati
 
 ## Design
 
-SimuPy assumes systems have no direct feedthrough between inputs and outputs. To simulate a system model that includes a feedthrough, the system can be augmented (differentiating the input or integrating the output). However, there is no requirement for the system to have a state, so 
+SimuPy assumes systems have no direct feedthrough between inputs and outputs; this discpline avoids algebraic loops. To simulate a system model that includes a feedthrough, the system can be augmented (differentiating the input or integrating the output). However, there is no requirement for the system to have a state, so 
 
 ```
 x'(t) = f(t,x,u)
@@ -72,7 +72,7 @@ and
 y(t) = h(t,u)
 ```
 
-are both valid formulations. A system in a ``BlockDiagram`` needs to provide ``n_states``, ``n_inputs``, ``n_outputs``, ``output_equation_function``. If ``n_states`` > 0 then ``state_equation_function`` must also be provided. In the future, providing jacobian functions will be used to construct ``BlockDiagram`` jacobians to use with solvers that support them.
+are both valid formulations. A system in a ``BlockDiagram`` needs to provide ``dim_state``, ``dim_input``, ``dim_output``, and ``output_equation_function``. If ``dim_state`` > 0 then ``state_equation_function`` must also be provided. In the future, providing jacobian functions will be used to construct ``BlockDiagram`` jacobians to use with solvers that support them.
 
 Setting system property ``dt``>0 will determine the sample rate that the outputs and state are computed; ``dt``=0 is treated as a continuous-time system. In hybrid-time ``BlockDiagram``s, the system is automatically integrated piecewise to improve accuracy. Assumes systems are defined as
 
@@ -96,7 +96,7 @@ y[k] = h([k], x[k])
 
 and makes sense in general for hybrid-time simulation.
 
-By choice, control design is outside the scope of SimuPy. So controller design tools (for example, feedback linearization, sliding mode, "adapative", etc) should be in its own library, but analysis tools that might help in controller design could be appropriate here (Lie Algebra, features described in future goals, etc)
+By choice, control design is outside the scope of SimuPy. So controller design tools (for example, feedback linearization, sliding mode, "adapative", etc) should be in its own library(/ies), but analysis tools that might help in controller design could be appropriate here.
 
 Notation:
 x is the state (vector) of the system, x_i is a component of state, colloquially state variable or collectively states
