@@ -33,7 +33,7 @@ ctrl = LTISystem(matrix([[-1.73992128, -0.99212953,  2.98819041]]))
 ```python
 from simupy.block_diagram import BlockDiagram
 BD = BlockDiagram(sys, ctrl)
-BD.connect(sys, ctrl) # connect the state current states to the feedback controller
+BD.connect(sys, ctrl) # connect the current state to the feedback controller
 BD.connect(ctrl, sys) # connect the controlled input to the system
 ```
 
@@ -74,7 +74,7 @@ y(t) = h(t,u)
 
 are both valid formulations. A system in a ``BlockDiagram`` needs to provide ``n_states``, ``n_inputs``, ``n_outputs``, ``output_equation_function``. If ``n_states`` > 0 then ``state_equation_function`` must also be provided. In the future, providing jacobian functions will be used to construct ``BlockDiagram`` jacobians to use with solvers that support them.
 
-Setting system property ``dt``>0 will determine the sample rate that the outputs and states are computed; ``dt``=0 is treated as a continuous-time system. In hybrid-time ``BlockDiagram``s, the system is automatically integrated piecewise to improve accuracy. Assumes systems are defined as
+Setting system property ``dt``>0 will determine the sample rate that the outputs and state are computed; ``dt``=0 is treated as a continuous-time system. In hybrid-time ``BlockDiagram``s, the system is automatically integrated piecewise to improve accuracy. Assumes systems are defined as
 
 ```
 x[k+] = f([k],x(k),u(k)])
@@ -97,4 +97,12 @@ y[k] = h([k], x[k])
 and makes sense in general for hybrid-time simulation.
 
 By choice, control design is outside the scope of SimuPy. So controller design tools (for example, feedback linearization, sliding mode, "adapative", etc) should be in its own library, but analysis tools that might help in controller design could be appropriate here (Lie Algebra, features described in future goals, etc)
+
+Notation:
+x is the state (vector) of the system, x_i is a component of state, colloquially state variable or collectively states
+similarly, y and u are output and input of the system.
+
+x'(t)  = f(t,x,u)  is the state equation (pluralized colloquially?) according to Khalil, Hespanha, Hangos. Boyd calls them dynamics equations??
+
+y(t) = h(t,x) is the output equation (pluralized colloquially). 
 

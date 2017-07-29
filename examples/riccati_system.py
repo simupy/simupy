@@ -37,8 +37,8 @@ sg_sim_res = RiccatiBD.simulate(tF)
 
 sim_data_unique_t, sim_data_unique_t_idx = np.unique(sg_sim_res.t, return_index=True)
 
-mat_sg_result = matrix_callable_from_vector_trajectory(np.flipud(tF-sg_sim_res.t[sim_data_unique_t_idx]),np.flipud(sg_sim_res.x[sim_data_unique_t_idx]), SG_sys.states, SG)
-vec_sg_result = matrix_callable_from_vector_trajectory(np.flipud(tF-sg_sim_res.t[sim_data_unique_t_idx]),np.flipud(sg_sim_res.x[sim_data_unique_t_idx]), SG_sys.states, SG_sys.states)
+mat_sg_result = matrix_callable_from_vector_trajectory(np.flipud(tF-sg_sim_res.t[sim_data_unique_t_idx]),np.flipud(sg_sim_res.x[sim_data_unique_t_idx]), SG_sys.state, SG)
+vec_sg_result = matrix_callable_from_vector_trajectory(np.flipud(tF-sg_sim_res.t[sim_data_unique_t_idx]),np.flipud(sg_sim_res.x[sim_data_unique_t_idx]), SG_sys.state, SG_sys.state)
 
 plt.plot() # Plot S components
 plt.plot(sg_sim_res.t, mat_sg_result(sg_sim_res.t)[:,[0,0,1],[0,1,1]])
@@ -60,7 +60,7 @@ control_res = control_BD.simulate(tF)
 
 plt.figure()
 plt.plot(control_res.t,control_res.x,control_res.t,2*control_res.t)
-plt.title('reference and states vs. time')
+plt.title('reference and state vs. time')
 plt.xlabel('time (s)')
 plt.legend([r'$x_1$',r'$x_2$',r'$r_1$'],loc=3)
 

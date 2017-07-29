@@ -18,4 +18,4 @@ BD = BlockDiagram(sys)
 res = BD.simulate(10)
 
 plt.plot(res.t,res.y)
-plt.legend([sp.latex(s, mode='inline') for s in sys.states])
+plt.legend([sp.latex(s, mode='inline') for s in sys.state])

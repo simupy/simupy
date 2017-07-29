@@ -8,24 +8,24 @@ DEFAULT_CODE_GENERATOR_ARGS = {
     'modules': "numpy"    
 }
 
-# TODO: A base System class? Enforces definition of n_states, n_inputs, n_outputs, and functions
+# TODO: A base System class? Enforces definition of dim_state, dim_input, dim_output, and functions
 # before adding to BD (BD already does this for n's) and simulation (def needed to enforce functions)
 # could even test dimensions of actual output to make sure its correct, but it will fail on sim w/o
 
 class DynamicalSystem(object): 
-    def __init__(self, state_equations=None, states=None, inputs=None, 
-            output_equations=None, constants_values={}, dt=0, 
+    def __init__(self, state_equation=None, state=None, input=None, 
+            output_equation=None, constants_values={}, dt=0, 
             initial_condition=None, code_generator=None, code_generator_args={}):
 
         """
-        state_equations is a vector valued expression, the derivative of each state.        
+        state_equation is a vector valued expression, the derivative of the state.        
 
-        states is a sympy matrix (vector) of the states, in desired order, matching 
-        state_equations.
+        state is a sympy matrix (vector) of the state components, in desired order, matching 
+        state_equation.
 
-        inputs is a sympy matrix (vector) of the inputs, in desired order
+        input is a sympy matrix (vector) of the input vector, in desired order
 
-        output_equations is a vector valued expression, the output of the system.
+        output_equation is a vector valued expression, the output of the system.
 
         needs a "set vars to ___ then do ___" function. Used for eq points, phase plane, etc
         could be a "with" context??
@@ -39,9 +39,9 @@ class DynamicalSystem(object):
         """
         # TODO: when constant_values is set, update callables?
         self.constants_values = constants_values
-        self.states = states
+        self.state = state
         self.initial_condition = initial_condition
-        self.inputs = inputs
+        self.input = input
 
         self.code_generator = code_generator or DEFAULT_CODE_GENERATOR
 
@@ -49,110 +49,110 @@ class DynamicalSystem(object):
         code_gen_args_to_set.update(code_generator_args)
         self.code_generator_args = code_gen_args_to_set
 
-        self.state_equations = state_equations
-        self.output_equations = output_equations
+        self.state_equation = state_equation
+        self.output_equation = output_equation
 
         self.dt = dt
 
         self.n_events = 0
 
     @property
-    def states(self):
-        return self._states
+    def state(self):
+        return self._state
 
-    @states.setter
-    def states(self,states):
-        if states is None: # or other checks?
-            states = sp.Matrix([])
-        if isinstance(states,sp.Expr):
-            states = sp.Matrix([states])  
-        self.n_states = len(states)
-        self._states = states
+    @state.setter
+    def state(self,state):
+        if state is None: # or other checks?
+            state = sp.Matrix([])
+        if isinstance(state,sp.Expr):
+            state = sp.Matrix([state])  
+        self.dim_state = len(state)
+        self._state = state
 
     @property
-    def inputs(self):
+    def input(self):
         return self._inputs
 
-    @inputs.setter
-    def inputs(self,inputs):
-        if inputs is None: # or other checks?
-            inputs = sp.Matrix([])
-        if isinstance(inputs,sp.Expr): # check it's a single dynamicsymbol? 
-            inputs = sp.Matrix([inputs])  
-        self.n_inputs = len(inputs)
-        self._inputs = inputs
+    @input.setter
+    def input(self,input):
+        if input is None: # or other checks?
+            input = sp.Matrix([])
+        if isinstance(input,sp.Expr): # check it's a single dynamicsymbol? 
+            input = sp.Matrix([input])  
+        self.dim_input = len(input)
+        self._inputs = input
 
     @property
-    def state_equations(self):
-        return self._state_equations
+    def state_equation(self):
+        return self._state_equation
 
-    @state_equations.setter
-    def state_equations(self,state_equations):
-        if state_equations is None: # or other checks?
-            state_equations = sp.Matrix([])
-        assert len(state_equations) == len(self.states)
-        assert find_dynamicsymbols(state_equations) <= set(self.states) | set(self.inputs)
-        assert state_equations.atoms(sp.Symbol) <= set(self.constants_values.keys()) | set([dynamicsymbols._t])
+    @state_equation.setter
+    def state_equation(self,state_equation):
+        if state_equation is None: # or other checks?
+            state_equation = sp.Matrix([])
+        assert len(state_equation) == len(self.state)
+        assert find_dynamicsymbols(state_equation) <= set(self.state) | set(self.input)
+        assert state_equation.atoms(sp.Symbol) <= set(self.constants_values.keys()) | set([dynamicsymbols._t])
 
-        self._state_equations = state_equations
+        self._state_equation = state_equation
         self.update_state_equation_function()
 
-        self.state_jacobian_equation = grad(self.state_equations, self.states)
+        self.state_jacobian_equation = grad(self.state_equation, self.state)
         self.update_state_jacobian_function()
 
-        self.input_jacobian_equation = grad(self.state_equations, self.inputs)
+        self.input_jacobian_equation = grad(self.state_equation, self.input)
         self.update_input_jacobian_function()
 
     @property
-    def output_equations(self):
-        return self._output_equations
+    def output_equation(self):
+        return self._output_equation
 
-    @output_equations.setter
-    def output_equations(self,output_equations):
-        if output_equations is None: # or other checks?
-            output_equations = self.states
-        self.n_outputs = len(output_equations)
-        self._output_equations = output_equations
-        assert output_equations.atoms(sp.Symbol) <= set(self.constants_values.keys()) | set([dynamicsymbols._t])
-        if self.n_states:
-            assert find_dynamicsymbols(output_equations) <= set(self.states)
+    @output_equation.setter
+    def output_equation(self,output_equation):
+        if output_equation is None: # or other checks?
+            output_equation = self.state
+        self.dim_output = len(output_equation)
+        self._output_equation = output_equation
+        assert output_equation.atoms(sp.Symbol) <= set(self.constants_values.keys()) | set([dynamicsymbols._t])
+        if self.dim_state:
+            assert find_dynamicsymbols(output_equation) <= set(self.state)
         else:
-            assert find_dynamicsymbols(output_equations) <= set(self.inputs)
+            assert find_dynamicsymbols(output_equation) <= set(self.input)
         self.update_output_equation_function()
 
     def update_state_equation_function(self):
-        if not self.n_states:
+        if not self.dim_state:
             return
         self.state_equation_function = self.code_generator( \
-            [dynamicsymbols._t] + sp.flatten(self.states) + sp.flatten(self.inputs), \
-            self.state_equations.subs(self.constants_values), **self.code_generator_args)
+            [dynamicsymbols._t] + sp.flatten(self.state) + sp.flatten(self.input), \
+            self.state_equation.subs(self.constants_values), **self.code_generator_args)
 
     def update_state_jacobian_function(self):
-        if not self.n_states:
+        if not self.dim_state:
             return
         self.state_jacobian_equation_function = self.code_generator( \
-            [dynamicsymbols._t] + sp.flatten(self.states) + sp.flatten(self.inputs), \
+            [dynamicsymbols._t] + sp.flatten(self.state) + sp.flatten(self.input), \
             self.state_jacobian_equation.subs(self.constants_values), **self.code_generator_args)
 
     def update_input_jacobian_function(self):
         # TODO: state-less systems should have an input/output jacobian
-        if not self.n_states:
+        if not self.dim_state:
             return
         self.input_jacobian_equation_function = self.code_generator( \
-            [dynamicsymbols._t] + sp.flatten(self.states) + sp.flatten(self.inputs), \
+            [dynamicsymbols._t] + sp.flatten(self.state) + sp.flatten(self.input), \
             self.input_jacobian_equation.subs(self.constants_values), **self.code_generator_args)
 
     def update_output_equation_function(self):
-        if not self.n_outputs:
+        if not self.dim_output:
             return
-        if self.n_states:
+        if self.dim_state:
             self.output_equation_function = self.code_generator( \
-                [dynamicsymbols._t] + sp.flatten(self.states), \
-                self.output_equations.subs(self.constants_values), **self.code_generator_args)
+                [dynamicsymbols._t] + sp.flatten(self.state), \
+                self.output_equation.subs(self.constants_values), **self.code_generator_args)
         else:
             self.output_equation_function = self.code_generator( \
-                [dynamicsymbols._t] + sp.flatten(self.inputs), \
-                self.output_equations.subs(self.constants_values), **self.code_generator_args)
+                [dynamicsymbols._t] + sp.flatten(self.input), \
+                self.output_equation.subs(self.constants_values), **self.code_generator_args)
 
     @property
     def initial_condition(self):
@@ -161,48 +161,48 @@ class DynamicalSystem(object):
     @initial_condition.setter
     def initial_condition(self,initial_condition):
         if initial_condition is not None:
-            assert len(initial_condition) == self.n_states
+            assert len(initial_condition) == self.dim_state
             self._initial_condition = initial_condition
         else:
-            self._initial_condition = np.zeros(self.n_states)
+            self._initial_condition = np.zeros(self.dim_state)
 
     def prepare_to_integrate(self):
         pass
 
     def copy(self):
-        copy = self.__class__(state_equations=self.state_equations, \
-            states=self.states, inputs=self.inputs, \
-            output_equations=self.output_equations, 
+        copy = self.__class__(state_equation=self.state_equation, \
+            state=self.state, input=self.input, \
+            output_equation=self.output_equation, 
             constants_values=self.constants_values, dt=self.dt)
         copy.output_equation_function = self.output_equation_function
         copy.state_equation_function = self.state_equation_function
         return copy
 
-    def equilibrium_points(self,inputs=None):
-        return sp.solve(self.state_equations, self.states, dict=True)
+    def equilibrium_points(self,input=None):
+        return sp.solve(self.state_equation, self.state, dict=True)
 
 
 class MemorylessSystem(DynamicalSystem):
     """
-    a system with no states
+    a system with no state
     
-    if no inputs are used, can represent a signal (function of time only)
+    if no input are used, can represent a signal (function of time only)
     for example, a stochastic signal could interpolate points and use 
     prepare_to_integrate to re-seed the data, or something.
 
-    when I decouple code generator, maybe output_equations could even be a
+    when I decouple code generator, maybe output_equation could even be a
     stochastic representation? 
     """
-    def __init__(self, inputs=None, output_equations=None, **kwargs):
-        if 'states' in kwargs or 'state_equations' in kwargs:
-            raise ValueError("Memoryless system should not have states or state_equations")
-        super(MemorylessSystem,self).__init__(inputs=inputs,  
-            output_equations=output_equations, **kwargs)
+    def __init__(self, input=None, output_equation=None, **kwargs):
+        if 'state' in kwargs or 'state_equation' in kwargs:
+            raise ValueError("Memoryless system should not have state or state_equation")
+        super(MemorylessSystem,self).__init__(input=input,  
+            output_equation=output_equation, **kwargs)
 
-def SystemFromCallable(incallable,n_inputs,n_outputs,dt=0):
+def SystemFromCallable(incallable,dim_input,dim_output,dt=0):
     system = MemorylessSystem(dt=dt)
-    system.n_inputs = n_inputs
-    system.n_outputs = n_outputs
+    system.dim_input = dim_input
+    system.dim_output = dim_output
     system.output_equation_function = incallable
     return system
 
@@ -236,8 +236,8 @@ class LTISystem(DynamicalSystem):
         # TODO: setup jacobian functions
         if len(args) == 1:
             self.K = K = args[0]
-            self.n_inputs = self.K.shape[1]
-            self.n_outputs = self.K.shape[0]
+            self.dim_input = self.K.shape[1]
+            self.dim_output = self.K.shape[0]
             self.output_equation_function = lambda t,x: K*np.asmatrix(x).reshape((-1,1))
             return 
 
@@ -252,9 +252,9 @@ class LTISystem(DynamicalSystem):
         self.G = np.asmatrix(G)
         self.H = np.asmatrix(H)
 
-        self.n_states = F.shape[0]
-        self.n_inputs = G.shape[1]
-        self.n_outputs = H.shape[0]
+        self.dim_state = F.shape[0]
+        self.dim_input = G.shape[1]
+        self.dim_output = H.shape[0]
         self.state_equation_function = lambda t,x,u: F*np.asmatrix(x).reshape((-1,1))+G*np.asmatrix(u).reshape((-1,1))
         self.output_equation_function = lambda t,x: H*np.asmatrix(x).reshape((-1,1))
 

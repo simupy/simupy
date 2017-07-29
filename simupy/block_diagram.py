@@ -8,12 +8,12 @@ import numpy as np
 class SimulationResult(object):
 
     max_allocation = 2**7
-    def __init__(self, n_states, n_outputs, tspan, initial_size=0 ):
+    def __init__(self, dim_states, dim_outputs, tspan, initial_size=0 ):
         if initial_size == 0:
             initial_size = tspan.size
         self.t = np.empty(initial_size)
-        self.x = np.empty((initial_size,n_states))
-        self.y = np.empty((initial_size,n_outputs))
+        self.x = np.empty((initial_size,dim_states))
+        self.y = np.empty((initial_size,dim_outputs))
         self.res_idx = 0
         self.tspan = tspan
         self.t0 = tspan[0]
@@ -64,27 +64,27 @@ class BlockDiagram(object):
             self.cum_inputs = np.zeros(self.systems.size+1,dtype=np.int_)
             self.cum_outputs = np.zeros(self.systems.size+1,dtype=np.int_)
             self.cum_states = np.zeros(self.systems.size+1,dtype=np.int_)
-            self.cum_events = np.array(self.systems.size+1,dtype=np.int_)
+            self.cum_events = np.zeros(self.systems.size+1,dtype=np.int_)
 
             for i,sys in enumerate(self.systems):
                 self.dts[i] = sys.dt
                 self.events[i] = sys.n_events
-                self.cum_inputs[i+1] = self.cum_inputs[i]+sys.n_inputs
-                self.cum_outputs[i+1] = self.cum_outputs[i]+sys.n_outputs
-                self.cum_states[i+1] = self.cum_states[i]+sys.n_states
+                self.cum_inputs[i+1] = self.cum_inputs[i]+sys.dim_input
+                self.cum_outputs[i+1] = self.cum_outputs[i]+sys.dim_output
+                self.cum_states[i+1] = self.cum_states[i]+sys.dim_state
                 self.cum_events[i+1] = self.cum_events[i]+sys.n_events
 
             self.connections = np.zeros((self.cum_outputs[-1],self.cum_inputs[-1]),dtype=np.bool_)
 
     def connect(self, from_system_output, to_system_input, outputs=[], inputs=[]):
         if outputs==[]:
-            outputs = np.arange(from_system_output.n_outputs)
+            outputs = np.arange(from_system_output.dim_output)
         else:
             outputs = np.asarray(outputs)
         outputs = outputs+self.cum_outputs[np.where(self.systems==from_system_output)]
 
         if inputs==[]:
-            inputs = np.arange(to_system_input.n_inputs)
+            inputs = np.arange(to_system_input.dim_input)
         else:
             inputs = np.asarray(inputs)
         inputs = inputs+self.cum_inputs[np.where(self.systems==to_system_input)]
@@ -94,13 +94,13 @@ class BlockDiagram(object):
 
     def add_system(self, system):
         self.systems = np.append(self.systems, system)
-        self.cum_states = np.append(self.cum_states,self.cum_states[-1]+system.n_states)
-        self.cum_inputs = np.append(self.cum_inputs,self.cum_inputs[-1]+system.n_inputs)
-        self.cum_outputs = np.append(self.cum_outputs,self.cum_outputs[-1]+system.n_outputs)
-        self.cum_outputs = np.append(self.cum_outputs,self.cum_outputs[-1]+system.n_outputs)
+        self.cum_states = np.append(self.cum_states,self.cum_states[-1]+system.dim_state)
+        self.cum_inputs = np.append(self.cum_inputs,self.cum_inputs[-1]+system.dim_input)
+        self.cum_outputs = np.append(self.cum_outputs,self.cum_outputs[-1]+system.dim_output)
+        self.cum_outputs = np.append(self.cum_outputs,self.cum_outputs[-1]+system.dim_output)
         self.cum_events = np.append(self.cum_events,self.cum_events[-1]+system.n_events)
         self.dts = np.append(self.dts,system.dt)
-        self.connections = np.pad(self.connections,((0,system.n_outputs),(0,system.n_inputs)),'constant',constant_values=0)
+        self.connections = np.pad(self.connections,((0,system.dim_output),(0,system.dim_input)),'constant',constant_values=0)
 
     def simulate(self, tspan, integrator_name='dopri5', integrator_options={}):
         """
@@ -227,7 +227,7 @@ class BlockDiagram(object):
 
                 states[state_start:state_end] = sys.state_equation_function(t,state_values,input_values).reshape(-1)
 
-            return states,outputs
+            return states, outputs
 
         def continuous_time_integration_step(t,ct_states,for_integrator=True):
             """
@@ -243,8 +243,8 @@ class BlockDiagram(object):
                 sys = self.systems[sysidx]
                 state_start = self.cum_states[sysidx]
                 state_end = self.cum_states[sysidx+1]
-                states[state_start:state_end] = ct_states[ct_state_accumulator:ct_state_accumulator+sys.n_states]
-                ct_state_accumulator += sys.n_states
+                states[state_start:state_end] = ct_states[ct_state_accumulator:ct_state_accumulator+sys.dim_state]
+                ct_state_accumulator += sys.dim_state
 
             comp_states,comp_out = computation_step(t,states,outputs,selector=ct_selector)
 
@@ -258,8 +258,8 @@ class BlockDiagram(object):
                 sys = self.systems[sysidx]
                 state_start = self.cum_states[sysidx]
                 state_end = self.cum_states[sysidx+1]
-                ct_derivative[ct_state_accumulator:ct_state_accumulator+sys.n_states] = comp_states[state_start:state_end]
-                ct_state_accumulator += sys.n_states
+                ct_derivative[ct_state_accumulator:ct_state_accumulator+sys.dim_state] = comp_states[state_start:state_end]
+                ct_state_accumulator += sys.dim_state
 
             return ct_derivative
 
