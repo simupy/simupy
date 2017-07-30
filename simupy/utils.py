@@ -14,7 +14,7 @@ def process_vector_args(args):
     # TODO: create wrapper of this?
     new_args = []
     for arg in args:
-        if isinstance(arg,(sp.Matrix,np.ndarray)):
+        if hasattr(arg, 'shape'):
             shape = arg.shape
             if (min(shape) != 1 and len(shape) == 2) or len(shape) > 2:
                 raise AttributeError("Arguments should only contain vectors")
