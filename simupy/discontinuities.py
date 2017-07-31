@@ -99,7 +99,10 @@ class SwitchedOutput(MemoryLessDiscontinuousSystem):
             assert len(event_bounds)+1 == self.output_equations_functions.size
         self._event_bounds = np.array(event_bounds)[None, :]
         self.n_conditions = len(event_bounds) + 1
-        self.event_bounds_range = np.diff(self.event_bounds[0, [0, -1]])
+        if self.n_conditions == 2:
+            self.event_bounds_range = self._event_bounds
+        else:
+            self.event_bounds_range = np.diff(self.event_bounds[0, [0, -1]])
 
     def event_equation_function(self, t, u):
         event_var = self.event_variable_equation_function(t, u)
