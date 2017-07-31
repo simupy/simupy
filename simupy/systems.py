@@ -111,7 +111,10 @@ class DynamicalSystem(object):
     def output_equation(self,output_equation):
         if output_equation is None: # or other checks?
             output_equation = self.state
-        self.dim_output = len(output_equation)
+        try:
+            self.dim_output = len(output_equation)
+        except TypeError:
+            self.dim_output = 1
         self._output_equation = output_equation
         assert output_equation.atoms(sp.Symbol) <= set(self.constants_values.keys()) | set([dynamicsymbols._t])
         if self.dim_state:
@@ -194,10 +197,22 @@ class MemorylessSystem(DynamicalSystem):
     stochastic representation? 
     """
     def __init__(self, input_=None, output_equation=None, **kwargs):
-        if 'state' in kwargs or 'state_equation' in kwargs:
-            raise ValueError("Memoryless system should not have state or state_equation")
         super(MemorylessSystem,self).__init__(input_=input_,  
             output_equation=output_equation, **kwargs)
+
+    @property
+    def state(self):
+        return self._state
+
+    @state.setter
+    def state(self,state):
+        if state is None: # or other checks?
+            state = sp.Matrix([])
+        else:
+            raise ValueError("Memoryless system should not have state or state_equation")
+        self.dim_state = len(state)
+        self._state = state
+
 
 def SystemFromCallable(incallable,dim_input,dim_output,dt=0):
     system = MemorylessSystem(dt=dt)
