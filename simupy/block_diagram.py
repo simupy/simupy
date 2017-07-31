@@ -4,10 +4,10 @@ from simupy.utils import callable_from_trajectory
 from scipy.optimize import brentq
 
 DEFAULT_INTEGRATOR_NAME = 'dopri5'
-DEFAULT_INTEGRATOR_OPTIONS = {'rtol'=1e-6, 'atol'=1e-12,
-                 'nsteps'=500,
-                 'max_step'=0.0}
-DEFAULT_EVENT_FIND_OPTIONS = {'xtol'=2e-12, 'rtol'=8.8817841970012523e-16, 'maxiter'=100}
+DEFAULT_INTEGRATOR_OPTIONS = {'rtol':1e-6, 'atol':1e-12,
+                 'nsteps':500,
+                 'max_step':0.0}
+DEFAULT_EVENT_FIND_OPTIONS = {'xtol':2e-12, 'rtol':8.8817841970012523e-16, 'maxiter':100}
 
 # TODO: use pandas for the results (symbol column index)
 # TODO: create custom dataframe that automatically computes column expressions if all atoms are present
@@ -459,7 +459,7 @@ class BlockDiagram(object):
                         input_traj_callable = callable_from_trajectory(np.r_[results.t[prev_event_idx:results.res_idx],r.t], input_values)
                         event_callables[sysidx] = input_traj_callable
                         event_searchables[sysidx] = lambda t: sys.event_equation_function(t, input_traj_callable(t))
-                        event_ts[sysidx] = brentq(event_searchables[sysidx], results.t[prev_event_idx], r.t)
+                        event_ts[sysidx] = brentq(event_searchables[sysidx], results.t[prev_event_idx], r.t, **event_find_options)
 
                     next_event_t = np.min(event_ts[self.events])
 
@@ -476,10 +476,11 @@ class BlockDiagram(object):
                         sys = self.systems[sysidx]
                         update_return_value = sys.update_equation_function(next_event_t, event_callables[sysidx](next_event_t))
                         if sys.dim_state>0:
-                            ct_state_idx = np.where(state_sel_ct==self.cum_states[sysidx])[0][0]                    results.new_result(next_event_t+np.finfo(np.float_).eps, new_states, new_outputs, new_events)
+                            ct_state_idx = np.where(state_sel_ct==self.cum_states[sysidx])[0][0]
                             ct_xtright[ct_state_idx:ct_state_idx+sys.dim_state+1] = update_return_value
 
                     new_states, new_outputs, new_events = continuous_time_integration_step(next_event_t,ct_xtright,False)
+                    results.new_result(next_event_t+np.finfo(np.float_).eps, new_states, new_outputs, new_events)
 
 
                     # set x (r.y), store in result as t+epsilon? if not dense, add extra 1=-0
@@ -511,6 +512,7 @@ class BlockDiagram(object):
         results.t = results.t[:results.res_idx]
         results.x = results.x[:results.res_idx,:]
         results.y = results.y[:results.res_idx,:]
+        results.e = results.e[:results.res_idx,:]
         return results
 
 
