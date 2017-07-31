@@ -2,7 +2,7 @@ import sympy as sp
 import numpy as np
 from sympy.physics.mechanics import dynamicsymbols
 from sympy.physics.mechanics.functions import find_dynamicsymbols
-from simupy.utils import process_vector_args, lambdify_with_vector_args, grad
+from simupy.utils import lambdify_with_vector_args, grad
 
 DEFAULT_CODE_GENERATOR = lambdify_with_vector_args
 DEFAULT_CODE_GENERATOR_ARGS = {
@@ -303,6 +303,4 @@ class LTISystem(DynamicalSystem):
         self.dim_input = G.shape[1]
         self.dim_output = H.shape[0]
         self.state_equation_function = lambda t, x, u: (F@x + G@u).reshape(-1)
-        self.output_equation_function = lambda t,x: (H*x).reshape(-1)
-
-
+        self.output_equation_function = lambda t, x: (H@x).reshape(-1)

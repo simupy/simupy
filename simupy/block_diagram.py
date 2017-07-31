@@ -525,6 +525,9 @@ class BlockDiagram(object):
                             check_states, check_outputs
                         break
 
+                    if not r.successful():
+                        break
+
                     #
                     # need to handle event
                     #

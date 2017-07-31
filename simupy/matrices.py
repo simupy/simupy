@@ -36,10 +36,10 @@ def construct_explicit_matrix(name, n, m, symmetric=False, diagonal=0,
     if diagonal:
         return sp.diag(
             *[symbol_func(
-                name+'_{%d}{%d}'.format(i+1, i+1), **kwass) for i in range(m)])
+                name+'_{}{}'.format(i+1, i+1), **kwass) for i in range(m)])
     else:
         matrix = sp.Matrix([
-            [symbol_func(name+'_{%d}{%d}'.format(j+1, i+1), **kwass)
+            [symbol_func(name+'_{}{}'.format(j+1, i+1), **kwass)
              for i in range(m)] for j in range(n)
         ])
 
