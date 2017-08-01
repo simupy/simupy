@@ -541,14 +541,14 @@ class BlockDiagram(object):
                     prev_event_idx = np.where(
                         results.t[:results.res_idx, None] == prev_event_t
                      )[0][-1]
-                    if prev_event_idx == results.res_idx-1:  # don't like
-                        print("SOMETHING UGLY!")  # TODO: GET RID OF ME
-                        results.new_result(
-                            r.t, check_states, check_outputs, check_events)
-                        r.set_initial_value(r.y, r.t) 
-                        prev_event_t = r.t
-                        continue
-                    prev_event_idx = min(prev_event_idx,results.res_idx-3)
+                    # if prev_event_idx == results.res_idx-1:  # don't like
+                    #     print("SOMETHING UGLY!")  # TODO: GET RID OF ME
+                    #     results.new_result(
+                    #         r.t, check_states, check_outputs, check_events)
+                    #     r.set_initial_value(r.y, r.t) 
+                    #     prev_event_t = r.t
+                    #     continue
+                    prev_event_idx = max(min(prev_event_idx,results.res_idx-3),0)
 
                     # find which system(s) crossed
                     event_index_crossed = np.where(
@@ -609,18 +609,30 @@ class BlockDiagram(object):
                                 input_values = results.t[
                                     prev_event_idx:results.res_idx
                                 ]
+                        
+                        ts_to_collect = np.r_[
+                            results.t[prev_event_idx:results.res_idx],
+                            r.t
+                        ]
 
-                        input_traj_callable = callable_from_trajectory(
-                            np.r_[
-                                results.t[prev_event_idx:results.res_idx],
-                                r.t
-                            ], input_values
-                        )
+                        unique_ts_to_collect, unique_ts_to_collect_idx = \
+                            np.unique(ts_to_collect, return_index=True)
+                        try:
+                            input_traj_callable = callable_from_trajectory(
+                                unique_ts_to_collect, 
+                                input_values[unique_ts_to_collect_idx,:]
+                            )
+                        except SystemError:
+                            print("ODD!")
                         event_callables[sysidx] = input_traj_callable
                         event_searchables[sysidx] = \
                             lambda t: sys.event_equation_function(
                                 t, input_traj_callable(t)
                             )
+                        if np.prod(np.sign(np.r_[
+                          event_searchables[sysidx](results.t[prev_event_idx]),
+                          event_searchables[sysidx](r.t)])) == 1:
+                              print("no sign crossing??")
                         event_ts[sysidx] = brentq(
                             event_searchables[sysidx],
                             results.t[prev_event_idx],
@@ -629,17 +641,19 @@ class BlockDiagram(object):
                         )
 
                     next_event_t = np.min(event_ts[event_index_crossed])
-
-                    ct_state_traj_callable = callable_from_trajectory(
-                        np.r_[results.t[prev_event_idx:results.res_idx], r.t],
-                        np.r_[
-                            results.x[
-                                prev_event_idx:results.res_idx,
-                                state_sel_ct
-                            ],
-                            r.y.reshape(1, -1)
-                        ]
-                    )
+                    try:
+                        ct_state_traj_callable = callable_from_trajectory(
+                            unique_ts_to_collect,
+                            np.r_[
+                                results.x[
+                                    prev_event_idx:results.res_idx,
+                                    state_sel_ct
+                                ],
+                                r.y.reshape(1, -1)
+                            ][unique_ts_to_collect_idx,:]
+                        )
+                    except SystemError:
+                        print("EVEN")
 
                     left_t = next_event_t-event_find_options['xtol']/2
                     ct_xtleft = ct_state_traj_callable(left_t)
