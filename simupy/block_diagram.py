@@ -548,6 +548,7 @@ class BlockDiagram(object):
                         r.set_initial_value(r.y, r.t) 
                         prev_event_t = r.t
                         continue
+                    prev_event_idx = min(prev_event_idx,results.res_idx-3)
 
                     # find which system(s) crossed
                     event_index_crossed = np.where(
@@ -596,7 +597,11 @@ class BlockDiagram(object):
                                 input_values = np.r_[
                                     input_values,
                                     check_outputs[
-                                        input_start:input_end
+                                        np.where(
+                                            self.connections[
+                                                :, input_start:input_end
+                                            ].T
+                                        )[1]
                                     ].reshape(1, -1)
                                 ]
 
@@ -632,7 +637,7 @@ class BlockDiagram(object):
                                 prev_event_idx:results.res_idx,
                                 state_sel_ct
                             ],
-                            check_states.reshape(1, -1)
+                            r.y.reshape(1, -1)
                         ]
                     )
 

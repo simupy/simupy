@@ -127,6 +127,9 @@ class SwitchedOutput(MemoryLessDiscontinuousSystem):
             elif crossed_root_idx == self.condition_idx -1:
                 self.condition_idx -= 1
         return
+        
+    def prepare_to_integrate(self):
+        self.condition_idx = None
 
 
 class Saturation(MemoryLessDiscontinuousSystem):
