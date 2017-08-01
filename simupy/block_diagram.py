@@ -564,6 +564,14 @@ class BlockDiagram(object):
                                                  dtype=object)
                     event_callables = np.empty(self.systems.size,
                                                dtype=object)
+                                               
+                    ts_to_collect = np.r_[
+                        results.t[prev_event_idx:results.res_idx],
+                        r.t
+                    ]
+
+                    unique_ts_to_collect, unique_ts_to_collect_idx = \
+                        np.unique(ts_to_collect, return_index=True)
 
                     for sysidx in event_index_crossed:
                         sys = self.systems[sysidx]
@@ -609,14 +617,7 @@ class BlockDiagram(object):
                                 input_values = results.t[
                                     prev_event_idx:results.res_idx
                                 ]
-                        
-                        ts_to_collect = np.r_[
-                            results.t[prev_event_idx:results.res_idx],
-                            r.t
-                        ]
 
-                        unique_ts_to_collect, unique_ts_to_collect_idx = \
-                            np.unique(ts_to_collect, return_index=True)
                         try:
                             input_traj_callable = callable_from_trajectory(
                                 unique_ts_to_collect, 
@@ -631,11 +632,23 @@ class BlockDiagram(object):
                             )
                         if np.prod(np.sign(np.r_[
                           event_searchables[sysidx](results.t[prev_event_idx]),
-                          event_searchables[sysidx](r.t)])) == 1:
-                              print("no sign crossing??")
+                          event_searchables[sysidx](r.t)])) != -1:
+                                e_checks = np.r_[
+                                    results.e[
+                                        prev_event_idx:results.res_idx,
+                                        sysidx
+                                    ],
+                                    check_events[sysidx]
+                                ]
+                                left_bracket_idx = np.where(
+                                 np.sign(e_checks[:-1]) != np.sign(e_checks[-1])
+                                )[0][-1]
+                                left_bracket = ts_to_collect[left_bracket_idx]
+                        else:
+                            left_bracket = results.t[prev_event_idx]
                         event_ts[sysidx] = brentq(
                             event_searchables[sysidx],
-                            results.t[prev_event_idx],
+                            left_bracket,
                             r.t,
                             **event_find_options
                         )
