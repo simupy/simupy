@@ -516,6 +516,10 @@ class BlockDiagram(object):
                     check_states, check_outputs, check_events = \
                         continuous_time_integration_step(r.t, r.y, False)
 
+                    if np.any(np.isnan(check_outputs)):
+                        print("ABORT")
+                        break
+
                     if (not dense_output and
                             np.all(
                                 np.sign(results.e[results.res_idx-1, :]) ==
@@ -526,6 +530,7 @@ class BlockDiagram(object):
                         break
 
                     if not r.successful():
+                        print("QUITTING HERE")
                         break
 
                     #
@@ -536,6 +541,13 @@ class BlockDiagram(object):
                     prev_event_idx = np.where(
                         results.t[:results.res_idx, None] == prev_event_t
                      )[0][-1]
+                    if prev_event_idx == results.res_idx-1:  # don't like
+                        print("SOMETHING UGLY!")  # TODO: GET RID OF ME
+                        results.new_result(
+                            r.t, check_states, check_outputs, check_events)
+                        r.set_initial_value(r.y, r.t) 
+                        prev_event_t = r.t
+                        continue
 
                     # find which system(s) crossed
                     event_index_crossed = np.where(
@@ -611,7 +623,7 @@ class BlockDiagram(object):
                             **event_find_options
                         )
 
-                    next_event_t = np.min(event_ts[self.events])
+                    next_event_t = np.min(event_ts[event_index_crossed])
 
                     ct_state_traj_callable = callable_from_trajectory(
                         np.r_[results.t[prev_event_idx:results.res_idx], r.t],
