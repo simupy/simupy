@@ -56,6 +56,7 @@ def lambdify_with_vector_args(args, expr, modules=(
     lambda_function_with_vector_args.__doc__ = f.__doc__
     return lambda_function_with_vector_args
 
+
 def callable_from_trajectory(t, curves):
     # TODO: Could write pre-allow passing pre-/post- processing functions??
     # Is there a better design for guessing how everything is split up??
@@ -86,10 +87,6 @@ def augment_input(system, input_=[], update_outputs=True):
     if input_ == []:
         # augment all
         input_ = system.input
-
-    input_to_augment = np.matrix(input_)
-
-    np_input = np.matrix(augmented_system.input)
 
     augmented_system.state = sp.Matrix.vstack(system.state, input_)
     augmented_system.input = sp.Matrix([

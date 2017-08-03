@@ -413,7 +413,7 @@ class BlockDiagram(object):
                 print("aborting")
                 return -1
 
-        # TODO: decouple integrator; perhaps use PyDy, PyODEsys, PyDStool, 
+        # TODO: decouple integrator; perhaps use PyDy, PyODEsys, PyDStool,
         # Sundials, etc
         # setup the integrator if we have CT states
         if len(ct_x0) > 0:
@@ -545,10 +545,12 @@ class BlockDiagram(object):
                     #     print("SOMETHING UGLY!")  # TODO: GET RID OF ME
                     #     results.new_result(
                     #         r.t, check_states, check_outputs, check_events)
-                    #     r.set_initial_value(r.y, r.t) 
+                    #     r.set_initial_value(r.y, r.t)
                     #     prev_event_t = r.t
                     #     continue
-                    prev_event_idx = max(min(prev_event_idx,results.res_idx-3),0)
+                    prev_event_idx = max(
+                        min(prev_event_idx, results.res_idx-3), 0
+                    )
 
                     # find which system(s) crossed
                     event_index_crossed = np.where(
@@ -564,7 +566,7 @@ class BlockDiagram(object):
                                                  dtype=object)
                     event_callables = np.empty(self.systems.size,
                                                dtype=object)
-                                               
+
                     ts_to_collect = np.r_[
                         results.t[prev_event_idx:results.res_idx],
                         r.t
@@ -620,8 +622,8 @@ class BlockDiagram(object):
 
                         try:
                             input_traj_callable = callable_from_trajectory(
-                                unique_ts_to_collect, 
-                                input_values[unique_ts_to_collect_idx,:]
+                                unique_ts_to_collect,
+                                input_values[unique_ts_to_collect_idx, :]
                             )
                         except SystemError:
                             print("ODD!")
@@ -641,7 +643,8 @@ class BlockDiagram(object):
                                     check_events[sysidx]
                                 ]
                                 left_bracket_idx = np.where(
-                                 np.sign(e_checks[:-1]) != np.sign(e_checks[-1])
+                                    np.sign(e_checks[:-1]) !=
+                                    np.sign(e_checks[-1])
                                 )[0][-1]
                                 left_bracket = ts_to_collect[left_bracket_idx]
                         else:
@@ -663,7 +666,7 @@ class BlockDiagram(object):
                                     state_sel_ct
                                 ],
                                 r.y.reshape(1, -1)
-                            ][unique_ts_to_collect_idx,:]
+                            ][unique_ts_to_collect_idx, :]
                         )
                     except SystemError:
                         print("EVEN")

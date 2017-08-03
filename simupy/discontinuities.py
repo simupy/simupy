@@ -124,10 +124,10 @@ class SwitchedOutput(MemoryLessDiscontinuousSystem):
             crossed_root_idx = np.where(sq_dist == np.min(sq_dist))[1][0]
             if crossed_root_idx == self.condition_idx:
                 self.condition_idx += 1
-            elif crossed_root_idx == self.condition_idx -1:
+            elif crossed_root_idx == self.condition_idx-1:
                 self.condition_idx -= 1
         return
-        
+
     def prepare_to_integrate(self):
         self.condition_idx = None
 
@@ -150,9 +150,9 @@ class Stiction(MemoryLessDiscontinuousSystem):
     output: fo - force experienced by object (what changes momentum)
     assume everything is pointing in positive direction
 
-    parameters: ffr - basic friction force, mu*Fn. phi - break away force factor
-    (positive, constant, real numbers. although could easily change it to allow
-    ffr to be a signal too, to model changing mass or whatever)
+    parameters: ffr - basic friction force, mu*Fn. phi - break away force
+    factor (positive, constant, real numbers. although could easily change it
+    to allow ffr to be a signal too, to model changing mass or whatever)
 
     v > 0:
         fo = fi - ffr
