@@ -1,5 +1,6 @@
 from scipy.integrate import ode
 import numpy as np
+import warnings
 from simupy.utils import callable_from_trajectory
 from scipy.optimize import brentq
 
@@ -17,6 +18,10 @@ DEFAULT_EVENT_FIND_OPTIONS = {
         'rtol': 8.8817841970012523e-16,
         'maxiter': 100
     }
+
+nan_warning_message = ("BlockDiagram encountered NaN outputs and quit during " +
+    " {}. This may have been intentional! NaN outputs at occured index {} " +
+    " at time t={} and state x={}")
 
 
 class SimulationResult(object):
@@ -410,7 +415,13 @@ class BlockDiagram(object):
                 results.new_result(t, new_states, new_outputs, new_events)
 
             if np.any(np.isnan(new_outputs)):
-                print("aborting")
+                np.where(np.isnan(new_outputs))
+                warnings.warn(nan_warning_message.format({
+                        "variable step-size collection",
+                        str(np.where(np.isnan(new_outputs))[0]),
+                        t,
+                        new_states
+                    }))
                 return -1
 
         # TODO: decouple integrator; perhaps use PyDy, PyODEsys, PyDStool,
@@ -517,7 +528,12 @@ class BlockDiagram(object):
                         continuous_time_integration_step(r.t, r.y, False)
 
                     if np.any(np.isnan(check_outputs)):
-                        print("ABORT")
+                        warnings.warn(nan_warning_message.format({
+                                "tspan iteration",
+                                str(np.where(np.isnan(check_outputs))[0]),
+                                r.t,
+                                check_states
+                            }))
                         break
 
                     if (not dense_output and
@@ -530,7 +546,7 @@ class BlockDiagram(object):
                         break
 
                     if not r.successful():
-                        print("QUITTING HERE")
+                        warnings.warn("Integrator quit unsuccessfully.")
                         break
 
                     #
@@ -541,13 +557,6 @@ class BlockDiagram(object):
                     prev_event_idx = np.where(
                         results.t[:results.res_idx, None] == prev_event_t
                      )[0][-1]
-                    # if prev_event_idx == results.res_idx-1:  # don't like
-                    #     print("SOMETHING UGLY!")  # TODO: GET RID OF ME
-                    #     results.new_result(
-                    #         r.t, check_states, check_outputs, check_events)
-                    #     r.set_initial_value(r.y, r.t)
-                    #     prev_event_t = r.t
-                    #     continue
                     prev_event_idx = max(
                         min(prev_event_idx, results.res_idx-3), 0
                     )
@@ -620,13 +629,10 @@ class BlockDiagram(object):
                                     prev_event_idx:results.res_idx
                                 ]
 
-                        try:
-                            input_traj_callable = callable_from_trajectory(
-                                unique_ts_to_collect,
-                                input_values[unique_ts_to_collect_idx, :]
-                            )
-                        except SystemError:
-                            print("ODD!")
+                        input_traj_callable = callable_from_trajectory(
+                            unique_ts_to_collect,
+                            input_values[unique_ts_to_collect_idx, :]
+                        )
                         event_callables[sysidx] = input_traj_callable
                         event_searchables[sysidx] = \
                             lambda t: sys.event_equation_function(
@@ -657,19 +663,16 @@ class BlockDiagram(object):
                         )
 
                     next_event_t = np.min(event_ts[event_index_crossed])
-                    try:
-                        ct_state_traj_callable = callable_from_trajectory(
-                            unique_ts_to_collect,
-                            np.r_[
-                                results.x[
-                                    prev_event_idx:results.res_idx,
-                                    state_sel_ct
-                                ],
-                                r.y.reshape(1, -1)
-                            ][unique_ts_to_collect_idx, :]
-                        )
-                    except SystemError:
-                        print("EVEN")
+                    ct_state_traj_callable = callable_from_trajectory(
+                        unique_ts_to_collect,
+                        np.r_[
+                            results.x[
+                                prev_event_idx:results.res_idx,
+                                state_sel_ct
+                            ],
+                            r.y.reshape(1, -1)
+                        ][unique_ts_to_collect_idx, :]
+                    )
 
                     left_t = next_event_t-event_find_options['xtol']/2
                     ct_xtleft = ct_state_traj_callable(left_t)
