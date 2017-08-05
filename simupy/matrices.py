@@ -101,7 +101,7 @@ def matrix_callable_from_vector_trajectory(tt, x, unraveled, raveled):
     xn, xm = x.shape
 
     vector_callable = callable_from_trajectory(tt, x)
-    if isinstance(unraveled, sp.Matrix):
+    if hasattr(unraveled, 'shape') and len(unraveled.shape) > 1:
         unraveled = sp.flatten(unraveled.tolist())
 
     def matrix_callable(t):
@@ -111,7 +111,7 @@ def matrix_callable_from_vector_trajectory(tt, x, unraveled, raveled):
             matrix_result = np.zeros((len(t),)+raveled.shape)
             as_array = True
         else:
-            matrix_result = np.matlib.zeros(raveled.shape)
+            matrix_result = np.zeros(raveled.shape)
 
         iterator = np.nditer(raveled, flags=['multi_index', 'refs_ok'])
         for it in iterator:

@@ -2,7 +2,9 @@ import sympy as sp
 import numpy as np
 from sympy.physics.mechanics import dynamicsymbols
 from sympy.physics.mechanics.functions import find_dynamicsymbols
+from sympy.tensor.array import Array
 from simupy.utils import lambdify_with_vector_args, grad
+from simupy.array import empty_array
 
 DEFAULT_CODE_GENERATOR = lambdify_with_vector_args
 DEFAULT_CODE_GENERATOR_ARGS = {
@@ -69,9 +71,9 @@ class DynamicalSystem(object):
     @state.setter
     def state(self, state):
         if state is None:  # or other checks?
-            state = sp.Matrix([])
+            state = empty_array()
         if isinstance(state, sp.Expr):
-            state = sp.Matrix([state])
+            state = Array([state])
         self.dim_state = len(state)
         self._state = state
 
@@ -82,9 +84,9 @@ class DynamicalSystem(object):
     @input.setter
     def input(self, input_):
         if input_ is None:  # or other checks?
-            input_ = sp.Matrix([])
+            input_ = empty_array()
         if isinstance(input_, sp.Expr):  # check it's a single dynamicsymbol?
-            input_ = sp.Matrix([input_])
+            input_ = Array([input_])
         self.dim_input = len(input_)
         self._inputs = input_
 
@@ -95,7 +97,7 @@ class DynamicalSystem(object):
     @state_equation.setter
     def state_equation(self, state_equation):
         if state_equation is None:  # or other checks?
-            state_equation = sp.Matrix([])
+            state_equation = empty_array()
         assert len(state_equation) == len(self.state)
         assert find_dynamicsymbols(state_equation) <= (
                 set(self.state) | set(self.input)
@@ -236,7 +238,7 @@ class MemorylessSystem(DynamicalSystem):
     @state.setter
     def state(self, state):
         if state is None:  # or other checks?
-            state = sp.Matrix([])
+            state = empty_array()
         else:
             raise ValueError("Memoryless system should not have state or " +
                              "state_equation")

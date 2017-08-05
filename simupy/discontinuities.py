@@ -62,7 +62,7 @@ class SwitchedOutput(MemoryLessDiscontinuousSystem):
         self.n_conditions = output_equations.shape[0]
         self.output_equations_functions = np.empty(self.n_conditions, object)
         for cond_idx in range(self.n_conditions):
-            self.output_equation = output_equations[cond_idx, :]
+            self.output_equation = output_equations[cond_idx]
             self.output_equations_functions[cond_idx] = \
                 self.output_equation_function
 

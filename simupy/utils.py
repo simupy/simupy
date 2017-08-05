@@ -3,6 +3,7 @@ import numpy as np
 from sympy.utilities.lambdify import implemented_function
 from scipy import interpolate
 from sympy.physics.mechanics import dynamicsymbols
+from simupy.array import r_, Array
 
 sinc = implemented_function(sp.Function('sinc'), lambda x: np.sinc(x/np.pi))
 step = implemented_function(sp.Function('step'), lambda x: 1.0*(x >= 0))
@@ -42,6 +43,9 @@ def lambdify_with_vector_args(args, expr, modules=(
         ):
     new_args = process_vector_args(args)
 
+    if sp.__version__ < '1.1' and hasattr(expr,'__len__'):
+        expr = sp.Matrix(expr)
+
     # TODO: check what later verisons of SymPy need for modules/handling Mod
     # TODO: apparently lambdify can't be trusted?? Eventually move to
     # codeprinter? http://stackoverflow.com/a/10138307/854909
@@ -52,7 +56,7 @@ def lambdify_with_vector_args(args, expr, modules=(
 
     def lambda_function_with_vector_args(*func_args):
         new_func_args = process_vector_args(func_args)
-        return f(*new_func_args)
+        return np.array(f(*new_func_args))
     lambda_function_with_vector_args.__doc__ = f.__doc__
     return lambda_function_with_vector_args
 
@@ -71,7 +75,10 @@ def callable_from_trajectory(t, curves):
 
 
 def grad(f, basis, for_numerical=True):
-    return sp.Matrix([
+    if hasattr(f, '__len__'):  # as of version 1.1.1, Array isn't supported
+        f = sp.Matrix(f)
+
+    return f.__class__([
         [
             sp.diff(f[x], basis[y])
             if not for_numerical or not f[x].has(sp.sign(basis[y])) else 0
@@ -88,13 +95,13 @@ def augment_input(system, input_=[], update_outputs=True):
         # augment all
         input_ = system.input
 
-    augmented_system.state = sp.Matrix.vstack(system.state, input_)
-    augmented_system.input = sp.Matrix([
+    augmented_system.state = r_[system.state, input_]
+    augmented_system.input = Array([
         dynamicsymbols(str(input_var.func) + 'prime')
         for input_var in input_
     ])
-    augmented_system.state_equation = sp.Matrix.vstack(
-        system.state_equation, augmented_system.input)
+    augmented_system.state_equation = r_[
+        system.state_equation, augmented_system.input]
 
     if update_outputs and system.output_equation == system.state:
         augmented_system.output_equation = augmented_system.state

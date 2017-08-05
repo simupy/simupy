@@ -28,7 +28,7 @@ SG = Ss.row_join(Gs)
 SG_subs = dict(matrix_subs((As,An),(Bs,Bn),(Qs,Qn),(Rs,Rn)))
 
 SG_sys = system_from_matrix_DE(SGdot, SG,  rxs, SG_subs)
-ref_input_ctr = lambda t,*args: np.matrix([2*(tF-t),0]).T
+ref_input_ctr = lambda t,*args: np.r_[2*(tF-t),0]
 ref_input_ctr_sys = SystemFromCallable(ref_input_ctr, 0, 2)
 
 RiccatiBD = BlockDiagram(SG_sys, ref_input_ctr_sys)
@@ -47,8 +47,8 @@ plt.figure() # Plot G components
 plt.plot(sg_sim_res.t, mat_sg_result(sg_sim_res.t)[:,:,-1])
 plt.title('forced component of solution to Riccatti differential equation')
 
-
-tracking_controller = SystemFromCallable(lambda t, xx: -Rn**-1*Bn.T*(mat_sg_result(t)[:,:-1]*np.asmatrix(xx).reshape((-1,1)) + mat_sg_result(t)[:,-1]), 2, 1)
+##
+tracking_controller = SystemFromCallable(lambda t, xx: -Rn**-1@Bn.T@(mat_sg_result(t)[:,:-1]@xx + mat_sg_result(t)[:,-1]), 2, 1)
 sys = LTISystem(An, Bn)
 
 sys.initial_condition = np.zeros((2,1))
