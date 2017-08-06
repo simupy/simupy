@@ -290,27 +290,22 @@ def SystemFromCallable(incallable, dim_input, dim_output, dt=0):
 
 
 class LTISystem(DynamicalSystem):
+    """
+    A linear, time-invariant system.
+    """
     def __init__(self, *args, constants_values={}, dt=0):
         """
-        Pass in ABC/FGH matrices
-        x' = Fx+Gu
-        y = Hx
-
-        or for a memoryless linear system (aka, state feedback), pass in
-        K/D matrix
-        y = Ku
-
-        just wrappers for jacobian equations/functions?
-        need to decide how to use symbolic vs numeric
-
-
-        possible features:
-            - hold symbolic structured matrices (0's where appropriate)
-            - functions to convert between different canonical forms
-            - stability analysis, controlability, observability, etc
-            - discretize, z-transform
-            - frequency response analysis
-            - nyquist, root locus, etc
+        Construct an LTI system with the following input formats:
+        1. A, B, C matrices for systems with state
+            x' = Ax + Bu
+            y = Hx
+        2. A,B matrices for systems with state, assume full state output
+            x' = Ax + Bu
+            y = x
+        3. K matrix for systems without state
+            y = Kx
+        
+        The matrices should be numeric arrays of the appropriate shape.
         """
         super().__init__(constants_values=constants_values, dt=dt)
 

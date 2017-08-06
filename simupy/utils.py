@@ -10,9 +10,10 @@ step = implemented_function(sp.Function('step'), lambda x: 1.0*(x >= 0))
 
 
 def process_vector_args(args):
-    # TODO: any combination of vectors for each arg should be allowed
-    # TODO: be more vectorizable? allow vectors for each arg
-    # TODO: create wrapper of this?
+    """
+    A helper function to process vector arguments so callables can take
+    vectors or individual components. Essentially unravels the arguments.
+    """
     new_args = []
     for arg in args:
         if hasattr(arg, 'shape') and len(arg.shape) > 0:
@@ -41,17 +42,26 @@ def process_vector_args(args):
 def lambdify_with_vector_args(args, expr, modules=(
             {'ImmutableMatrix': np.matrix}, "numpy", {"Mod": np.mod})
         ):
+    """
+    A wrapper around sympy's lambdify where `process_vector_args` is used so
+    generated callable can take arguments as either vector or individual
+    components
+    
+    Parameters
+    ----------
+    args : list-like of sympy `symbol`s
+        Input arguments to the expression to call
+    expr : sympy `expression`
+        Expression to turn into a callable for numeric evaluation
+    modules : list
+        See lambdify documentation; passed directly as modules keyword.
+    
+    """
     new_args = process_vector_args(args)
 
     if sp.__version__ < '1.1' and hasattr(expr,'__len__'):
         expr = sp.Matrix(expr)
 
-    # TODO: check what later verisons of SymPy need for modules/handling Mod
-    # TODO: apparently lambdify can't be trusted?? Eventually move to
-    # codeprinter? http://stackoverflow.com/a/10138307/854909
-    # TODO: should this figure out how to use u-funcify if possible?
-    # TODO: be more vectorizable? each symbol can be a list/vector, return
-    # list/vectors
     f = sp.lambdify(new_args, expr, modules=modules)
 
     def lambda_function_with_vector_args(*func_args):
@@ -62,9 +72,23 @@ def lambdify_with_vector_args(args, expr, modules=(
 
 
 def callable_from_trajectory(t, curves):
-    # TODO: Could write pre-allow passing pre-/post- processing functions??
-    # Is there a better design for guessing how everything is split up??
-    # let's make it be concatenated
+    """
+    Use scipy.interpolate splprep to build cubic b-spline interpolating
+    functions over a set of curves.
+    
+    Paramters
+    ---------
+    t : 1D array-like
+        Array of m time indices of trajectory
+    curves : 2D array-like
+        Array of m x n vector samples at the time indices. First dimension
+        indexes time, second dimension indexes vector components
+    
+    Returns
+    -------
+    interpolated_callable : callable
+        Callable which interpolates the given curve/trajectories
+    """
     tck_splprep = interpolate.splprep(
         x=[curves[:, i] for i in range(curves.shape[1])], u=t, s=0)
 
@@ -75,6 +99,24 @@ def callable_from_trajectory(t, curves):
 
 
 def grad(f, basis, for_numerical=True):
+    """
+    Compute the symbolic gradient of a vector-valued function with respect to a
+    basis.
+    
+    Parameters
+    ----------
+    f : 1D array-like of sympy `Expression`s
+        The vector-valued function to compute the gradient of.
+    basis : 1D array-like of sympy `symbol`s
+        The basis symbols to compute the gradient with respect to.
+    for_numerical : boolean
+        A placeholder for the option of numerically computing the gradient.
+
+    Returns
+    -------
+    grad : 2D array-like of sympy `Expression`s
+        The symbolic gradient.
+    """
     if hasattr(f, '__len__'):  # as of version 1.1.1, Array isn't supported
         f = sp.Matrix(f)
 
@@ -88,7 +130,19 @@ def grad(f, basis, for_numerical=True):
 
 
 def augment_input(system, input_=[], update_outputs=True):
-    # Augment input, useful to construct control-affine systems
+    """
+    Augment input, useful to construct control-affine systems
+    
+    Parameters
+    ----------
+    system : DynamicalSystem
+        The sytsem to augment the input of
+    input_ (optional) : 1D array of symbols
+        The input to augment. Use to augment only a subset of input components.
+    update_outputs : boolean
+        If true and the system provides full state output, will also add the
+        augmented inputs to the output.    
+    """
     # accept list, etc of symbols to augment
     augmented_system = system.copy()
     if input_ == []:
