@@ -6,17 +6,18 @@ from simupy.systems import (DynamicalSystem, MemorylessSystem, dynamicsymbols,
 
 class DiscontinuousSystem(DynamicalSystem):
     """
-    now state_equation and output_equation must be n_events x n_state/n_output
+    A continuous-time dynamical system with a discontinuity. Must provide the
+    following attributes in addition to those of DynamicalSystem:
 
-    state_equation_function and output_equation_function are always expected
-    to return the correct result.
+    event_equation_function - A function called at each integration time-step
+    and stored in simulation results. Takes input and state, if stateful. A
+    zero-crossing of this output triggers the discontinuity.
 
-    event_occurance can return a new state if stateful system, otherwise output
-    is ignored then updates object (self) properties so that (state,) output,
-    event equations
-
-    Is it always enough to know what event-state fit was in and the new event
-    crossing? need to know which event changed as well as state at event
+    event_equation_function - A function that is called when the discontinuity
+    occurs. This is generally used to change what state_equation_function,
+    output_equation_function, and event_equation_function compute based on the
+    new discontinuity. If stateful, returns the state immediately after the
+    discontinuity.
     """
 
     def event_equation_function(self, *args, **kwargs):
@@ -36,13 +37,39 @@ class DiscontinuousSystem(DynamicalSystem):
                              "continuous time systems")
 
 
-class MemoryLessDiscontinuousSystem(DiscontinuousSystem, MemorylessSystem):
+class MemorylessDiscontinuousSystem(DiscontinuousSystem, MemorylessSystem):
     pass
 
 
-class SwitchedOutput(MemoryLessDiscontinuousSystem):
+class SwitchedOutput(MemorylessDiscontinuousSystem):
+    """
+    A memoryless discontinuous system to conveninetly construct switched
+    outputs.
+    """
+
     def __init__(self, event_variable_equation, event_bounds, output_equations,
                  input_=None, *args, **kwargs):
+        """
+        SwitchedOutput constructor
+
+        Parmeters
+        ---------
+        event_variable_equation : sympy `Expression`
+            Expression representing the event_equation_function
+        event_bounds : list-like of numerical values
+            Ordered list-like numerical values which define the boundaries of
+            events (relative to event_variable_equation).
+        output_equations : Array or Matrix (2D) of sympy `Expression`s
+            The output equations of the system. The first dimension indexes the
+            event-state and should be one more than the number of event bounds.
+            This should also be indexed to match the boundaries (i.e., the
+            first expression is used when the event_variable_equation is below
+            the first event_bounds value). The second dimension is dim_output
+            of the system.
+        input_ : Array or Matrix (1D) of sympy `symbol`s
+            The input of the systems. event_variable_equation and
+            output_equations depend on the system's input.
+        """
         super().__init__(input_=input_, *args, **kwargs)
         self.event_variable_equation = event_variable_equation
         self.output_equations = output_equations
@@ -97,7 +124,7 @@ class SwitchedOutput(MemoryLessDiscontinuousSystem):
             assert len(event_bounds)+1 == self.output_equations.shape[0]
         if hasattr(self, 'output_equations_functions'):
             assert len(event_bounds)+1 == self.output_equations_functions.size
-        self._event_bounds = np.array(event_bounds)[None, :]
+        self._event_bounds = np.array(event_bounds).reshape(1, -1)
         self.n_conditions = len(event_bounds) + 1
         if self.n_conditions == 2:
             self.event_bounds_range = self._event_bounds
@@ -132,19 +159,19 @@ class SwitchedOutput(MemoryLessDiscontinuousSystem):
         self.condition_idx = None
 
 
-class Saturation(MemoryLessDiscontinuousSystem):
+class Saturation(SwitchedOutput):
     pass
 
 
-class Deadband(MemoryLessDiscontinuousSystem):
+class Deadband(SwitchedOutput):
     pass
 
 
-class Hysteresis(MemoryLessDiscontinuousSystem):
+class Hysteresis(SwitchedOutput):
     pass
 
 
-class Stiction(MemoryLessDiscontinuousSystem):
+class Stiction(SwitchedOutput):
     """
     inputs: v - velocity of object, fi - sum of other forces
     output: fo - force experienced by object (what changes momentum)
@@ -165,8 +192,5 @@ class Stiction(MemoryLessDiscontinuousSystem):
             fo = 0
         fi > phi*ffr:
             fo = fi - phi*ffr
-
-
-
     """
     pass

@@ -6,12 +6,19 @@ from sympy.systems import DynamicalSystem
 
 class DescriptorSystem(DynamicalSystem):
     """
-    ideally, take advantage of DAE solvers eventually
-    since I'm on my own, I will use my generalized momentum nomenclature
+    A dynamical system in descriptor form, with a mass matrix. Currently this
+    is only useful for symbolic analysis. If DAE solvers are supported, the
+    mass matrix form could be used directly in numerical integration.
+    
+    Uses a generalized momentum nomenclature. The system represents dynamics of
+    the form
 
-    M(t,x) * x_dot = f(t,x,u)
+    M(t,x) * x_dot(t) = f(t,x,u)
+    y(t) = h(t,x)
 
-    M is the mass matrix and f is the impulse equations
+    M is the mass matrix and f is the impulse equations. The state equation is
+    automatically solved for so that the DescriptorSystem can be used in place
+    of a DynamicalSystem.
     """
     def __init__(self, mass_matrix=None, impulse_equation=None, state=None,
                  input_=None, output_equation=None, **kwargs):

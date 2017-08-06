@@ -19,18 +19,22 @@ DEFAULT_EVENT_FIND_OPTIONS = {
         'maxiter': 100
     }
 
-nan_warning_message = ("BlockDiagram encountered NaN outputs and quit during " +
-    " {}. This may have been intentional! NaN outputs at occured index {} " +
-    " at time t={} and state x={}")
+nan_warning_message = ("BlockDiagram encountered NaN outputs and quit during" +
+                       " {}. This may have been intentional! NaN outputs at " +
+                       "time t={}, state x={}, output y={}")
 
 
 class SimulationResult(object):
-    # TODO: use pandas for the results (symbol column index)
-    # TODO: create custom dataframe that automatically computes column
-    # expressions if all atoms are present
-    # TODO: make it so strings get sympified to try to find columns?
-    # TODO: enforce naming so things don't clash? and then a mechanism to
-    # simplify names? and naming schemes for non DynamicalSystem systems.
+    """
+    A simple class to collect simulation result trajectories.
+
+    Attributes
+    ----------
+    t - array of times
+    x - array of states
+    y - array of outputs
+    e - array of events
+    """
 
     max_allocation = 2**7
 
@@ -79,7 +83,16 @@ class SimulationResult(object):
 
 
 class BlockDiagram(object):
+    """
+    A block diagram of dynamical systems with their connections which can be
+    numerically simulated.
+    """
+
     def __init__(self, *systems):
+        """
+        Initialize a BlockDiagram, with an optional list of systems to start
+        the diagram.
+        """
         if len(systems) == 0:
             self.systems = np.array([], dtype=object)
             self.connections = np.array([], dtype=np.bool_).reshape((0, 0))
@@ -114,7 +127,27 @@ class BlockDiagram(object):
 
     def connect(self, from_system_output, to_system_input, outputs=[],
                 inputs=[]):
-        if outputs == []:
+        """
+        Connect systems in the block diagram.
+
+        Parameters
+        ----------
+        from_system_output : DynamicalSystem
+            The system (already added to BlockDiagram) from which outputs will
+            be connected. Note that the outputs of a system can be connected to
+            multiple inputs.
+        to_system_input : DynamicalSystem
+            The system (already added to BlockDiagram) to which inputs will be
+            connected. Note that any previous input connections will be
+            over-written.
+        outputs (optional) : list-like
+            Selector index of the outputs to connect. If not specified or of
+            length 0, will connect all of the outputs.
+        inputs (optional) : list-like
+            Selector index of the inputs to connect. If not specified or of
+            length 0, will connect all of the inputs.
+        """
+        if len(outputs) == 0:
             outputs = np.arange(from_system_output.dim_output)
         else:
             outputs = np.asarray(outputs)
@@ -122,7 +155,7 @@ class BlockDiagram(object):
                         np.where(self.systems == from_system_output)
                     ]
 
-        if inputs == []:
+        if len(inputs) == 0:
             inputs = np.arange(to_system_input.dim_input)
         else:
             inputs = np.asarray(inputs)
@@ -134,6 +167,14 @@ class BlockDiagram(object):
         self.connections[outputs, inputs] = True
 
     def add_system(self, system):
+        """
+        Add a system to the block diagram
+
+        Parameters
+        ----------
+        system : DynamicalSystem
+            System to add to BlockDiagram
+        """
         self.systems = np.append(self.systems, system)
         self.cum_states = np.append(self.cum_states,
                                     self.cum_states[-1] + system.dim_state)
@@ -158,27 +199,30 @@ class BlockDiagram(object):
                  integrator_options=DEFAULT_INTEGRATOR_OPTIONS,
                  event_find_options=DEFAULT_EVENT_FIND_OPTIONS):
         """
-        TODO: recreate into giant expression, hopefully with CSE? This would
-        speed up CT systems, but most likely the interesting ones are hybrid.
+        Simulate the block diagram
 
-        So goal of symbolic manipulation is to create efficient callable
-        that is only a function of states and possibly time. Then efficient
-        (i.e., vectorized?) to generate the outputs of each system which may
-        not get stored anymore.
+        Parameters
+        ----------
+            tspan : list-like or float
+                Argument to specify integration time-steps.
 
-        Related: do we ever benefit from implicit form? explicit is probably
-        always fine numerically? With DT and especially algorithmic, these
-        inefficiencies may be neglible.
+                If a single time is specified, it is treated as the final time.
+                If two times are specified, they are treated as initial and
+                final times. In either of these conditions, it is assumed that
+                that every time step from a variable time-step integrator will
+                be stored in the result.
 
-        Some will require a jacobian, not sure how inaccurate or inefficient it
-        would be just to follow the same computation procedure used here
-
-        Could also group symbolic discrete time systems by dt. But ultimately
-        this still needs to handle "algorithmic" systems (controllers?)
-        actually, if hybrid then do it by DTs and know integrator will stop at
-        a good time.
-
-        also need to decouple code generation from this and from System
+                If more than two times are specified, these are the only times
+                where the trajectories will be stored.
+            integrator_name (optional) : string
+                Name of scipy.integrate.ode integrator to use. Default is
+                'dopri5'.
+            integrator_options (optional) : dict
+                Dictionary of scipy.integrate.ode integrator options to use for
+                integration
+            event_find_options (optional) : dict
+                Dictionary of scipy.optimize.brentq options to use for event
+                detection
         """
 
         # generate tspan based on DTs, add hybrid flag
@@ -418,14 +462,13 @@ class BlockDiagram(object):
                 np.where(np.isnan(new_outputs))
                 warnings.warn(nan_warning_message.format({
                         "variable step-size collection",
-                        str(np.where(np.isnan(new_outputs))[0]),
                         t,
-                        new_states
+                        new_states,
+                        new_outputs
                     }))
                 return -1
 
-        # TODO: decouple integrator; perhaps use PyDy, PyODEsys, PyDStool,
-        # Sundials, etc
+        # TODO: decouple integrator
         # setup the integrator if we have CT states
         if len(ct_x0) > 0:
             r = ode(continuous_time_integration_step)
@@ -435,12 +478,11 @@ class BlockDiagram(object):
                 r.set_solout(collect_integrator_results)
 
         # initial condition computation, populate initial condition in results
-        # I am not sure if the timing is right for DT memoryless systems; they
-        # may need to be shifted
-
-        """compute the outputs based on initial conditions; add initial conditions
-        and initial outputs to results"""
         y0 = np.zeros(self.cum_outputs[-1])
+
+        #
+        # Initial event computation
+        #
 
         # compute outputs for stateful systems that have no events:
         for sysidx in np.where(
@@ -509,12 +551,20 @@ class BlockDiagram(object):
         results.new_result(t0, all_x0, y0, e0)
         prev_event_t = t0
 
+        # main simulation loop
         for t_idx, next_t in enumerate(tspan[1:]):
             if np.any(np.isnan(results.y[:results.res_idx, :])):
+                warnings.warn(nan_warning_message.format({
+                        "tspan iteration after discrete integration",
+                        tspan[t_idx-1],
+                        results.x[results.res_idx-1, :],
+                        results.y[results.res_idx-1, :]
+                    }))
                 break
 
             if len(ct_x0) > 0:  # handle continuous time integration
                 r.set_initial_value(r.y, r.t)
+                # loop to integrate until next_t, while handling events
                 while True:
                     r.integrate(next_t)
 
@@ -529,10 +579,10 @@ class BlockDiagram(object):
 
                     if np.any(np.isnan(check_outputs)):
                         warnings.warn(nan_warning_message.format({
-                                "tspan iteration",
-                                str(np.where(np.isnan(check_outputs))[0]),
+                                "tspan iteration after continuous integration",
                                 r.t,
-                                check_states
+                                check_states,
+                                check_outputs
                             }))
                         break
 

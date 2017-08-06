@@ -11,41 +11,54 @@ DEFAULT_CODE_GENERATOR_ARGS = {
     'modules': "numpy"
 }
 
-# TODO: A base System class? Enforces definition of dim_state, dim_input,
-# dim_output, and functions before adding to BD (BD already does this for n's)
-# and simulation (def needed to enforce functions) could even test dimensions
-# of actual output to make sure its correct, but it will fail on sim w/o
-
 
 class DynamicalSystem(object):
+    """
+    A dynamical system which models systems of the form
+
+    x'(t) = f(t,x,u)
+    y(t) = h(t,x)
+
+    or
+
+    y(t) = h(t,u)
+
+    These could also represent discrete-time systems, in which case x'(t)
+    represents x[k+1].
+    """
     def __init__(self, state_equation=None, state=None, input_=None,
                  output_equation=None, constants_values={}, dt=0,
                  initial_condition=None, code_generator=None,
                  code_generator_args={}):
 
         """
-        state_equation is a vector valued expression, the derivative of the
-        state.
+        DynamicalSystem constructor
 
-        state is a sympy matrix (vector) of the state components, in desired
-        order, matching state_equation.
-
-        input_ is a sympy matrix (vector) of the input vector, in desired order
-
-        output_equation is a vector valued expression, the output of the
-        system.
-
-        needs a "set vars to ___ then do ___" function. Used for eq points,
-        phase plane, etc could be a "with" context??
-
-        keep a list of constants, too?
-        check for input/output connection ? (there's a name for this)
-        check for autonomous/time-varying?
-        check for control affine?
-        check for memory(less)? just use n-state
-
+        Parameters
+        ----------
+        state_equation (optional): Array or Matrix (1D) of sympy `Expression`s
+            Vector valued expression for the derivative of the state.
+        state (optional): Array or Matrix (1D) of sympy `symbol`s
+            Vector of symbols representing the components of the state, in the
+            desired order, matching state_equation.
+        input_ : Array or Matrix (1D) of sympy `symbol`s
+            Vector of symbols representing the components of the input, in the
+            desired order. state_equation may depend on the system input. If
+            the system has no state, the output_equation may depend on the
+            system input.
+        output_equation : Array or Matrix (1D) of sympy `Expression`s
+            Vector valued expression for the output of the system.
+        constants_values : dict
+            Dictionary of constants substitutions.
+        dt : float
+            Sampling rate of system. Use 0 for continuous time systems.
+        initial_condition : Array or Matrix (1D) of numerical values
+            Array or Matrix used as the initial condition of the sytsem.
+        code_generator : callable
+            Function to be used as code generator.
+        code_generator_args : dict
+            Dictionary of keyword args to pass to the code generator.
         """
-        # TODO: when constant_values is set, update callables?
         self.constants_values = constants_values
         self.state = state
         self.initial_condition = initial_condition
@@ -218,16 +231,24 @@ class DynamicalSystem(object):
 
 class MemorylessSystem(DynamicalSystem):
     """
-    a system with no state
+    A system with no state.
 
-    if no input are used, can represent a signal (function of time only)
-    for example, a stochastic signal could interpolate points and use
-    prepare_to_integrate to re-seed the data, or something.
-
-    when I decouple code generator, maybe output_equation could even be a
-    stochastic representation?
+    With no input, can represent a signal (function of time only). For example,
+    a stochastic signal could interpolate points and use prepare_to_integrate
+    to re-seed the data.
     """
     def __init__(self, input_=None, output_equation=None, **kwargs):
+        """
+        DynamicalSystem constructor
+
+        Parameters
+        ----------
+        input_ : Array or Matrix (1D) of sympy `symbol`s
+            Vector of symbols representing the components of the input, in the
+            desired order. The output_equation may depend on the system input.
+        output_equation : Array or Matrix (1D) of sympy `Expression`s
+            Vector valued expression for the output of the system.
+        """
         super().__init__(
               input_=input_, output_equation=output_equation, **kwargs)
 
@@ -247,6 +268,20 @@ class MemorylessSystem(DynamicalSystem):
 
 
 def SystemFromCallable(incallable, dim_input, dim_output, dt=0):
+    """
+    Construct a memoryless system from a callable.
+    
+    Parameters
+    ----------
+    incallable : callable
+        Function to use as the output_equation_function. Should have signature
+        (t, u) if dim_input > 0 or (t) if dim_input = 0.
+    dim_input : int
+        Dimension of input.
+    dim_output : int
+        Dimension of output.
+        
+    """
     system = MemorylessSystem(dt=dt)
     system.dim_input = dim_input
     system.dim_output = dim_output

@@ -10,20 +10,29 @@ def construct_explicit_matrix(name, n, m, symmetric=False, diagonal=0,
     """
     construct a matrix of symbolic elements
 
-    args:
-    name - string base name for variables; each variable is name_ij, which
+    Parameters
+    ----------
+    name : string 
+        Base name for variables; each variable is name_ij, which
         admitedly only works clearly for n,m < 10
-    n - number of rows
-    m - number of columns
-    symmetric - use to enforce a symmetric matrix (repeat symbols above/below
-        diagonal)
-    diagonal - zeros out off diagonals. takes precedence over symmetry.
-    dynamic - use sympy.physics.mechanics.dynamicsymbol (defaults to
-        sp.symbols)
+    n : int
+        Number of rows
+    m : int
+        Number of columns
+    symmetric : boolean
+        Use to enforce a symmetric matrix (repeat symbols above/below diagonal)
+    diagonal : boolean
+        Zeros out off diagonals. Takes precedence over symmetry.
+    dynamic : boolean
+        Whether to use sympy.physics.mechanics dynamicsymbol. If False, use
+        sp.symbols
+    kwargs : **dict
+        remaining kwargs passed to symbol function
 
-    kwargs: remaining kwargs passed to symbol function
-
-    returns sympy.Matrix of explicit symbolic elements
+    Returns
+    -------
+    matrix : sympy Matrix
+        The Matrix containing explicit symbolic elements
     """
     if dynamic:
         symbol_func = dynamicsymbols
@@ -52,10 +61,13 @@ def construct_explicit_matrix(name, n, m, symmetric=False, diagonal=0,
 
 def matrix_subs(*subs):
     """
-    pass in 2-tuples of (symbolic,numeric) matrices OR dict of {symbolic:
-    numeric} pairs
+    Generate an object that can be passed into sp.subs from matrices, replacing
+    each element in from_matrix with the corresponding element from to_matrix
 
-    returns object that can be passed into sp.subs
+    There are three ways to use this function, depending on the input:
+    1. A single matrix-level subsitution - from_matrix, to_matrix
+    2. A list or tuple of (from_matrix, to_matrix) 2-tuples
+    3. A dictionary of {from_matrix: to_matrix} key-value pairs
     """
     # I guess checking symmetry would be better, this will do for now.
     if len(subs) == 2 and not isinstance(subs[0], (list, tuple, dict)):
@@ -78,7 +90,20 @@ def matrix_subs(*subs):
 
 def block_matrix(blocks):
     """
-    construct a block matrix, element by element
+    Construct a matrix where the elements are specified by the block structure
+    by joining the blocks appropriately.
+
+    Parmeters
+    ---------
+    blocks : two level deep iterable of sympy Matrix objects
+        The block specification of the matrices used to construct the block
+        matrix.
+
+    Returns
+    -------
+    matrix : sympy Matrix
+        A matrix whose elements are the elements of the blocks with the
+        specified block structure.
     """
     return sp.Matrix.col_join(
         *tuple(
@@ -90,12 +115,28 @@ def block_matrix(blocks):
 
 def matrix_callable_from_vector_trajectory(tt, x, unraveled, raveled):
     """
-    convert a trajectory into an interpolating callable that returns a matrix.
+    Convert a trajectory into an interpolating callable that returns a 2D
+    array. The unraveled, raveled map how the array is filled in. See
+    riccati_system example.
 
-    tt: m time indeces
-    x: m x n vector of samples
-    unravled: list of symbols in the same order of the data x
-    raveled: matrix-like of symbols in the desired positions
+    Parameters
+    ----------
+    tt : 1D array-like
+        Array of m time indices of trajectory
+    xx : 2D array-like
+        Array of m x n vector samples at the time indices. First dimension
+        indexes time, second dimension indexes vector components
+    unraveled : 1D array-like
+        Array of n unique keys matching xx.
+    raveled : 2D array-like
+        Array where the elements are the keys from unraveled. The mapping
+        between unraveled and raveled is used to specify how the output array
+        is filled in.
+
+    Returns
+    -------
+    matrix_callable : callable
+        The callable interpolating the trajectory with the specified shape. 
 
     """
     xn, xm = x.shape
@@ -126,9 +167,27 @@ def matrix_callable_from_vector_trajectory(tt, x, unraveled, raveled):
     return matrix_callable
 
 
-def system_from_matrix_DE(mat_DE, mat_var, mat_input=sp.Matrix([]),
-                          constants={}):
-    # Sorry, not going to be clever and allow sets of DEs and variable matrices
+def system_from_matrix_DE(mat_DE, mat_var, mat_input=None, constants={}):
+    """
+    Construct a DynamicalSystem using matrices. See riccati_system example.
+
+    Parameters
+    ----------
+    mat_DE : sympy Matrix
+        The matrix derivative expression (right hand side)
+    mat_var : sympy Matrix
+        The matrix state
+    mat_input (optional) : list-like of input expressions
+        A list-like of input expressions in the matrix differential equation
+    constants (optional) : dict
+        Dictionary of constants substitutions.
+    
+    Returns
+    -------
+    sys : DynamicalSystem
+        A DynamicalSystem which can be used to numerically solve the matrix
+        differential equation.
+    """
     vec_var = list(set(sp.flatten(mat_var.tolist())))
     vec_DE = sp.Matrix.zeros(len(vec_var), 1)
 

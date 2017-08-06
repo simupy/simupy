@@ -3,6 +3,10 @@ from numpy.lib.index_tricks import RClass, CClass
 
 
 class SymAxisConcatenatorMixin:
+    """
+    A mix-in to convert numpy AxisConcatenator classes to use with sympy N-D
+    arrays.
+    """
     def __getitem__(self, key):
         return Array(super().__getitem__(tuple(
             Array(k) if hasattr(k, '__len__') else Array([k]) for k in key
@@ -22,6 +26,9 @@ c_ = SymCClass()
 
 
 def empty_array():
+    """
+    Construct an empty array, which is often needed as a place-holder
+    """
     a = Array([0])
     a._shape = tuple()
     a._rank = 0
