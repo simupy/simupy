@@ -1,6 +1,10 @@
 # SimuPy
 
-A framework for modeling and simulating dynamical systems.
+A framework for modeling and simulating dynamical systems. This provides an open source, Python based alternative to Simulink.
+
+## Installation
+
+
 
 ## Overview
 
@@ -54,55 +58,5 @@ A number of utilities for constructing and manipulating systems and the simulati
 - ``simupy.Systems.SystemFromCallable`` is a helper for converting a function to a state-less system (typically controller) to simulate
 - ``MemorylessSystem`` and ``LTISystem`` are subclasses to more quickly create these types of systems
 - ``DescriptorSystem`` is used to construct systems with dynamics of the form ``M(t, x) * x'(t) = f(t,x,u)``. In the future, this form can be used in DAE solvers, etc
-
-
-
-## Design
-
-SimuPy assumes systems have no direct feedthrough between inputs and outputs; this discpline avoids algebraic loops. To simulate a system model that includes a feedthrough, the system can be augmented (differentiating the input or integrating the output). However, there is no requirement for the system to have a state, so 
-
-```
-x'(t) = f(t,x,u)
-y(t) = h(t,x)
-```
-
-and 
-
-```
-y(t) = h(t,u)
-```
-
-are both valid formulations. A system in a ``BlockDiagram`` needs to provide ``dim_state``, ``dim_input``, ``dim_output``, and ``output_equation_function``. If ``dim_state`` > 0 then ``state_equation_function`` must also be provided. In the future, providing jacobian functions will be used to construct ``BlockDiagram`` jacobians to use with solvers that support them.
-
-Setting system property ``dt``>0 will determine the sample rate that the outputs and state are computed; ``dt``=0 is treated as a continuous-time system. In hybrid-time ``BlockDiagram``s, the system is automatically integrated piecewise to improve accuracy. Assumes systems are defined as
-
-```
-x[k+] = f([k],x(k),u(k)])
-y[k+] = h([k],x[k+])
-```
-
-and
-
-```
-y[k+] = h([k], u(k))
-```
-
-where ``[k]`` and ``(k)`` the value of the variable at time ``k*dt`` for discrete-time and continuous time systems respectively, while ``[k+]`` indicates the value of variable over the interval ``(k*dt, (k+1)*dt]``. This should have the expected result that a block diagram with only discrete-time systems behaves like 
-
-```
-x[k+1] = f([k], x[k], u[k])
-y[k] = h([k], x[k])
-```
-
-and makes sense in general for hybrid-time simulation.
-
-By choice, control design is outside the scope of SimuPy. So controller design tools (for example, feedback linearization, sliding mode, "adapative", etc) should be in its own library(/ies), but analysis tools that might help in controller design could be appropriate here.
-
-Notation:
-x is the state (vector) of the system, x_i is a component of state, colloquially state variable or collectively states
-similarly, y and u are output and input of the system.
-
-x'(t)  = f(t,x,u)  is the state equation (pluralized colloquially?) according to Khalil, Hespanha, Hangos. Boyd calls them dynamics equations??
-
-y(t) = h(t,x) is the output equation (pluralized colloquially). 
+- ``DiscontinuousSystem`` is used to construct systems with discontinuities, defined by zero-crossings of the ``event_equation_function`` output.
 

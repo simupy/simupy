@@ -9,14 +9,15 @@ class DiscontinuousSystem(DynamicalSystem):
     A continuous-time dynamical system with a discontinuity. Must provide the
     following attributes in addition to those of DynamicalSystem:
 
-    event_equation_function - A function called at each integration time-step
-    and stored in simulation results. Takes input and state, if stateful. A
+    ``event_equation_function`` - A function called at each integration time-
+    step and stored in simulation results. Takes input and state, if stateful. A
     zero-crossing of this output triggers the discontinuity.
 
-    event_equation_function - A function that is called when the discontinuity
-    occurs. This is generally used to change what state_equation_function,
-    output_equation_function, and event_equation_function compute based on the
-    new discontinuity. If stateful, returns the state immediately after the
+    ``event_equation_function`` - A function that is called when the
+    discontinuity occurs. This is generally used to change what 
+    ``state_equation_function``, ``output_equation_function``, and
+    ``event_equation_function`` compute based on the occurance of the
+    discontinuity. If stateful, returns the state immediately after the
     discontinuity.
     """
 

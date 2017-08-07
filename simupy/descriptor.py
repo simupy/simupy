@@ -11,10 +11,10 @@ class DescriptorSystem(DynamicalSystem):
     mass matrix form could be used directly in numerical integration.
     
     Uses a generalized momentum nomenclature. The system represents dynamics of
-    the form
+    the form::
 
-    M(t,x) * x_dot(t) = f(t,x,u)
-    y(t) = h(t,x)
+        M(t,x) * x_dot(t) = f(t,x,u)
+        y(t) = h(t,x)
 
     M is the mass matrix and f is the impulse equations. The state equation is
     automatically solved for so that the DescriptorSystem can be used in place

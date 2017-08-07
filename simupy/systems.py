@@ -14,14 +14,14 @@ DEFAULT_CODE_GENERATOR_ARGS = {
 
 class DynamicalSystem(object):
     """
-    A dynamical system which models systems of the form
+    A dynamical system which models systems of the form::
 
-    x'(t) = f(t,x,u)
-    y(t) = h(t,x)
+        xdot(t) = f(t,x,u)
+        y(t) = h(t,x)
 
-    or
+    or::
 
-    y(t) = h(t,u)
+        y(t) = h(t,u)
 
     These could also represent discrete-time systems, in which case x'(t)
     represents x[k+1].
@@ -54,10 +54,22 @@ class DynamicalSystem(object):
             Sampling rate of system. Use 0 for continuous time systems.
         initial_condition : Array or Matrix (1D) of numerical values
             Array or Matrix used as the initial condition of the sytsem.
-        code_generator : callable
+        code_generator : callable (optional)
             Function to be used as code generator.
-        code_generator_args : dict
+        code_generator_args : dict (optional)
             Dictionary of keyword args to pass to the code generator.
+
+
+        By default, the code generator uses a wrapper for ``sympy.lambdify``.
+        You can change it by passing the system initialization arguments
+        ``code_generator`` (the function) and additional key-word arguments to
+        the generator in a dictionary ``code_generator_args``. You can change
+        the defaults for future systems by changing the module values, as in::
+
+            import simupy.systems
+            simupy.systems.DEFAULT_CODE_GENERATOR = your_code_generator_function
+            simupy.systems.DEFAULT_CODE_GENERATOR_ARGS = {'extra_arg': value}
+
         """
         self.constants_values = constants_values
         self.state = state

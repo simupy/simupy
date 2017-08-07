@@ -10,4 +10,10 @@ setup(
     author_email='ben@sixpearls.com',
     url='https://github.com/sixpearls/SimuPy',
     packages=['simupy'],
+    install_requires=[
+            'numpy',
+            'scipy',
+            'sympy',
+        ],
+    license="BSD 2-clause \"Simplified\" License",
 )
