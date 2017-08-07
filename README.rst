@@ -3,7 +3,7 @@ SimuPy
 
 Overview
 --------
-SimuPy is a framework for simulating inter-connected dynamical system models. SimuPy is an open source, python based alternative to Simulink. Dynamical system models can be specified as an object with certain parameters and functions as described in  the :doc:`api/api`. Models can also be constructed using symbolic expressions, as in
+SimuPy is a framework for simulating inter-connected dynamical system models. SimuPy is an open source, python based alternative to Simulink. Dynamical system models can be specified as an object with certain parameters and functions as described in the :doc:`API documentation<api/api>`. Models can also be constructed using symbolic expressions, as in
 
 .. code-block :: python
 
