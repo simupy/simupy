@@ -3,13 +3,13 @@ SimuPy
 
 Overview
 --------
-The goal of SimuPy is to provide a framework for simulating inter-connected dynamical system models. Models can be constructed using symbolic expressions, as in
+SimuPy is a framework for simulating inter-connected dynamical system models. SimuPy is an open source, python based alternative to Simulink. Dynamical system models can be specified as an object with certain parameters and functions as described in  the :doc:`api/api`. Models can also be constructed using symbolic expressions, as in
 
 .. code-block :: python
 
     from sympy.physics.mechanics import dynamicsymbols
     from sympy.tensor.array import Array
-    from simupy.Systems import DynamicalSystem
+    from simupy.systems import DynamicalSystem
 
     x = x1, x2, x3 = Array(dynamicsymbols('x1:4'))
     u = dynamicsymbols('u')
@@ -52,11 +52,19 @@ A number of utilities for constructing and manipulating systems and the simulati
 
 - ``process_vector_args`` and ``lambdify_with_vector_args`` from ``simupy.utils`` are helpers for code generation using ``sympy.lambdify``
 - ``simupy.utils.callable_from_trajectory`` is a simple wrapper for making polynomial spline interpolators using ``scipy.interpolate.splprep``
-- ``simupy.Matrices`` includes tools for constructing (vector) systems using matrix expressions and re-wrapping the results into matrix form
-- ``simupy.Systems.SystemFromCallable`` is a helper for converting a function to a state-less system (typically controller) to simulate
+- ``simupy.matrices`` includes tools for constructing (vector) systems using matrix expressions and re-wrapping the results into matrix form
+- ``simupy.systems.SystemFromCallable`` is a helper for converting a function to a state-less system (typically controller) to simulate
 - ``MemorylessSystem`` and ``LTISystem`` are subclasses to more quickly create these types of systems
 - ``DescriptorSystem`` is used to construct systems with dynamics of the form ``M(t, x) * x'(t) = f(t,x,u)``. In the future, this form can be used in DAE solvers, etc
 - ``DiscontinuousSystem`` is used to construct systems with discontinuities, defined by zero-crossings of the ``event_equation_function`` output.
 
-
 By choice, control design is outside the scope of SimuPy. So controller design tools (for example, feedback linearization, sliding mode, "adapative", etc) should be in its own library(/ies), but analysis tools that might help in controller design could be appropriate here.
+
+Installation
+------------
+
+SimuPy is ``pip`` installable
+
+.. code-block:: bash
+
+    $ pip install simupy
