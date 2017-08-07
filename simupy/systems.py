@@ -36,17 +36,17 @@ class DynamicalSystem(object):
 
         Parameters
         ----------
-        state_equation (optional): Array or Matrix (1D) of sympy `Expression`s
+        state_equation (optional): Array or Matrix (1D) of sympy Expressions
             Vector valued expression for the derivative of the state.
-        state (optional): Array or Matrix (1D) of sympy `symbol`s
+        state (optional): Array or Matrix (1D) of sympy symbols
             Vector of symbols representing the components of the state, in the
             desired order, matching state_equation.
-        input_ : Array or Matrix (1D) of sympy `symbol`s
+        input_ : Array or Matrix (1D) of sympy symbols
             Vector of symbols representing the components of the input, in the
             desired order. state_equation may depend on the system input. If
             the system has no state, the output_equation may depend on the
             system input.
-        output_equation : Array or Matrix (1D) of sympy `Expression`s
+        output_equation : Array or Matrix (1D) of sympy Expressions
             Vector valued expression for the output of the system.
         constants_values : dict
             Dictionary of constants substitutions.
@@ -243,10 +243,10 @@ class MemorylessSystem(DynamicalSystem):
 
         Parameters
         ----------
-        input_ : Array or Matrix (1D) of sympy `symbol`s
+        input_ : Array or Matrix (1D) of sympy symbols
             Vector of symbols representing the components of the input, in the
             desired order. The output_equation may depend on the system input.
-        output_equation : Array or Matrix (1D) of sympy `Expression`s
+        output_equation : Array or Matrix (1D) of sympy Expressions
             Vector valued expression for the output of the system.
         """
         super().__init__(
@@ -296,13 +296,14 @@ class LTISystem(DynamicalSystem):
     def __init__(self, *args, constants_values={}, dt=0):
         """
         Construct an LTI system with the following input formats:
-        1. A, B, C matrices for systems with state
+
+        1. A, B, C matrices for systems with state::
             x' = Ax + Bu
             y = Hx
-        2. A,B matrices for systems with state, assume full state output
+        2. A,B matrices for systems with state, assume full state output::
             x' = Ax + Bu
             y = x
-        3. K matrix for systems without state
+        3. K matrix for systems without state::
             y = Kx
         
         The matrices should be numeric arrays of the appropriate shape.

@@ -1,7 +1,7 @@
 import sympy as sp
 from sympy.physics.mechanics import dynamicsymbols
 from sympy.physics.mechanics.functions import find_dynamicsymbols
-from sympy.systems import DynamicalSystem
+from simupy.systems import DynamicalSystem
 
 
 class DescriptorSystem(DynamicalSystem):

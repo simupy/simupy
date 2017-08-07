@@ -26,7 +26,7 @@ def construct_explicit_matrix(name, n, m, symmetric=False, diagonal=0,
     dynamic : boolean
         Whether to use sympy.physics.mechanics dynamicsymbol. If False, use
         sp.symbols
-    kwargs : **dict
+    kwargs : dict
         remaining kwargs passed to symbol function
 
     Returns
@@ -177,9 +177,9 @@ def system_from_matrix_DE(mat_DE, mat_var, mat_input=None, constants={}):
         The matrix derivative expression (right hand side)
     mat_var : sympy Matrix
         The matrix state
-    mat_input (optional) : list-like of input expressions
+    mat_input : list-like of input expressions (optional)
         A list-like of input expressions in the matrix differential equation
-    constants (optional) : dict
+    constants : dict (optional)
         Dictionary of constants substitutions.
     
     Returns

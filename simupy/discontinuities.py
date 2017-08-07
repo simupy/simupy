@@ -54,19 +54,19 @@ class SwitchedOutput(MemorylessDiscontinuousSystem):
 
         Parmeters
         ---------
-        event_variable_equation : sympy `Expression`
+        event_variable_equation : sympy Expression
             Expression representing the event_equation_function
         event_bounds : list-like of numerical values
             Ordered list-like numerical values which define the boundaries of
             events (relative to event_variable_equation).
-        output_equations : Array or Matrix (2D) of sympy `Expression`s
+        output_equations : Array or Matrix (2D) of sympy Expressions
             The output equations of the system. The first dimension indexes the
             event-state and should be one more than the number of event bounds.
             This should also be indexed to match the boundaries (i.e., the
             first expression is used when the event_variable_equation is below
             the first event_bounds value). The second dimension is dim_output
             of the system.
-        input_ : Array or Matrix (1D) of sympy `symbol`s
+        input_ : Array or Matrix (1D) of sympy symbols
             The input of the systems. event_variable_equation and
             output_equations depend on the system's input.
         """

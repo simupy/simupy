@@ -30,10 +30,10 @@ class SimulationResult(object):
 
     Attributes
     ----------
-    t - array of times
-    x - array of states
-    y - array of outputs
-    e - array of events
+    t : array of times
+    x : array of states
+    y : array of outputs
+    e : array of events
     """
 
     max_allocation = 2**7
@@ -140,10 +140,10 @@ class BlockDiagram(object):
             The system (already added to BlockDiagram) to which inputs will be
             connected. Note that any previous input connections will be
             over-written.
-        outputs (optional) : list-like
+        outputs : list-like (optional)
             Selector index of the outputs to connect. If not specified or of
             length 0, will connect all of the outputs.
-        inputs (optional) : list-like
+        inputs : list-like (optional)
             Selector index of the inputs to connect. If not specified or of
             length 0, will connect all of the inputs.
         """
@@ -203,26 +203,28 @@ class BlockDiagram(object):
 
         Parameters
         ----------
-            tspan : list-like or float
-                Argument to specify integration time-steps.
+        tspan : list-like or float
 
-                If a single time is specified, it is treated as the final time.
-                If two times are specified, they are treated as initial and
-                final times. In either of these conditions, it is assumed that
-                that every time step from a variable time-step integrator will
-                be stored in the result.
+            Argument to specify integration time-steps.
 
-                If more than two times are specified, these are the only times
-                where the trajectories will be stored.
-            integrator_name (optional) : string
-                Name of scipy.integrate.ode integrator to use. Default is
-                'dopri5'.
-            integrator_options (optional) : dict
-                Dictionary of scipy.integrate.ode integrator options to use for
-                integration
-            event_find_options (optional) : dict
-                Dictionary of scipy.optimize.brentq options to use for event
-                detection
+            If a single time is specified, it is treated as the final time.
+            If two times are specified, they are treated as initial and
+            final times. In either of these conditions, it is assumed that
+            that every time step from a variable time-step integrator will
+            be stored in the result.
+
+            If more than two times are specified, these are the only times
+            where the trajectories will be stored.
+
+        integrator_name : string (optional)
+            Name of scipy.integrate.ode integrator to use. Default is
+            'dopri5'.
+        integrator_options : dict (optional)
+            Dictionary of scipy.integrate.ode integrator options to use for
+            integration
+        event_find_options : dict (optional)
+            Dictionary of scipy.optimize.brentq options to use for event
+            detection
         """
 
         # generate tspan based on DTs, add hybrid flag

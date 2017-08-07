@@ -43,19 +43,19 @@ def lambdify_with_vector_args(args, expr, modules=(
             {'ImmutableMatrix': np.matrix}, "numpy", {"Mod": np.mod})
         ):
     """
-    A wrapper around sympy's lambdify where `process_vector_args` is used so
+    A wrapper around sympy's lambdify where process_vector_args is used so
     generated callable can take arguments as either vector or individual
     components
-    
+
     Parameters
     ----------
-    args : list-like of sympy `symbol`s
+    args : list-like of sympy symbols
         Input arguments to the expression to call
-    expr : sympy `expression`
+    expr : sympy expression
         Expression to turn into a callable for numeric evaluation
     modules : list
         See lambdify documentation; passed directly as modules keyword.
-    
+
     """
     new_args = process_vector_args(args)
 
@@ -78,6 +78,7 @@ def callable_from_trajectory(t, curves):
     
     Paramters
     ---------
+
     t : 1D array-like
         Array of m time indices of trajectory
     curves : 2D array-like
@@ -105,16 +106,16 @@ def grad(f, basis, for_numerical=True):
     
     Parameters
     ----------
-    f : 1D array-like of sympy `Expression`s
+    f : 1D array-like of sympy Expressions
         The vector-valued function to compute the gradient of.
-    basis : 1D array-like of sympy `symbol`s
+    basis : 1D array-like of sympy symbols
         The basis symbols to compute the gradient with respect to.
     for_numerical : boolean
         A placeholder for the option of numerically computing the gradient.
 
     Returns
     -------
-    grad : 2D array-like of sympy `Expression`s
+    grad : 2D array-like of sympy Expressions
         The symbolic gradient.
     """
     if hasattr(f, '__len__'):  # as of version 1.1.1, Array isn't supported
@@ -131,13 +132,13 @@ def grad(f, basis, for_numerical=True):
 
 def augment_input(system, input_=[], update_outputs=True):
     """
-    Augment input, useful to construct control-affine systems
+    Augment input, useful to construct control-affine systems.
     
     Parameters
     ----------
     system : DynamicalSystem
         The sytsem to augment the input of
-    input_ (optional) : 1D array of symbols
+    input_ : 1D array of symbols (optional)
         The input to augment. Use to augment only a subset of input components.
     update_outputs : boolean
         If true and the system provides full state output, will also add the
