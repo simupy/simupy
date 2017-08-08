@@ -34,6 +34,5 @@ def empty_array():
     a._rank = 0
     a._loop_size = 0
     a._array = []
-    a.__str__ = lambda *args, **kwargs: "[]" 
+    a.__str__ = lambda *args, **kwargs: "[]"
     return a
-

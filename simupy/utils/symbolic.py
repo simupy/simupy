@@ -58,7 +58,7 @@ def lambdify_with_vector_args(args, expr, modules=(
     """
     new_args = process_vector_args(args)
 
-    if sp.__version__ < '1.1' and hasattr(expr,'__len__'):
+    if sp.__version__ < '1.1' and hasattr(expr, '__len__'):
         expr = sp.Matrix(expr)
 
     f = sp.lambdify(new_args, expr, modules=modules)
@@ -74,7 +74,7 @@ def grad(f, basis, for_numerical=True):
     """
     Compute the symbolic gradient of a vector-valued function with respect to a
     basis.
-    
+
     Parameters
     ----------
     f : 1D array-like of sympy Expressions
@@ -104,7 +104,7 @@ def grad(f, basis, for_numerical=True):
 def augment_input(system, input_=[], update_outputs=True):
     """
     Augment input, useful to construct control-affine systems.
-    
+
     Parameters
     ----------
     system : DynamicalSystem
@@ -113,7 +113,7 @@ def augment_input(system, input_=[], update_outputs=True):
         The input to augment. Use to augment only a subset of input components.
     update_outputs : boolean
         If true and the system provides full state output, will also add the
-        augmented inputs to the output.    
+        augmented inputs to the output.
     """
     # accept list, etc of symbols to augment
     augmented_system = system.copy()

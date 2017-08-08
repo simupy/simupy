@@ -44,7 +44,8 @@ class SwitchedSystem(SwitchedSystemBase, DiscontinuousSystem):
                  state_equations=None, output_equations=None, **kwargs):
         """
         SwitchedSystem constructor, used to create switched systems from
-        symbolic expressions.
+        symbolic expressions. The parameters below are in addition to
+        parameters from the ``systems.symbolic.DynamicalSystems`` constructor.
 
         Parameters
         ----------
@@ -53,16 +54,20 @@ class SwitchedSystem(SwitchedSystemBase, DiscontinuousSystem):
         event_bounds_expressions : list-like of sympy Expressions or floats
             Ordered list-like values which define the boundaries of events
             (relative to event_variable_equation).
-        output_equations : Array or Matrix (2D) of sympy Expressions
+        state_equations : Array or Matrix (2D) of sympy Expressions (optional)
+            The state equations of the system. The first dimension indexes the
+            event-state and should be one more than the number of event bounds.
+            This should also be indexed to match the boundaries (i.e., the
+            first expression is used when the event_variable_equation is below
+            the first event_bounds value). The second dimension is dim_state
+            of the system.
+        output_equations : Array or Matrix (2D) of sympy Expressions (optional)
             The output equations of the system. The first dimension indexes the
             event-state and should be one more than the number of event bounds.
             This should also be indexed to match the boundaries (i.e., the
             first expression is used when the event_variable_equation is below
             the first event_bounds value). The second dimension is dim_output
             of the system.
-        input_ : Array or Matrix (1D) of sympy symbols
-            The input of the systems. event_variable_equation and
-            output_equations depend on the system's input.
         """
         DiscontinuousSystem.__init__(self, **kwargs)
         self.event_variable_equation = event_variable_equation

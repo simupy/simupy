@@ -5,7 +5,7 @@ A framework for modeling and simulating dynamical systems. This provides an open
 
 .. toctree::
    :hidden:
-   :maxdepth: 1
+   :maxdepth: 2
 
    overview
    math

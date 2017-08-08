@@ -9,7 +9,7 @@ SimuPy is a framework for simulating inter-connected dynamical system models. Si
 
     from sympy.physics.mechanics import dynamicsymbols
     from sympy.tensor.array import Array
-    from simupy.systems import DynamicalSystem
+    from simupy.systems.symbolic import DynamicalSystem
 
     x = x1, x2, x3 = Array(dynamicsymbols('x1:4'))
     u = dynamicsymbols('u')
@@ -19,9 +19,9 @@ which will automatically create callable functions for the state equations, outp
 
 .. code-block :: python
 
-    import simupy.systems
-    simupy.systems.DEFAULT_CODE_GENERATOR = your_code_generator_function
-    simupy.systems.DEFAULT_CODE_GENERATOR_ARGS = {'extra_arg': value}
+    import simupy.systems.symbolic
+    simupy.systems.symbolic.DEFAULT_CODE_GENERATOR = your_code_generator_function
+    simupy.systems.symbolic.DEFAULT_CODE_GENERATOR_ARGS = {'extra_arg': value}
 
 A number of helper classes/functions exist to simplify the construction of models. For example, a linear feedback controller can be defined as
 
@@ -50,7 +50,7 @@ which uses ``scipy.integrate.ode`` to solve the initial-valued problem. The resu
 
 A number of utilities for constructing and manipulating systems and the simulation results are also included:
 
-- ``process_vector_args`` and ``lambdify_with_vector_args`` from ``simupy.utils`` are helpers for code generation using ``sympy.lambdify``
+- ``process_vector_args`` and ``lambdify_with_vector_args`` from ``simupy.utils.symbolic`` are helpers for code generation using ``sympy.lambdify``
 - ``simupy.utils.callable_from_trajectory`` is a simple wrapper for making polynomial spline interpolators using ``scipy.interpolate.splprep``
 - ``simupy.matrices`` includes tools for constructing (vector) systems using matrix expressions and re-wrapping the results into matrix form
 - ``simupy.systems.SystemFromCallable`` is a helper for converting a function to a state-less system (typically controller) to simulate

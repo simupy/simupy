@@ -15,19 +15,33 @@ If ``event_equation_function`` and ``update_equation_function`` are provided, di
 
 Setting system property ``dt``\>0 will determine the sample rate that the outputs and state are computed; ``dt``\=0 is treated as a continuous-time system. In hybrid-time ``BlockDiagram``\s, the system is automatically integrated piecewise to improve accuracy.
 
-In the future, providing jacobian functions will be used to construct ``BlockDiagram`` jacobians to use with solvers that support them. 
+In the future, providing jacobian functions will be used to construct ``BlockDiagram`` jacobians to use with solvers that support them.
 
-The generated API documents below come from the docstrings:
+A quick overview of the of the modules:
+
+``block_diagram`` (:doc:`docstrings<block_diagram>`)
+    implements the ``BlockDiagram`` class to simulate interconnected systems.
+``systems`` (:doc:`docstrings<systems>`)
+    provides a few base classes for purely numerical based systems.
+``utils`` (:doc:`docstrings<utils>`)
+    provides utility functions, such as manipulating (numeric) systems and simulation results.
+``systems.symbolic`` (:doc:`docstrings<symbolic_systems>`), ``descriptor`` (:doc:`docstrings<descriptor>`), and ``discontinuities`` (:doc:`docstrings<discontinuities>`)
+    provides niceties for using symbolic expressions to define systems.
+``array`` (:doc:`docstrings<array>`) and ``matrices`` (:doc:`docstrings<matrices>`) 
+    provide helper functions and classes for manipulating symbolic arrays, matrices, and their systems.
+``utils.symbolic`` (:doc:`docstrings<symbolic_utils>`)
+    provides utility symbolic functions, such as manipulating symbolic systems.
 
 .. toctree::
+   :hidden:
    :maxdepth: 4
 
-   array
    block_diagram
+   systems
+   utils
+   symbolic_systems
    descriptor
    discontinuities
+   array
    matrices
-   systems
-   symbolic_systems
-   utils
    symbolic_utils

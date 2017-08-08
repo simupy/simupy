@@ -93,11 +93,53 @@ def SystemFromCallable(incallable, dim_input, dim_output, dt=0):
 
 
 class SwitchedSystem(DynamicalSystem):
+    """
+    Provides a useful pattern for discontinuous systems where the state and
+    output equations change depending on the value of a function of the state
+    and/or input (``event_variable_equation_function``). Most of the usefulness
+    comes from constructing the ``event_equation_function`` with a Bernstein
+    basis polynomial with roots at the boundaries. This class also provides
+    logic for outputting the correct state and output equation based on the
+    ``event_variable_equation_function`` value.
+    """
     def __init__(self, state_equations_functions=None,
                  output_equations_functions=None,
                  event_variable_equation_function=None, event_bounds=None,
                  dim_state=0, dim_input=0, dim_output=0, dt=0,
                  initial_condition=None):
+        """
+        Parameters
+        ----------
+        state_equation_functions : numpy array of callables (optional)
+            The derivative (or update equation) of the system state. Not needed
+            if ``dim_state`` is zero. The array indexes the
+            event-state and should be one more than the number of event bounds.
+            This should also be indexed to match the boundaries (i.e., the
+            first function is used when the event variable is below the first
+            event_bounds value).
+        output_equation_functions : numpy array of callables (optional)
+            The output equation of the system. A system must have an
+            ``output_equation_function``. If not set, uses full state output.
+            The array indexes the event-state and should be one more than the
+            number of event bounds. This should also be indexed to match the
+            boundaries (i.e., the first function is used when the event
+            variable is below the first event_bounds value).
+        event_variable_equation_function : callable (optional)
+            When this output of this function crosses the values in
+            ``event_bounds``, a discont event occurs.
+        event_bounds : callable (optional)
+            Defines the boundary points the trigger discontinuity events based
+            on the output of ``event_variable_equation_function``.
+        dim_state : int (optional)
+            Dimension of the system state. Optional, defaults to 0.
+        dim_input : int (optional)
+            Dimension of the system input. Optional, defaults to 0.
+        dim_output : int (optional)
+            Dimension of the system output. Optional, defaults to dim_state.
+        dt : float (optional)
+            Sample rate of the system. Optional, defaults to 0 representing a
+            continuous time system.
+        """
         self.dim_state = dim_state
         self.dim_input = dim_input
         self.dim_output = dim_output or dim_state
