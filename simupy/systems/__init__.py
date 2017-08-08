@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def full_state_output(*args):
     """
     A drop-in ``output_equation_function`` for stateful systems that provide
@@ -87,14 +88,13 @@ def SystemFromCallable(incallable, dim_input, dim_output, dt=0):
         Dimension of output.
     """
     system = DynamicalSystem(output_equation_function=incallable,
-                                    dim_input=dim_input, dim_output=dim_output,
-                                    dt=dt)
+                             dim_input=dim_input, dim_output=dim_output, dt=dt)
     return system
 
 
 class SwitchedSystem(DynamicalSystem):
     def __init__(self, state_equations_functions=None,
-                 output_equations_functions=None, 
+                 output_equations_functions=None,
                  event_variable_equation_function=None, event_bounds=None,
                  dim_state=0, dim_input=0, dim_output=0, dt=0,
                  initial_condition=None):
@@ -103,7 +103,8 @@ class SwitchedSystem(DynamicalSystem):
         self.dim_output = dim_output or dim_state
         self.state_equations_functions = state_equations_functions
         self.output_equations_functions = output_equations_functions
-        self.event_variable_equation_function = event_variable_equation_function
+        self.event_variable_equation_function = \
+            event_variable_equation_function
         self.event_bounds = event_bounds
         self.initial_condition = initial_condition or np.zeros(dim_state)
         self.dt = dt
@@ -203,6 +204,6 @@ class LTISystem(DynamicalSystem):
         self.dim_state = F.shape[0]
         self.dim_input = G.shape[1]
         self.dim_output = H.shape[0]
-        initial_condition = None or np.zeros(self.dim_state)
+        self.initial_condition = initial_condition or np.zeros(self.dim_state)
         self.state_equation_function = lambda t, x, u: (F@x + G@u).reshape(-1)
         self.output_equation_function = lambda t, x: (H@x).reshape(-1)

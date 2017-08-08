@@ -2,7 +2,6 @@ import numpy as np
 import sympy as sp
 from sympy.physics.mechanics import dynamicsymbols
 from simupy.systems.symbolic import DynamicalSystem
-from simupy.utils import callable_from_trajectory
 
 
 def construct_explicit_matrix(name, n, m, symmetric=False, diagonal=0,
@@ -12,7 +11,7 @@ def construct_explicit_matrix(name, n, m, symmetric=False, diagonal=0,
 
     Parameters
     ----------
-    name : string 
+    name : string
         Base name for variables; each variable is name_ij, which
         admitedly only works clearly for n,m < 10
     n : int
@@ -128,7 +127,7 @@ def system_from_matrix_DE(mat_DE, mat_var, mat_input=None, constants={}):
         A list-like of input expressions in the matrix differential equation
     constants : dict (optional)
         Dictionary of constants substitutions.
-    
+
     Returns
     -------
     sys : DynamicalSystem

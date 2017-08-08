@@ -9,7 +9,7 @@ class DescriptorSystem(DynamicalSystem):
     A dynamical system in descriptor form, with a mass matrix. Currently this
     is only useful for symbolic analysis. If DAE solvers are supported, the
     mass matrix form could be used directly in numerical integration.
-    
+
     Uses a generalized momentum nomenclature. The system represents dynamics of
     the form::
 

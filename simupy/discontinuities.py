@@ -11,11 +11,11 @@ class DiscontinuousSystem(DynamicalSystem):
     following attributes in addition to those of DynamicalSystem:
 
     ``event_equation_function`` - A function called at each integration time-
-    step and stored in simulation results. Takes input and state, if stateful. A
-    zero-crossing of this output triggers the discontinuity.
+    step and stored in simulation results. Takes input and state, if stateful.
+    A zero-crossing of this output triggers the discontinuity.
 
     ``event_equation_function`` - A function that is called when the
-    discontinuity occurs. This is generally used to change what 
+    discontinuity occurs. This is generally used to change what
     ``state_equation_function``, ``output_equation_function``, and
     ``event_equation_function`` compute based on the occurance of the
     discontinuity. If stateful, returns the state immediately after the
@@ -37,6 +37,7 @@ class DiscontinuousSystem(DynamicalSystem):
         if dt != 0:
             raise ValueError("Discontinuous systems only make sense for " +
                              "continuous time systems")
+
 
 class SwitchedSystem(SwitchedSystemBase, DiscontinuousSystem):
     def __init__(self, event_variable_equation, event_bounds_expressions,
@@ -123,9 +124,11 @@ class SwitchedSystem(SwitchedSystemBase, DiscontinuousSystem):
     @event_variable_equation.setter
     def event_variable_equation(self, event_variable_equation):
         if self.dim_state:
-            assert find_dynamicsymbols(event_variable_equation) <= set(self.state)
+            assert find_dynamicsymbols(event_variable_equation) <= \
+                set(self.state)
         else:
-            assert find_dynamicsymbols(event_variable_equation) <= set(self.input)
+            assert find_dynamicsymbols(event_variable_equation) <= \
+                set(self.input)
         assert event_variable_equation.atoms(sp.Symbol) <= set(
             self.constants_values.keys()) | set([dynamicsymbols._t])
         self._event_variable_equation = event_variable_equation
@@ -146,9 +149,11 @@ class SwitchedSystem(SwitchedSystemBase, DiscontinuousSystem):
         if hasattr(self, 'output_equations_functions'):
             assert len(event_bounds)+1 == self.output_equations_functions.size
         self.event_bounds = np.array(
-            [sp.N(bound,subs=self.constants_values) for bound in event_bounds],
+            [sp.N(bound, subs=self.constants_values)
+             for bound in event_bounds],
             dtype=np.float_
         )
+
 
 class MemorylessDiscontinuousSystem(DiscontinuousSystem, MemorylessSystem):
     pass
@@ -164,22 +169,22 @@ class SwitchedOutput(SwitchedSystem, MemorylessDiscontinuousSystem):
 class Saturation(SwitchedOutput):
     """
     """
-    def __init__(self,*args,**kwargs):
-        super().__init__(*args,**kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class Deadband(SwitchedOutput):
     """
     """
-    def __init__(self,*args,**kwargs):
-        super().__init__(*args,**kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class Hysteresis(SwitchedOutput):
     """
     """
-    def __init__(self,*args,**kwargs):
-        super().__init__(*args,**kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class Stiction(SwitchedOutput):
@@ -204,4 +209,3 @@ class Stiction(SwitchedOutput):
         fi > phi*ffr:
             fo = fi - phi*ffr
     """
-    pass

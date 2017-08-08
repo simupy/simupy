@@ -1,12 +1,12 @@
 import numpy as np
-import copy
 from scipy import interpolate
+
 
 def callable_from_trajectory(t, curves):
     """
     Use scipy.interpolate splprep to build cubic b-spline interpolating
     functions over a set of curves.
-    
+
     Parameters
     ----------
     t : 1D array-like
@@ -14,7 +14,7 @@ def callable_from_trajectory(t, curves):
     curves : 2D array-like
         Array of m x n vector samples at the time indices. First dimension
         indexes time, second dimension indexes vector components
-    
+
     Returns
     -------
     interpolated_callable : callable
@@ -27,6 +27,7 @@ def callable_from_trajectory(t, curves):
         return np.array(interpolate.splev(t, tck_splprep[0], der=0))
 
     return interpolated_callable
+
 
 def array_callable_from_vector_trajectory(tt, x, unraveled, raveled):
     """
@@ -51,7 +52,7 @@ def array_callable_from_vector_trajectory(tt, x, unraveled, raveled):
     Returns
     -------
     matrix_callable : callable
-        The callable interpolating the trajectory with the specified shape. 
+        The callable interpolating the trajectory with the specified shape.
     """
     xn, xm = x.shape
 
@@ -74,7 +75,7 @@ def array_callable_from_vector_trajectory(tt, x, unraveled, raveled):
             idx = unraveled.index(raveled[iterator.multi_index])
             if as_array:
                 array_result.__setitem__(
-                    (slice(None),*iterator.multi_index),
+                    (slice(None), *iterator.multi_index),
                     vector_result[idx]
                 )
             else:
