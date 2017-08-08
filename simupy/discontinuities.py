@@ -159,34 +159,6 @@ class SwitchedOutput(SwitchedSystem, MemorylessDiscontinuousSystem):
     A memoryless discontinuous system to conveninetly construct switched
     outputs.
     """
-    # def __init__(self, event_variable_equation, event_bounds_expressions,
-    #              output_equations, *args, **kwargs):
-    #     """
-    #     SwitchedSystem constructor, used to create switched systems from
-    #     symbolic expressions.
-
-    #     Parameters
-    #     ----------
-    #     event_variable_equation : sympy Expression
-    #         Expression representing the event_equation_function
-    #     event_bounds_expressions : list-like of sympy Expressions
-    #         Ordered list-like numerical values which define the boundaries of
-    #         events (relative to event_variable_equation).
-    #     output_equations : Array or Matrix (2D) of sympy Expressions
-    #         The output equations of the system. The first dimension indexes the
-    #         event-state and should be one more than the number of event bounds.
-    #         This should also be indexed to match the boundaries (i.e., the
-    #         first expression is used when the event_variable_equation is below
-    #         the first event_bounds value). The second dimension is dim_output
-    #         of the system.
-    #     """
-    #     SwitchedSystem.__init__(self, *args, **kwargs)
-    #     self.event_variable_equation = event_variable_equation
-    #     self.output_equations = output_equations
-    #     self.event_bounds_expressions = event_bounds_expressions
-    #     self.condition_idx = None
-    
-
 
 
 class Saturation(SwitchedOutput):
