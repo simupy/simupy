@@ -1,9 +1,9 @@
 import numpy as np, matplotlib.pyplot as plt, sympy as sp, numpy.matlib
 from sympy.physics.mechanics import dynamicsymbols
 from simupy.systems import DynamicalSystem, SystemFromCallable, LTISystem
-from simupy.utils import callable_from_trajectory
+from simupy.utils import callable_from_trajectory, array_callable_from_vector_trajectory
 from simupy.block_diagram import BlockDiagram
-from simupy.matrices import construct_explicit_matrix, matrix_subs, matrix_callable_from_vector_trajectory, system_from_matrix_DE
+from simupy.matrices import construct_explicit_matrix, matrix_subs, system_from_matrix_DE
 
 plt.ion()
 
@@ -37,8 +37,8 @@ sg_sim_res = RiccatiBD.simulate(tF)
 
 sim_data_unique_t, sim_data_unique_t_idx = np.unique(sg_sim_res.t, return_index=True)
 
-mat_sg_result = matrix_callable_from_vector_trajectory(np.flipud(tF-sg_sim_res.t[sim_data_unique_t_idx]),np.flipud(sg_sim_res.x[sim_data_unique_t_idx]), SG_sys.state, SG)
-vec_sg_result = matrix_callable_from_vector_trajectory(np.flipud(tF-sg_sim_res.t[sim_data_unique_t_idx]),np.flipud(sg_sim_res.x[sim_data_unique_t_idx]), SG_sys.state, SG_sys.state)
+mat_sg_result = array_callable_from_vector_trajectory(np.flipud(tF-sg_sim_res.t[sim_data_unique_t_idx]),np.flipud(sg_sim_res.x[sim_data_unique_t_idx]), SG_sys.state, SG)
+vec_sg_result = array_callable_from_vector_trajectory(np.flipud(tF-sg_sim_res.t[sim_data_unique_t_idx]),np.flipud(sg_sim_res.x[sim_data_unique_t_idx]), SG_sys.state, SG_sys.state)
 
 plt.plot() # Plot S components
 plt.plot(sg_sim_res.t, mat_sg_result(sg_sim_res.t)[:,[0,0,1],[0,1,1]])

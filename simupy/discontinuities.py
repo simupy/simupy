@@ -1,7 +1,8 @@
 import sympy as sp
 import numpy as np
-from simupy.systems import (DynamicalSystem, MemorylessSystem, dynamicsymbols,
-                            find_dynamicsymbols)
+from simupy.systems.symbolic import (DynamicalSystem, MemorylessSystem,
+                                     dynamicsymbols, find_dynamicsymbols)
+from simupy.systems import SwitchedSystem
 
 
 class DiscontinuousSystem(DynamicalSystem):
@@ -42,13 +43,13 @@ class MemorylessDiscontinuousSystem(DiscontinuousSystem, MemorylessSystem):
     pass
 
 
-class SwitchedOutput(MemorylessDiscontinuousSystem):
+class SwitchedOutput(SwitchedSystem, MemorylessDiscontinuousSystem):
     """
     A memoryless discontinuous system to conveninetly construct switched
     outputs.
     """
 
-    def __init__(self, event_variable_equation, event_bounds_equations,
+    def __init__(self, event_variable_equation, event_bounds_expressions,
                  output_equations, input_=None, *args, **kwargs):
         """
         SwitchedOutput constructor
@@ -71,10 +72,11 @@ class SwitchedOutput(MemorylessDiscontinuousSystem):
             The input of the systems. event_variable_equation and
             output_equations depend on the system's input.
         """
-        super().__init__(input_=input_, *args, **kwargs)
+        MemorylessDiscontinuousSystem.__init__(self, *args, **kwargs)
+        self.input = input_
         self.event_variable_equation = event_variable_equation
         self.output_equations = output_equations
-        self.event_bounds = event_bounds
+        self.event_bounds_expressions = event_bounds_expressions
         self.condition_idx = None
 
     @property
@@ -89,10 +91,13 @@ class SwitchedOutput(MemorylessDiscontinuousSystem):
         self._output_equations = output_equations
         self.n_conditions = output_equations.shape[0]
         self.output_equations_functions = np.empty(self.n_conditions, object)
+
+        self._output_equation_function = self.output_equation_function
         for cond_idx in range(self.n_conditions):
             self.output_equation = output_equations[cond_idx]
             self.output_equations_functions[cond_idx] = \
                 self.output_equation_function
+        self.output_equation_function = self._output_equation_function
 
     @property
     def event_variable_equation(self):
@@ -111,21 +116,20 @@ class SwitchedOutput(MemorylessDiscontinuousSystem):
         )
 
     @property
-    def event_bounds_equations(self):
-        return self._event_bounds
+    def event_bounds_expressions(self):
+        return self._event_bounds_expressions
 
-    @event_bounds.setter
-    def event_bounds(self, event_bounds):
+    @event_bounds_expressions.setter
+    def event_bounds_expressions(self, event_bounds):
         if hasattr(self, 'output_equations'):
             assert len(event_bounds)+1 == self.output_equations.shape[0]
         if hasattr(self, 'output_equations_functions'):
             assert len(event_bounds)+1 == self.output_equations_functions.size
-        self._event_bounds = np.array(event_bounds).reshape(1, -1)
-        self.n_conditions = len(event_bounds) + 1
-        if self.n_conditions == 2:
-            self.event_bounds_range = self._event_bounds
-        else:
-            self.event_bounds_range = np.diff(self.event_bounds[0, [0, -1]])
+        self.event_bounds = np.array(
+            [sp.N(bound,subs=self.constants_values) for bound in event_bounds],
+            dtype=np.float_
+        )
+
 
 
 class Saturation(SwitchedOutput):

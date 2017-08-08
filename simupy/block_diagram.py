@@ -114,8 +114,10 @@ class BlockDiagram(object):
 
             for i, sys in enumerate(self.systems):
                 self.dts[i] = sys.dt
-                self.events[i] = (hasattr(sys, 'event_equation_function') and
-                                  hasattr(sys, 'update_equation_function'))
+                self.events[i] = (
+                    getattr(sys, 'event_equation_function', None) and
+                    getattr(sys, 'update_equation_function', None)
+                )
                 self.cum_inputs[i+1] = self.cum_inputs[i] + sys.dim_input
                 self.cum_outputs[i+1] = self.cum_outputs[i] + sys.dim_output
                 self.cum_states[i+1] = self.cum_states[i] + sys.dim_state

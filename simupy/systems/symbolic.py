@@ -3,11 +3,10 @@ import sympy as sp
 from sympy.physics.mechanics import dynamicsymbols
 from sympy.physics.mechanics.functions import find_dynamicsymbols
 from sympy.tensor.array import Array
-from simupy.utils import lambdify_with_vector_args, grad
+from simupy.utils.symbolic import lambdify_with_vector_args, grad
 from simupy.array import empty_array
 
-from simupy.systems.base import (DynamicalSystem as DynamicalSystemBase,
-                                 SystemFromCallable, LTISystem)
+from simupy.systems import DynamicalSystem as DynamicalSystemBase
 
 DEFAULT_CODE_GENERATOR = lambdify_with_vector_args
 DEFAULT_CODE_GENERATOR_ARGS = {

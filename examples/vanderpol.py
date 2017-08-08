@@ -1,5 +1,5 @@
 import numpy as np, sympy as sp,  matplotlib.pyplot as plt, numpy.matlib
-from simupy.systems import DynamicalSystem, SystemFromCallable
+from simupy.systems.symbolic import DynamicalSystem
 from simupy.block_diagram import BlockDiagram
 from sympy.physics.mechanics import dynamicsymbols
 from sympy.tensor.array import Array

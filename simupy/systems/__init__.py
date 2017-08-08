@@ -29,7 +29,7 @@ class DynamicalSystem(object):
     def __init__(self, state_equation_function=None,
                  output_equation_function=None, event_equation_function=None,
                  update_equation_function=None, dim_state=0, dim_input=0,
-                 dim_output=0, dt=0):
+                 dim_output=0, dt=0, initial_condition=None):
         """
         Parameters
         ----------
@@ -53,15 +53,19 @@ class DynamicalSystem(object):
             Sample rate of the system. Optional, defaults to 0 representing a
             continuous time system.
         """
+        self.dim_state = dim_state
+        self.dim_input = dim_input
+        self.dim_output = dim_output or dim_state
         self.state_equation_function = state_equation_function
         self.output_equation_function = (output_equation_function or
                                          full_state_output(dim_state))
         self.event_equation_function = event_equation_function
         self.update_equation_function = update_equation_function
-        self.dim_state = dim_state
-        self.dim_input = dim_input
-        self.dim_output = dim_output or dim_state
+        self.initial_condition = initial_condition or np.zeros(dim_state)
         self.dt = dt
+
+    def prepare_to_integrate(self):
+        return
 
 
 def SystemFromCallable(incallable, dim_input, dim_output, dt=0):
@@ -78,24 +82,26 @@ def SystemFromCallable(incallable, dim_input, dim_output, dt=0):
     dim_output : int
         Dimension of output.
     """
-    system = NumericDynamicalSystem(output_equation_function=incallable,
+    system = DynamicalSystem(output_equation_function=incallable,
                                     dim_input=dim_input, dim_output=dim_output,
                                     dt=dt)
     return system
 
 
-class SwitchedOutput(DynamicalSystem):
+class SwitchedSystem(DynamicalSystem):
     def __init__(self, state_equations_functions=None,
                  output_equations_functions=None, 
                  event_variable_equation_function=None, event_bounds=None,
-                 dim_state=0, dim_input=0, dim_output=0, dt=0):
+                 dim_state=0, dim_input=0, dim_output=0, dt=0,
+                 initial_condition=None):
+        self.dim_state = dim_state
+        self.dim_input = dim_input
+        self.dim_output = dim_output or dim_state
         self.state_equations_functions = state_equations_functions
         self.output_equations_functions = output_equations_functions
         self.event_variable_equation_function = event_variable_equation_function
         self.event_bounds = event_bounds
-        self.dim_state = dim_state
-        self.dim_input = dim_input
-        self.dim_output = dim_output or dim_state
+        self.initial_condition = initial_condition or np.zeros(dim_state)
         self.dt = dt
 
     @property
@@ -105,11 +111,16 @@ class SwitchedOutput(DynamicalSystem):
     @event_bounds.setter
     def event_bounds(self, event_bounds):
         self._event_bounds = np.array(event_bounds).reshape(1, -1)
+        self.n_conditions = len(event_bounds) + 1
+        if self.n_conditions == 2:
+            self.event_bounds_range = self._event_bounds
+        else:
+            self.event_bounds_range = np.diff(self.event_bounds[0, [0, -1]])
 
     def output_equation_function(self, *args):
         return self.output_equations_functions[self.condition_idx](*args)
 
-    def output_equation_function(self, *args):
+    def state_equation_function(self, *args):
         return self.state_equations_functions[self.condition_idx](*args)
 
     def event_equation_function(self, *args):
@@ -140,11 +151,11 @@ class SwitchedOutput(DynamicalSystem):
         self.condition_idx = None
 
 
-class LTISystem(NumericDynamicalSystem):
+class LTISystem(DynamicalSystem):
     """
     A linear, time-invariant system.
     """
-    def __init__(self, *args, dt=0):
+    def __init__(self, *args, initial_condition=None, dt=0):
         """
         Construct an LTI system with the following input formats:
 
@@ -169,6 +180,8 @@ class LTISystem(NumericDynamicalSystem):
             self.K = K = args[0]
             self.dim_input = self.K.shape[1]
             self.dim_output = self.K.shape[0]
+            self.dim_state = 0
+            self.initial_condition = np.zeros(self.dim_state)
             self.output_equation_function = lambda t, x: (K@x).reshape(-1)
             return
 
@@ -186,5 +199,6 @@ class LTISystem(NumericDynamicalSystem):
         self.dim_state = F.shape[0]
         self.dim_input = G.shape[1]
         self.dim_output = H.shape[0]
+        initial_condition = None or np.zeros(self.dim_state)
         self.state_equation_function = lambda t, x, u: (F@x + G@u).reshape(-1)
         self.output_equation_function = lambda t, x: (H@x).reshape(-1)

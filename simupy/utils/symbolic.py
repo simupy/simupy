@@ -1,7 +1,6 @@
-import sympy as sp
 import numpy as np
+import sympy as sp
 from sympy.utilities.lambdify import implemented_function
-from scipy import interpolate
 from sympy.physics.mechanics import dynamicsymbols
 from simupy.array import r_, Array
 
@@ -69,34 +68,6 @@ def lambdify_with_vector_args(args, expr, modules=(
         return np.array(f(*new_func_args))
     lambda_function_with_vector_args.__doc__ = f.__doc__
     return lambda_function_with_vector_args
-
-
-def callable_from_trajectory(t, curves):
-    """
-    Use scipy.interpolate splprep to build cubic b-spline interpolating
-    functions over a set of curves.
-    
-    Paramters
-    ---------
-
-    t : 1D array-like
-        Array of m time indices of trajectory
-    curves : 2D array-like
-        Array of m x n vector samples at the time indices. First dimension
-        indexes time, second dimension indexes vector components
-    
-    Returns
-    -------
-    interpolated_callable : callable
-        Callable which interpolates the given curve/trajectories
-    """
-    tck_splprep = interpolate.splprep(
-        x=[curves[:, i] for i in range(curves.shape[1])], u=t, s=0)
-
-    def interpolated_callable(t, *args):
-        return np.array(interpolate.splev(t, tck_splprep[0], der=0))
-
-    return interpolated_callable
 
 
 def grad(f, basis, for_numerical=True):

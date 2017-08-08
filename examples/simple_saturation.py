@@ -1,6 +1,7 @@
 import numpy as np, matplotlib.pyplot as plt, sympy as sp, numpy.matlib
 from sympy.physics.mechanics import dynamicsymbols
-from simupy.systems import DynamicalSystem, MemorylessSystem, SystemFromCallable, LTISystem
+from simupy.systems.symbolic import DynamicalSystem, MemorylessSystem
+from simupy.systems import SystemFromCallable, LTISystem
 from simupy.utils import callable_from_trajectory
 from simupy.block_diagram import BlockDiagram
 from sympy.tensor.array import Array

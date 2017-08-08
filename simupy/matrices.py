@@ -1,7 +1,7 @@
 import numpy as np
 import sympy as sp
 from sympy.physics.mechanics import dynamicsymbols
-from simupy.systems import DynamicalSystem
+from simupy.systems.symbolic import DynamicalSystem
 from simupy.utils import callable_from_trajectory
 
 
@@ -111,59 +111,6 @@ def block_matrix(blocks):
                 *tuple(mat for mat in row)) for row in blocks
         )
     )
-
-
-def matrix_callable_from_vector_trajectory(tt, x, unraveled, raveled):
-    """
-    Convert a trajectory into an interpolating callable that returns a 2D
-    array. The unraveled, raveled map how the array is filled in. See
-    riccati_system example.
-
-    Parameters
-    ----------
-    tt : 1D array-like
-        Array of m time indices of trajectory
-    xx : 2D array-like
-        Array of m x n vector samples at the time indices. First dimension
-        indexes time, second dimension indexes vector components
-    unraveled : 1D array-like
-        Array of n unique keys matching xx.
-    raveled : 2D array-like
-        Array where the elements are the keys from unraveled. The mapping
-        between unraveled and raveled is used to specify how the output array
-        is filled in.
-
-    Returns
-    -------
-    matrix_callable : callable
-        The callable interpolating the trajectory with the specified shape. 
-    """
-    xn, xm = x.shape
-
-    vector_callable = callable_from_trajectory(tt, x)
-    if hasattr(unraveled, 'shape') and len(unraveled.shape) > 1:
-        unraveled = sp.flatten(unraveled.tolist())
-
-    def matrix_callable(t):
-        vector_result = vector_callable(t)
-        as_array = False
-        if isinstance(t, (list, tuple, np.ndarray)) and len(t) > 1:
-            matrix_result = np.zeros((len(t),)+raveled.shape)
-            as_array = True
-        else:
-            matrix_result = np.zeros(raveled.shape)
-
-        iterator = np.nditer(raveled, flags=['multi_index', 'refs_ok'])
-        for it in iterator:
-            i, j = iterator.multi_index
-            idx = unraveled.index(raveled[i, j])
-            if as_array:
-                matrix_result[..., i, j] = vector_result[idx]
-            else:
-                matrix_result[i, j] = vector_result[idx]
-        return matrix_result
-
-    return matrix_callable
 
 
 def system_from_matrix_DE(mat_DE, mat_var, mat_input=None, constants={}):
