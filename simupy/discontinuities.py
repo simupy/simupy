@@ -2,7 +2,7 @@ import sympy as sp
 import numpy as np
 from simupy.systems.symbolic import (DynamicalSystem, MemorylessSystem,
                                      dynamicsymbols, find_dynamicsymbols)
-from simupy.systems import SwitchedSystem
+from simupy.systems import SwitchedSystem as SwitchedSystemBase
 
 
 class DiscontinuousSystem(DynamicalSystem):
@@ -38,29 +38,20 @@ class DiscontinuousSystem(DynamicalSystem):
             raise ValueError("Discontinuous systems only make sense for " +
                              "continuous time systems")
 
-
-class MemorylessDiscontinuousSystem(DiscontinuousSystem, MemorylessSystem):
-    pass
-
-
-class SwitchedOutput(SwitchedSystem, MemorylessDiscontinuousSystem):
-    """
-    A memoryless discontinuous system to conveninetly construct switched
-    outputs.
-    """
-
+class SwitchedSystem(SwitchedSystemBase, DiscontinuousSystem):
     def __init__(self, event_variable_equation, event_bounds_expressions,
-                 output_equations, input_=None, *args, **kwargs):
+                 state_equations=None, output_equations=None, **kwargs):
         """
-        SwitchedOutput constructor
+        SwitchedSystem constructor, used to create switched systems from
+        symbolic expressions.
 
-        Parmeters
-        ---------
+        Parameters
+        ----------
         event_variable_equation : sympy Expression
             Expression representing the event_equation_function
-        event_bounds_expressions : list-like of sympy Expressions
-            Ordered list-like numerical values which define the boundaries of
-            events (relative to event_variable_equation).
+        event_bounds_expressions : list-like of sympy Expressions or floats
+            Ordered list-like values which define the boundaries of events
+            (relative to event_variable_equation).
         output_equations : Array or Matrix (2D) of sympy Expressions
             The output equations of the system. The first dimension indexes the
             event-state and should be one more than the number of event bounds.
@@ -72,12 +63,35 @@ class SwitchedOutput(SwitchedSystem, MemorylessDiscontinuousSystem):
             The input of the systems. event_variable_equation and
             output_equations depend on the system's input.
         """
-        MemorylessDiscontinuousSystem.__init__(self, *args, **kwargs)
-        self.input = input_
+        DiscontinuousSystem.__init__(self, **kwargs)
         self.event_variable_equation = event_variable_equation
         self.output_equations = output_equations
+        self.state_equations = state_equations
         self.event_bounds_expressions = event_bounds_expressions
         self.condition_idx = None
+
+    @property
+    def state_equations(self):
+        return self._state_equations
+
+    @state_equations.setter
+    def state_equations(self, state_equations):
+        if state_equations is None:  # or other checks?
+            self._state_equations = None
+            return
+        if hasattr(self, 'event_bounds'):
+            n_conditions_test = self.event_bounds.shape[0]+1
+            assert state_equations.shape[0] == n_conditions_test
+        self._state_equations = state_equations
+        self.n_conditions = state_equations.shape[0]
+        self.state_equations_functions = np.empty(self.n_conditions, object)
+
+        self._state_equation_function = self.state_equation_function
+        for cond_idx in range(self.n_conditions):
+            self.state_equation = state_equations[cond_idx]
+            self.state_equations_functions[cond_idx] = \
+                self.output_equation_function
+        self.state_equation_function = self._state_equation_function
 
     @property
     def output_equations(self):
@@ -85,6 +99,9 @@ class SwitchedOutput(SwitchedSystem, MemorylessDiscontinuousSystem):
 
     @output_equations.setter
     def output_equations(self, output_equations):
+        if output_equations is None:  # or other checks?
+            self._output_equations = None
+            return
         if hasattr(self, 'event_bounds'):
             n_conditions_test = self.event_bounds.shape[0]+1
             assert output_equations.shape[0] == n_conditions_test
@@ -105,7 +122,10 @@ class SwitchedOutput(SwitchedSystem, MemorylessDiscontinuousSystem):
 
     @event_variable_equation.setter
     def event_variable_equation(self, event_variable_equation):
-        assert find_dynamicsymbols(event_variable_equation) <= set(self.input)
+        if self.dim_state:
+            assert find_dynamicsymbols(event_variable_equation) <= set(self.state)
+        else:
+            assert find_dynamicsymbols(event_variable_equation) <= set(self.input)
         assert event_variable_equation.atoms(sp.Symbol) <= set(
             self.constants_values.keys()) | set([dynamicsymbols._t])
         self._event_variable_equation = event_variable_equation
@@ -130,18 +150,64 @@ class SwitchedOutput(SwitchedSystem, MemorylessDiscontinuousSystem):
             dtype=np.float_
         )
 
+class MemorylessDiscontinuousSystem(DiscontinuousSystem, MemorylessSystem):
+    pass
+
+
+class SwitchedOutput(SwitchedSystem, MemorylessDiscontinuousSystem):
+    """
+    A memoryless discontinuous system to conveninetly construct switched
+    outputs.
+    """
+    # def __init__(self, event_variable_equation, event_bounds_expressions,
+    #              output_equations, *args, **kwargs):
+    #     """
+    #     SwitchedSystem constructor, used to create switched systems from
+    #     symbolic expressions.
+
+    #     Parameters
+    #     ----------
+    #     event_variable_equation : sympy Expression
+    #         Expression representing the event_equation_function
+    #     event_bounds_expressions : list-like of sympy Expressions
+    #         Ordered list-like numerical values which define the boundaries of
+    #         events (relative to event_variable_equation).
+    #     output_equations : Array or Matrix (2D) of sympy Expressions
+    #         The output equations of the system. The first dimension indexes the
+    #         event-state and should be one more than the number of event bounds.
+    #         This should also be indexed to match the boundaries (i.e., the
+    #         first expression is used when the event_variable_equation is below
+    #         the first event_bounds value). The second dimension is dim_output
+    #         of the system.
+    #     """
+    #     SwitchedSystem.__init__(self, *args, **kwargs)
+    #     self.event_variable_equation = event_variable_equation
+    #     self.output_equations = output_equations
+    #     self.event_bounds_expressions = event_bounds_expressions
+    #     self.condition_idx = None
+    
+
 
 
 class Saturation(SwitchedOutput):
-    pass
+    """
+    """
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
 
 
 class Deadband(SwitchedOutput):
-    pass
+    """
+    """
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
 
 
 class Hysteresis(SwitchedOutput):
-    pass
+    """
+    """
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
 
 
 class Stiction(SwitchedOutput):

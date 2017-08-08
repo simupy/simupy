@@ -138,7 +138,6 @@ class DynamicalSystem(DynamicalSystemBase):
             self.dim_output = len(output_equation)
         except TypeError:
             self.dim_output = 1
-        self._output_equation = output_equation
         assert output_equation.atoms(sp.Symbol) <= (
                 set(self.constants_values.keys()) | set([dynamicsymbols._t])
                )
@@ -146,6 +145,7 @@ class DynamicalSystem(DynamicalSystemBase):
             assert find_dynamicsymbols(output_equation) <= set(self.state)
         else:
             assert find_dynamicsymbols(output_equation) <= set(self.input)
+        self._output_equation = output_equation
         self.update_output_equation_function()
 
     def update_state_equation_function(self):

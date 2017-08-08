@@ -28,4 +28,6 @@ The generated API documents below come from the docstrings:
    discontinuities
    matrices
    systems
+   symbolic_systems
    utils
+   symbolic_utils

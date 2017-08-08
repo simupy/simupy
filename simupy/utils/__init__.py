@@ -7,9 +7,8 @@ def callable_from_trajectory(t, curves):
     Use scipy.interpolate splprep to build cubic b-spline interpolating
     functions over a set of curves.
     
-    Paramters
-    ---------
-
+    Parameters
+    ----------
     t : 1D array-like
         Array of m time indices of trajectory
     curves : 2D array-like

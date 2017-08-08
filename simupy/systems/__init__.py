@@ -1,7 +1,11 @@
 import numpy as np
 
-def full_state_output(dim_state):
-    return lambda *args: np.r_[args][1:dim_state+1]
+def full_state_output(*args):
+    """
+    A drop-in ``output_equation_function`` for stateful systems that provide
+    output the full state directly.
+    """
+    return np.r_[args][1:]
 
 
 class DynamicalSystem(object):
@@ -58,7 +62,7 @@ class DynamicalSystem(object):
         self.dim_output = dim_output or dim_state
         self.state_equation_function = state_equation_function
         self.output_equation_function = (output_equation_function or
-                                         full_state_output(dim_state))
+                                         full_state_output)
         self.event_equation_function = event_equation_function
         self.update_equation_function = update_equation_function
         self.initial_condition = initial_condition or np.zeros(dim_state)

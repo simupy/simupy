@@ -134,11 +134,11 @@ class BlockDiagram(object):
 
         Parameters
         ----------
-        from_system_output : DynamicalSystem
+        from_system_output : dynamical system
             The system (already added to BlockDiagram) from which outputs will
             be connected. Note that the outputs of a system can be connected to
             multiple inputs.
-        to_system_input : DynamicalSystem
+        to_system_input : dynamical system
             The system (already added to BlockDiagram) to which inputs will be
             connected. Note that any previous input connections will be
             over-written.
@@ -174,7 +174,7 @@ class BlockDiagram(object):
 
         Parameters
         ----------
-        system : DynamicalSystem
+        system : dynamical system
             System to add to BlockDiagram
         """
         self.systems = np.append(self.systems, system)

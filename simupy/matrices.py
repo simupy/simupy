@@ -93,8 +93,8 @@ def block_matrix(blocks):
     Construct a matrix where the elements are specified by the block structure
     by joining the blocks appropriately.
 
-    Parmeters
-    ---------
+    Parameters
+    ----------
     blocks : two level deep iterable of sympy Matrix objects
         The block specification of the matrices used to construct the block
         matrix.
@@ -115,7 +115,8 @@ def block_matrix(blocks):
 
 def system_from_matrix_DE(mat_DE, mat_var, mat_input=None, constants={}):
     """
-    Construct a DynamicalSystem using matrices. See riccati_system example.
+    Construct a symbolic DynamicalSystem using matrices. See
+    riccati_system example.
 
     Parameters
     ----------

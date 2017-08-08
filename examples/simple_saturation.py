@@ -19,7 +19,7 @@ plt.plot(sin_res.t,sin_res.x)
 from simupy.discontinuities import SwitchedOutput
 
 
-sat = SwitchedOutput(x[0], [-0.75, 0.75], Array([-0.75, x[0], 0.75]), x)
+sat = SwitchedOutput(x[0], [-0.75, 0.75], output_equations=Array([-0.75, x[0], 0.75]), input_=x)
 sat_bd = BlockDiagram(sin, sat)
 sat_bd.connect(sin, sat)
 sat_res = sat_bd.simulate(2*np.pi)#, integrator_options={'rtol': 1E-9})
