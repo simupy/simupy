@@ -1,10 +1,13 @@
-import sympy as sp
 import numpy as np
+import sympy as sp
 from sympy.physics.mechanics import dynamicsymbols
 from sympy.physics.mechanics.functions import find_dynamicsymbols
 from sympy.tensor.array import Array
 from simupy.utils import lambdify_with_vector_args, grad
 from simupy.array import empty_array
+
+from simupy.systems.base import (DynamicalSystem as DynamicalSystemBase,
+                                 SystemFromCallable, LTISystem)
 
 DEFAULT_CODE_GENERATOR = lambdify_with_vector_args
 DEFAULT_CODE_GENERATOR_ARGS = {
@@ -12,36 +15,23 @@ DEFAULT_CODE_GENERATOR_ARGS = {
 }
 
 
-class DynamicalSystem(object):
-    """
-    A dynamical system which models systems of the form::
-
-        xdot(t) = f(t,x,u)
-        y(t) = h(t,x)
-
-    or::
-
-        y(t) = h(t,u)
-
-    These could also represent discrete-time systems, in which case x'(t)
-    represents x[k+1].
-    """
+class DynamicalSystem(DynamicalSystemBase):
     def __init__(self, state_equation=None, state=None, input_=None,
                  output_equation=None, constants_values={}, dt=0,
                  initial_condition=None, code_generator=None,
                  code_generator_args={}):
-
         """
-        DynamicalSystem constructor
+        DynamicalSystem constructor, used to create systems from symbolic
+        expressions.
 
         Parameters
         ----------
-        state_equation (optional): Array or Matrix (1D) of sympy Expressions
+        state_equation : Array or Matrix (1D) of sympy Expressions (optional)
             Vector valued expression for the derivative of the state.
-        state (optional): Array or Matrix (1D) of sympy symbols
+        state : Array or Matrix (1D) of sympy symbols (optional)
             Vector of symbols representing the components of the state, in the
             desired order, matching state_equation.
-        input_ : Array or Matrix (1D) of sympy symbols
+        input_ : Array or Matrix (1D) of sympy symbols (optional)
             Vector of symbols representing the components of the input, in the
             desired order. state_equation may depend on the system input. If
             the system has no state, the output_equation may depend on the
@@ -64,11 +54,8 @@ class DynamicalSystem(object):
         You can change it by passing the system initialization arguments
         ``code_generator`` (the function) and additional key-word arguments to
         the generator in a dictionary ``code_generator_args``. You can change
-        the defaults for future systems by changing the module values, as in::
-
-            import simupy.systems
-            simupy.systems.DEFAULT_CODE_GENERATOR = your_code_generator_function
-            simupy.systems.DEFAULT_CODE_GENERATOR_ARGS = {'extra_arg': value}
+        the defaults for future systems by changing the module values. See the
+        readme or docs for an example.
 
         """
         self.constants_values = constants_values
@@ -277,75 +264,3 @@ class MemorylessSystem(DynamicalSystem):
                              "state_equation")
         self.dim_state = len(state)
         self._state = state
-
-
-def SystemFromCallable(incallable, dim_input, dim_output, dt=0):
-    """
-    Construct a memoryless system from a callable.
-    
-    Parameters
-    ----------
-    incallable : callable
-        Function to use as the output_equation_function. Should have signature
-        (t, u) if dim_input > 0 or (t) if dim_input = 0.
-    dim_input : int
-        Dimension of input.
-    dim_output : int
-        Dimension of output.
-        
-    """
-    system = MemorylessSystem(dt=dt)
-    system.dim_input = dim_input
-    system.dim_output = dim_output
-    system.output_equation_function = incallable
-    return system
-
-
-class LTISystem(DynamicalSystem):
-    """
-    A linear, time-invariant system.
-    """
-    def __init__(self, *args, constants_values={}, dt=0):
-        """
-        Construct an LTI system with the following input formats:
-
-        1. A, B, C matrices for systems with state::
-            x' = Ax + Bu
-            y = Hx
-        2. A,B matrices for systems with state, assume full state output::
-            x' = Ax + Bu
-            y = x
-        3. K matrix for systems without state::
-            y = Kx
-        
-        The matrices should be numeric arrays of the appropriate shape.
-        """
-        super().__init__(constants_values=constants_values, dt=dt)
-
-        if len(args) not in (1, 2, 3):
-            raise ValueError("LTI system expects 1, 2, or 3 args")
-
-        # TODO: setup jacobian functions
-        if len(args) == 1:
-            self.K = K = args[0]
-            self.dim_input = self.K.shape[1]
-            self.dim_output = self.K.shape[0]
-            self.output_equation_function = lambda t, x: (K@x).reshape(-1)
-            return
-
-        if len(args) == 2:
-            F, G = args
-            H = np.matlib.eye(F.shape[0])
-
-        elif len(args) == 3:
-            F, G, H = args
-
-        self.F = np.asmatrix(F)
-        self.G = np.asmatrix(G)
-        self.H = np.asmatrix(H)
-
-        self.dim_state = F.shape[0]
-        self.dim_input = G.shape[1]
-        self.dim_output = H.shape[0]
-        self.state_equation_function = lambda t, x, u: (F@x + G@u).reshape(-1)
-        self.output_equation_function = lambda t, x: (H@x).reshape(-1)

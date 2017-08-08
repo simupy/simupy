@@ -10,9 +10,10 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 long_description = re.sub(r':doc:`([^<]+)[^`]+`',r'\1',long_description)
+
 setup(
     name='simupy',
-    version='0.1.0.dev3',
+    version='0.1.0.dev5',
     description='A framework for modeling and simulating dynamical systems.',
     long_description=long_description,
     packages=['simupy',],

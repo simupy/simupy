@@ -48,8 +48,8 @@ class SwitchedOutput(MemorylessDiscontinuousSystem):
     outputs.
     """
 
-    def __init__(self, event_variable_equation, event_bounds, output_equations,
-                 input_=None, *args, **kwargs):
+    def __init__(self, event_variable_equation, event_bounds_equations,
+                 output_equations, input_=None, *args, **kwargs):
         """
         SwitchedOutput constructor
 
@@ -57,7 +57,7 @@ class SwitchedOutput(MemorylessDiscontinuousSystem):
         ---------
         event_variable_equation : sympy Expression
             Expression representing the event_equation_function
-        event_bounds : list-like of numerical values
+        event_bounds_expressions : list-like of sympy Expressions
             Ordered list-like numerical values which define the boundaries of
             events (relative to event_variable_equation).
         output_equations : Array or Matrix (2D) of sympy Expressions
@@ -94,11 +94,6 @@ class SwitchedOutput(MemorylessDiscontinuousSystem):
             self.output_equations_functions[cond_idx] = \
                 self.output_equation_function
 
-        def output_equation_function(t, u):
-            return self.output_equations_functions[self.condition_idx](t, u)
-
-        self.output_equation_function = output_equation_function
-
     @property
     def event_variable_equation(self):
         return self._event_variable_equation
@@ -116,7 +111,7 @@ class SwitchedOutput(MemorylessDiscontinuousSystem):
         )
 
     @property
-    def event_bounds(self):
+    def event_bounds_equations(self):
         return self._event_bounds
 
     @event_bounds.setter
@@ -131,33 +126,6 @@ class SwitchedOutput(MemorylessDiscontinuousSystem):
             self.event_bounds_range = self._event_bounds
         else:
             self.event_bounds_range = np.diff(self.event_bounds[0, [0, -1]])
-
-    def event_equation_function(self, t, u):
-        event_var = self.event_variable_equation_function(t, u)
-        return np.prod(
-            (self.event_bounds_range-self.event_bounds)*event_var -
-            self.event_bounds*(self.event_bounds_range - event_var),
-            axis=1
-        )
-
-    def update_equation_function(self, t, u):
-        event_var = self.event_variable_equation_function(t, u)
-        if self.condition_idx is None:
-            self.condition_idx = np.where(np.all(np.r_[
-                    np.c_[[[True]], event_var >= self.event_bounds],
-                    np.c_[event_var <= self.event_bounds, [[True]]]
-                    ], axis=0))[0][0]
-        else:
-            sq_dist = (event_var - self.event_bounds)**2
-            crossed_root_idx = np.where(sq_dist == np.min(sq_dist))[1][0]
-            if crossed_root_idx == self.condition_idx:
-                self.condition_idx += 1
-            elif crossed_root_idx == self.condition_idx-1:
-                self.condition_idx -= 1
-        return
-
-    def prepare_to_integrate(self):
-        self.condition_idx = None
 
 
 class Saturation(SwitchedOutput):

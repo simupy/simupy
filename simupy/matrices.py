@@ -137,7 +137,6 @@ def matrix_callable_from_vector_trajectory(tt, x, unraveled, raveled):
     -------
     matrix_callable : callable
         The callable interpolating the trajectory with the specified shape. 
-
     """
     xn, xm = x.shape
 
