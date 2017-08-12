@@ -413,7 +413,7 @@ class BlockDiagram(object):
                 sys = self.systems[sysidx]
                 state_start = self.cum_states[sysidx]
                 state_end = self.cum_states[sysidx+1]
-                states[state_start:state_end] = ct_states[
+                states[state_start:state_end] = ct_states.reshape(-1)[
                         ct_state_accumulator:ct_state_accumulator+sys.dim_state
                     ]
                 ct_state_accumulator += sys.dim_state
@@ -738,13 +738,13 @@ class BlockDiagram(object):
                         left_t, new_states, new_outputs, new_events)
 
                     right_t = next_event_t+event_find_options['xtol']/2
-                    ct_xtright = ct_state_traj_callable(right_t)
+                    ct_xtright = ct_state_traj_callable(right_t).reshape(-1)
 
                     for sysidx in np.where(event_ts == next_event_t)[0]:
                         sys = self.systems[sysidx]
                         update_return_value = sys.update_equation_function(
                             next_event_t,
-                            event_callables[sysidx](next_event_t)
+                            event_callables[sysidx](next_event_t).reshape(-1)
                         )
                         if sys.dim_state > 0:
                             ct_state_idx = np.where(

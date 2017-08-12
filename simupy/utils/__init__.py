@@ -76,7 +76,7 @@ def array_callable_from_vector_trajectory(tt, x, unraveled, raveled):
             if as_array:
                 array_result.__setitem__(
                     (slice(None), *iterator.multi_index),
-                    vector_result[idx]
+                    vector_result[...,idx]
                 )
             else:
                 array_result[tuple(iterator.multi_index)] = vector_result[idx]
