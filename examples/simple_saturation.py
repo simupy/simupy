@@ -4,6 +4,7 @@ from simupy.systems.symbolic import DynamicalSystem, MemorylessSystem
 from simupy.systems import SystemFromCallable, LTISystem
 from simupy.utils import callable_from_trajectory
 from simupy.block_diagram import BlockDiagram
+from simupy.array import r_, c_
 from sympy.tensor.array import Array
 
 plt.ion()
@@ -19,7 +20,7 @@ plt.plot(sin_res.t,sin_res.x)
 from simupy.discontinuities import SwitchedOutput
 
 
-sat = SwitchedOutput(x[0], [-0.75, 0.75], output_equations=Array([-0.75, x[0], 0.75]), input_=x)
+sat = SwitchedOutput(x[0], [-0.75, 0.75], output_equations=r_['0,2',-0.75, x[0], 0.75], input_=x)
 sat_bd = BlockDiagram(sin, sat)
 sat_bd.connect(sin, sat)
 sat_res = sat_bd.simulate(2*np.pi)#, integrator_options={'rtol': 1E-9})

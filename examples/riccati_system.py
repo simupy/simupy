@@ -52,11 +52,15 @@ tracking_controller = SystemFromCallable(lambda t, xx: -Rn**-1@Bn.T@(mat_sg_resu
 sys = LTISystem(An, Bn)
 
 sys.initial_condition = np.zeros((2,1))
+# int_opts = block_diagram.DEFAULT_INTEGRATOR_OPTIONS.copy()
+# int_opts['rtol'] = 1E-15
+# int_opts['atol'] = 1E-15
+# int_opts['max_step'] = 0.25
 
 control_BD = BlockDiagram(sys, tracking_controller)
 control_BD.connect(sys, tracking_controller)
 control_BD.connect(tracking_controller, sys)
-control_res = control_BD.simulate(tF)
+control_res = control_BD.simulate(tF) #, integrator_options=int_opts)
 
 plt.figure()
 plt.plot(control_res.t,control_res.x,control_res.t,2*control_res.t)

@@ -314,7 +314,7 @@ class BlockDiagram(object):
                 state_start = self.cum_states[sysidx]
                 state_end = self.cum_states[sysidx+1]
 
-                state_values = states[state_start:state_end]
+                state_values = states_in[state_start:state_end]
                 outputs[output_start:output_end] = \
                     sys.output_equation_function(t, state_values).reshape(-1)
 
@@ -345,7 +345,7 @@ class BlockDiagram(object):
 
                 state_start = self.cum_states[sysidx]
                 state_end = self.cum_states[sysidx+1]
-                state_values = states[state_start:state_end]
+                state_values = states_in[state_start:state_end]
 
                 input_start = self.cum_inputs[sysidx]
                 input_end = self.cum_inputs[sysidx+1]
@@ -368,7 +368,7 @@ class BlockDiagram(object):
                     sys = self.systems[sysidx]
                     state_start = self.cum_states[sysidx]
                     state_end = self.cum_states[sysidx+1]
-                    state_values = states[state_start:state_end]
+                    state_values = states_in[state_start:state_end]
                     events[sysidx] = sys.event_equation_function(
                                         t, state_values).reshape(-1)
 
@@ -752,7 +752,7 @@ class BlockDiagram(object):
                             )[0][0]
                             ct_xtright[
                                 ct_state_idx:ct_state_idx+sys.dim_state+1
-                            ] = update_return_value
+                            ] = update_return_value.reshape(-1)
 
                     new_states, new_outputs, new_events = \
                         continuous_time_integration_step(

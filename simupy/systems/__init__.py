@@ -105,8 +105,8 @@ class SwitchedSystem(DynamicalSystem):
     def __init__(self, state_equations_functions=None,
                  output_equations_functions=None,
                  event_variable_equation_function=None, event_bounds=None,
-                 dim_state=0, dim_input=0, dim_output=0, dt=0,
-                 initial_condition=None):
+                 state_update_equation_function=None, dim_state=0, dim_input=0,
+                 dim_output=0, dt=0, initial_condition=None):
         """
         Parameters
         ----------
@@ -127,9 +127,14 @@ class SwitchedSystem(DynamicalSystem):
         event_variable_equation_function : callable (optional)
             When this output of this function crosses the values in
             ``event_bounds``, a discont event occurs.
-        event_bounds : callable (optional)
+        event_bounds : array of floats (optional)
             Defines the boundary points the trigger discontinuity events based
             on the output of ``event_variable_equation_function``.
+        state_update_equation_function : callable (optional)
+            When an event occurs, the state update equation function is called
+            to determine the state update. If not set, uses full state output,
+            so the state is not changed upon a zero-crossing of the event
+            variable function.
         dim_state : int (optional)
             Dimension of the system state. Optional, defaults to 0.
         dim_input : int (optional)
@@ -143,11 +148,16 @@ class SwitchedSystem(DynamicalSystem):
         self.dim_state = dim_state
         self.dim_input = dim_input
         self.dim_output = dim_output or dim_state
+        self.event_bounds = event_bounds
+
         self.state_equations_functions = state_equations_functions
-        self.output_equations_functions = output_equations_functions
+        self.output_equations_functions = (output_equations_functions or
+            np.array(self.n_conditions*[full_state_output]))
         self.event_variable_equation_function = \
             event_variable_equation_function
-        self.event_bounds = event_bounds
+        
+        self.state_update_equation_function = (state_update_equation_function or
+            full_state_output)
         self.initial_condition = initial_condition or np.zeros(dim_state)
         self.dt = dt
 
@@ -158,9 +168,9 @@ class SwitchedSystem(DynamicalSystem):
     @event_bounds.setter
     def event_bounds(self, event_bounds):
         self._event_bounds = np.array(event_bounds).reshape(1, -1)
-        self.n_conditions = len(event_bounds) + 1
+        self.n_conditions = len(self._event_bounds) + 1
         if self.n_conditions == 2:
-            self.event_bounds_range = self._event_bounds
+            self.event_bounds_range = 1# self._event_bounds
         else:
             self.event_bounds_range = np.diff(self.event_bounds[0, [0, -1]])
 
@@ -192,7 +202,7 @@ class SwitchedSystem(DynamicalSystem):
                 self.condition_idx += 1
             elif crossed_root_idx == self.condition_idx-1:
                 self.condition_idx -= 1
-        return np.r_[args][1:1+self.dim_state]
+        return self.state_update_equation_function(*args)
 
     def prepare_to_integrate(self):
         self.condition_idx = None

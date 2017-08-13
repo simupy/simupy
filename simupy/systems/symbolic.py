@@ -109,13 +109,14 @@ class DynamicalSystem(DynamicalSystemBase):
     def state_equation(self, state_equation):
         if state_equation is None:  # or other checks?
             state_equation = empty_array()
-        assert len(state_equation) == len(self.state)
-        assert find_dynamicsymbols(state_equation) <= (
-                set(self.state) | set(self.input)
-               )
-        assert state_equation.atoms(sp.Symbol) <= (
-                set(self.constants_values.keys()) | set([dynamicsymbols._t])
-               )
+        else:
+            assert len(state_equation) == len(self.state)
+            assert find_dynamicsymbols(state_equation) <= (
+                    set(self.state) | set(self.input)
+                )
+            assert state_equation.atoms(sp.Symbol) <= (
+                    set(self.constants_values.keys()) | set([dynamicsymbols._t])
+                )
 
         self._state_equation = state_equation
         self.update_state_equation_function()
