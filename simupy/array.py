@@ -9,8 +9,8 @@ class SymAxisConcatenatorMixin:
     """
     def __getitem__(self, key):
         return Array(super().__getitem__(tuple(
-            k if isinstance(k,str) else 
-            Array(k) if hasattr(k, '__len__')  
+            k if isinstance(k, str) else
+            Array(k) if hasattr(k, '__len__')
             else Array([k])
             for k in key
         )))

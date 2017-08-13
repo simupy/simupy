@@ -24,7 +24,9 @@ def callable_from_trajectory(t, curves):
         x=[curves[:, i] for i in range(curves.shape[1])], u=t, s=0)
 
     def interpolated_callable(t, *args):
-        return np.array(interpolate.splev(t, tck_splprep[0], der=0)).T.squeeze()
+        return np.array(
+            interpolate.splev(t, tck_splprep[0], der=0)
+        ).T.squeeze()
 
     return interpolated_callable
 
@@ -76,7 +78,7 @@ def array_callable_from_vector_trajectory(tt, x, unraveled, raveled):
             if as_array:
                 array_result.__setitem__(
                     (slice(None), *iterator.multi_index),
-                    vector_result[...,idx]
+                    vector_result[..., idx]
                 )
             else:
                 array_result[tuple(iterator.multi_index)] = vector_result[idx]

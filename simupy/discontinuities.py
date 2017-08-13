@@ -93,7 +93,8 @@ class SwitchedSystem(SwitchedSystemBase, DiscontinuousSystem):
             self._state_equations = None
             return
         if hasattr(self, 'event_bounds'):
-            if len(state_equations.shape)==1 or state_equations.shape[0]==1:
+            if (len(state_equations.shape) == 1 or
+                    state_equations.shape[0] == 1):
                 state_equations = r_.__getitem__(
                     ('0,2', *tuple(self.n_conditions*(state_equations,)))
                 )
@@ -104,10 +105,11 @@ class SwitchedSystem(SwitchedSystemBase, DiscontinuousSystem):
         self.state_equations_functions = np.empty(self.n_conditions, object)
 
         for cond_idx in range(self.n_conditions):
-            self.state_equation = state_equations[cond_idx,:]
+            self.state_equation = state_equations[cond_idx, :]
             self.state_equations_functions[cond_idx] = \
                 self.state_equation_function
-        self.state_equation_function = (lambda *args:
+        self.state_equation_function = (
+            lambda *args:
             SwitchedSystemBase.state_equation_function(self, *args)
         )
 
@@ -118,7 +120,7 @@ class SwitchedSystem(SwitchedSystemBase, DiscontinuousSystem):
     @output_equations.setter
     def output_equations(self, output_equations):
         if output_equations is None:  # or other checks?
-            if self.dim_state>0 and hasattr(self, 'n_conditions'):
+            if self.dim_state > 0 and hasattr(self, 'n_conditions'):
                 output_equations = r_.__getitem__(
                     ('0,2', *tuple(self.n_conditions*(self.state,)))
                 )
@@ -126,7 +128,8 @@ class SwitchedSystem(SwitchedSystemBase, DiscontinuousSystem):
                 self._output_equations = None
                 return
         if hasattr(self, 'event_bounds'):
-            if len(output_equations.shape)==1  or output_equations.shape[0]==1:
+            if (len(output_equations.shape) == 1 or
+                    output_equations.shape[0] == 1):
                 output_equations = r_.__getitem__(
                     ('0,2', *tuple(self.n_conditions*(output_equations,)))
                 )
@@ -137,10 +140,11 @@ class SwitchedSystem(SwitchedSystemBase, DiscontinuousSystem):
         self.output_equations_functions = np.empty(self.n_conditions, object)
 
         for cond_idx in range(self.n_conditions):
-            self.output_equation = output_equations[cond_idx,:]
+            self.output_equation = output_equations[cond_idx, :]
             self.output_equations_functions[cond_idx] = \
                 self.output_equation_function
-        self.output_equation_function = (lambda *args:
+        self.output_equation_function = (
+            lambda *args:
             SwitchedSystemBase.output_equation_function(self, *args)
         )
 
@@ -151,7 +155,7 @@ class SwitchedSystem(SwitchedSystemBase, DiscontinuousSystem):
     @state_update_equation.setter
     def state_update_equation(self, state_update_equation):
         if state_update_equation is None:
-            if self.dim_state>0:
+            if self.dim_state > 0:
                 state_update_equation = self.state
             else:
                 state_update_equation = self.input
@@ -210,11 +214,13 @@ class SwitchedSystem(SwitchedSystemBase, DiscontinuousSystem):
         if hasattr(self, 'output_equations'):
             assert len(event_bounds_exp)+1 == self.output_equations.shape[0]
         if hasattr(self, 'output_equations_functions'):
-            assert len(event_bounds_exp)+1 == self.output_equations_functions.size
+            assert len(event_bounds_exp)+1 == \
+                self.output_equations_functions.size
         if hasattr(self, 'state_equations'):
             assert len(event_bounds_exp)+1 == self.state_equations.shape[0]
         if hasattr(self, 'state_equations_functions'):
-            assert len(event_bounds_exp)+1 == self.state_equations_functions.size
+            assert len(event_bounds_exp)+1 == \
+                self.state_equations_functions.size
         self._event_bounds_expressions = event_bounds_exp
         self.event_bounds = np.array(
             [sp.N(bound, subs=self.constants_values)

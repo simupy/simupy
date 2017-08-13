@@ -151,13 +151,17 @@ class SwitchedSystem(DynamicalSystem):
         self.event_bounds = event_bounds
 
         self.state_equations_functions = state_equations_functions
-        self.output_equations_functions = (output_equations_functions or
-            np.array(self.n_conditions*[full_state_output]))
+        self.output_equations_functions = (
+            output_equations_functions or
+            np.array(self.n_conditions*[full_state_output])
+        )
         self.event_variable_equation_function = \
             event_variable_equation_function
-        
-        self.state_update_equation_function = (state_update_equation_function or
-            full_state_output)
+        self.state_update_equation_function = (
+            state_update_equation_function or
+            full_state_output
+        )
+
         self.initial_condition = initial_condition or np.zeros(dim_state)
         self.dt = dt
 
@@ -170,7 +174,7 @@ class SwitchedSystem(DynamicalSystem):
         self._event_bounds = np.array(event_bounds).reshape(1, -1)
         self.n_conditions = len(self._event_bounds) + 1
         if self.n_conditions == 2:
-            self.event_bounds_range = 1# self._event_bounds
+            self.event_bounds_range = 1
         else:
             self.event_bounds_range = np.diff(self.event_bounds[0, [0, -1]])
 

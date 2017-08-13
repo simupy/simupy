@@ -115,7 +115,8 @@ class DynamicalSystem(DynamicalSystemBase):
                     set(self.state) | set(self.input)
                 )
             assert state_equation.atoms(sp.Symbol) <= (
-                    set(self.constants_values.keys()) | set([dynamicsymbols._t])
+                    set(self.constants_values.keys())
+                    | set([dynamicsymbols._t])
                 )
 
         self._state_equation = state_equation
