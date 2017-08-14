@@ -1,5 +1,11 @@
 import numpy as np
 
+need_state_equation_function_msg = ("if dim_state > 0, DynamicalSystem must"
+                                    + " have a state_equation_function")
+
+need_output_equation_function_msg = ("if dim_state == 0, DynamicalSystem must"
+                                     + " have an output_equation_function")
+
 
 def full_state_output(*args):
     """
@@ -57,13 +63,23 @@ class DynamicalSystem(object):
         dt : float (optional)
             Sample rate of the system. Optional, defaults to 0 representing a
             continuous time system.
+        initial_condition : Array or Matrix (1D) of numerical values (optional)
+            Array or Matrix used as the initial condition of the system.
+            Defaults to zeros of the same dimension as the state.
         """
         self.dim_state = dim_state
         self.dim_input = dim_input
         self.dim_output = dim_output or dim_state
+
+        if dim_state == 0 and state_equation_function is None:
+            raise ValueError(need_state_equation_function_msg)
         self.state_equation_function = state_equation_function
+
+        if dim_state == 0 and output_equation_function is None:
+            raise ValueError(need_output_equation_function_msg)
         self.output_equation_function = (output_equation_function or
                                          full_state_output)
+
         self.event_equation_function = event_equation_function
         self.update_equation_function = update_equation_function
         self.initial_condition = initial_condition or np.zeros(dim_state)
@@ -110,24 +126,26 @@ class SwitchedSystem(DynamicalSystem):
         """
         Parameters
         ----------
-        state_equation_functions : numpy array of callables (optional)
+        state_equation_functions : list-like of callables (optional)
             The derivative (or update equation) of the system state. Not needed
             if ``dim_state`` is zero. The array indexes the
             event-state and should be one more than the number of event bounds.
             This should also be indexed to match the boundaries (i.e., the
             first function is used when the event variable is below the first
-            event_bounds value).
-        output_equation_functions : numpy array of callables (optional)
+            event_bounds value). If only one callable is provided, the callable
+            is used in each condition.
+        output_equation_functions : list-like of callables (optional)
             The output equation of the system. A system must have an
             ``output_equation_function``. If not set, uses full state output.
             The array indexes the event-state and should be one more than the
             number of event bounds. This should also be indexed to match the
             boundaries (i.e., the first function is used when the event
-            variable is below the first event_bounds value).
-        event_variable_equation_function : callable (optional)
+            variable is below the first event_bounds value). If only one
+            callable is provided, the callable is used in each condition.
+        event_variable_equation_function : callable
             When this output of this function crosses the values in
             ``event_bounds``, a discont event occurs.
-        event_bounds : array of floats (optional)
+        event_bounds : array of floats
             Defines the boundary points the trigger discontinuity events based
             on the output of ``event_variable_equation_function``.
         state_update_equation_function : callable (optional)
@@ -150,13 +168,27 @@ class SwitchedSystem(DynamicalSystem):
         self.dim_output = dim_output or dim_state
         self.event_bounds = event_bounds
 
-        self.state_equations_functions = state_equations_functions
-        self.output_equations_functions = (
+        if dim_state == 0 and state_equations_functions is None:
+            raise ValueError(need_state_equation_function_msg)
+        self.state_equations_functions = np.empty(self.n_conditions,
+                                                  dtype=object)
+        self.state_equations_functions[:] = state_equations_functions
+
+        if dim_state == 0 and output_equations_functions is None:
+            raise ValueError(need_output_equation_function_msg)
+        self.output_equations_functions = np.empty(self.n_conditions,
+                                                   dtype=object)
+        self.output_equations_functions[:] = (
             output_equations_functions or
-            np.array(self.n_conditions*[full_state_output])
+            full_state_output
         )
+
+        if event_variable_equation_function is None:
+            raise ValueError("A SwitchedSystem requires " +
+                             "event_variable_equation_function")
         self.event_variable_equation_function = \
             event_variable_equation_function
+
         self.state_update_equation_function = (
             state_update_equation_function or
             full_state_output
@@ -171,6 +203,8 @@ class SwitchedSystem(DynamicalSystem):
 
     @event_bounds.setter
     def event_bounds(self, event_bounds):
+        if event_bounds is None:
+            raise ValueError("A SwitchedSystem requires event_bounds")
         self._event_bounds = np.array(event_bounds).reshape(1, -1)
         self.n_conditions = len(self._event_bounds) + 1
         if self.n_conditions == 2:
@@ -225,7 +259,7 @@ class LTISystem(DynamicalSystem):
             y = Hx
         2. A,B matrices for systems with state, assume full state output::
             x' = Ax + Bu
-            y = x
+            y = Ix
         3. K matrix for systems without state::
             y = Kx
 
@@ -260,6 +294,11 @@ class LTISystem(DynamicalSystem):
         self.dim_state = F.shape[0]
         self.dim_input = G.shape[1]
         self.dim_output = H.shape[0]
+
+        assert F.shape[0] == F.shape[1]
+        assert G.shape[0] == F.shape[0]
+        assert H.shape[1] == F.shape[0]
+
         self.initial_condition = initial_condition or np.zeros(self.dim_state)
         self.state_equation_function = lambda t, x, u: (F@x + G@u).reshape(-1)
         self.output_equation_function = lambda t, x: (H@x).reshape(-1)

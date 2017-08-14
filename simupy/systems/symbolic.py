@@ -41,8 +41,9 @@ class DynamicalSystem(DynamicalSystemBase):
             Dictionary of constants substitutions.
         dt : float
             Sampling rate of system. Use 0 for continuous time systems.
-        initial_condition : Array or Matrix (1D) of numerical values
-            Array or Matrix used as the initial condition of the sytsem.
+        initial_condition : Array or Matrix (1D) of numerical values (optional)
+            Array or Matrix used as the initial condition of the system.
+            Defaults to zeros of the same dimension as the state.
         code_generator : callable (optional)
             Function to be used as code generator.
         code_generator_args : dict (optional)
