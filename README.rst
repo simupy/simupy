@@ -68,3 +68,11 @@ SimuPy is ``pip`` installable
 .. code-block:: bash
 
     $ pip install simupy
+
+SimuPy requires
+
+ - Python >= 3.5
+ - NumPy >= 1.11
+ - SciPy >= 0.18
+
+Much of the functionality also derives from SymPy >= 1.0. 

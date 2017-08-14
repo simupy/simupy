@@ -1,7 +1,7 @@
 Mathematical Formulation
 ========================
 
-SimuPy assumes systems have no direct feedthrough between inputs and outputs; this discpline avoids algebraic loops. To simulate a system model that includes a feedthrough by augmenting the system to include the original input componets in the state and using derivatives of those signals in the control input or by including the original output components in the state and using integrals of those signals in the system output. However, there is no requirement for the system to have a state, so 
+SimuPy assumes systems have no direct feedthrough between inputs and outputs; this discpline avoids algebraic loops. You can simulate a system model that includes a feedthrough by augmenting the system. Augment the system using the input by including input componets in the state and using derivatives of those signals in the control input. You can augment the system using the output by including the original output components in the state and using integrals of those signals in the system output. However, there is no requirement for the system to have a state, so 
 
 .. math::
     x'(t) &= f(t,x(t),u(t)) \\
