@@ -1,10 +1,13 @@
 import numpy as np
+import warnings
 
 need_state_equation_function_msg = ("if dim_state > 0, DynamicalSystem must"
                                     + " have a state_equation_function")
 
 need_output_equation_function_msg = ("if dim_state == 0, DynamicalSystem must"
                                      + " have an output_equation_function")
+
+zero_dim_output_msg = "A DynamicalSystem must provide an output"
 
 
 def full_state_output(*args):
@@ -72,7 +75,7 @@ class DynamicalSystem(object):
         self.dim_output = dim_output or dim_state
 
         if self.dim_output == 0:
-            raise ValueError("A DynamicalSystem must provide an output")
+            raise ValueError(zero_dim_output_msg)
 
         if dim_state > 0 and state_equation_function is None:
             raise ValueError(need_state_equation_function_msg)
@@ -85,8 +88,18 @@ class DynamicalSystem(object):
 
         self.event_equation_function = event_equation_function
         self.update_equation_function = update_equation_function
-        self.initial_condition = initial_condition or np.zeros(dim_state)
+        self.initial_condition = initial_condition
         self.dt = dt
+
+    @property
+    def initial_condition(self):
+        return (self._initial_condition 
+                if self._initial_condition is not None 
+                else np.zeros(self.dim_state))
+
+    @initial_condition.setter
+    def initial_condition(self, initial_condition):
+        self._initial_condition = initial_condition
 
     def prepare_to_integrate(self):
         return
@@ -171,7 +184,10 @@ class SwitchedSystem(DynamicalSystem):
         self.dim_output = dim_output or dim_state
         self.event_bounds = event_bounds
 
-        if dim_state == 0 and state_equations_functions is None:
+        if self.dim_output == 0:
+            raise ValueError(zero_dim_output_msg)
+
+        if dim_state > 0 and state_equations_functions is None:
             raise ValueError(need_state_equation_function_msg)
         self.state_equations_functions = np.empty(self.n_conditions,
                                                   dtype=object)
@@ -182,8 +198,8 @@ class SwitchedSystem(DynamicalSystem):
         self.output_equations_functions = np.empty(self.n_conditions,
                                                    dtype=object)
         self.output_equations_functions[:] = (
-            output_equations_functions or
-            full_state_output
+            output_equations_functions
+            if output_equations_functions is not None else full_state_output
         )
 
         if event_variable_equation_function is None:
@@ -209,7 +225,7 @@ class SwitchedSystem(DynamicalSystem):
         if event_bounds is None:
             raise ValueError("A SwitchedSystem requires event_bounds")
         self._event_bounds = np.array(event_bounds).reshape(1, -1)
-        self.n_conditions = len(self._event_bounds) + 1
+        self.n_conditions = self._event_bounds.size + 1
         if self.n_conditions == 2:
             self.event_bounds_range = 1
         else:
@@ -243,6 +259,11 @@ class SwitchedSystem(DynamicalSystem):
                 self.condition_idx += 1
             elif crossed_root_idx == self.condition_idx-1:
                 self.condition_idx -= 1
+            else:
+                warnings.warn("SwitchedSystem did not cross a neighboring " +
+                              "boundary. This may indicate an integration " +
+                              "error. Continuing without updating " +
+                              "condition_idx", UserWarning)
         return self.state_update_equation_function(*args)
 
     def prepare_to_integrate(self):
