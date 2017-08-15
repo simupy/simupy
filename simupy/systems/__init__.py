@@ -71,7 +71,10 @@ class DynamicalSystem(object):
         self.dim_input = dim_input
         self.dim_output = dim_output or dim_state
 
-        if dim_state == 0 and state_equation_function is None:
+        if self.dim_output == 0:
+            raise ValueError("A DynamicalSystem must provide an output")
+
+        if dim_state > 0 and state_equation_function is None:
             raise ValueError(need_state_equation_function_msg)
         self.state_equation_function = state_equation_function
 
@@ -282,7 +285,7 @@ class LTISystem(DynamicalSystem):
 
         if len(args) == 2:
             F, G = args
-            H = np.matlib.eye(F.shape[0])
+            H = np.eye(F.shape[0])
 
         elif len(args) == 3:
             F, G, H = args
