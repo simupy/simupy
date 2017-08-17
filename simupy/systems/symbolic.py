@@ -2,11 +2,13 @@ import numpy as np
 import sympy as sp
 from sympy.physics.mechanics import dynamicsymbols
 from sympy.physics.mechanics.functions import find_dynamicsymbols
-from sympy.tensor.array import Array
 from simupy.utils.symbolic import lambdify_with_vector_args, grad
-from simupy.array import empty_array
+from simupy.array import Array, empty_array
 
-from simupy.systems import DynamicalSystem as DynamicalSystemBase
+from simupy.systems import (DynamicalSystem as DynamicalSystemBase,
+                            need_state_equation_function_msg,
+                            need_output_equation_function_msg,
+                            zero_dim_output_msg)
 
 DEFAULT_CODE_GENERATOR = lambdify_with_vector_args
 DEFAULT_CODE_GENERATOR_ARGS = {
@@ -60,7 +62,6 @@ class DynamicalSystem(DynamicalSystemBase):
         """
         self.constants_values = constants_values
         self.state = state
-        self.initial_condition = initial_condition
         self.input = input_
 
         self.code_generator = code_generator or DEFAULT_CODE_GENERATOR
@@ -72,9 +73,10 @@ class DynamicalSystem(DynamicalSystemBase):
         self.state_equation = state_equation
         self.output_equation = output_equation
 
+        self.initial_condition = initial_condition
         self.dt = dt
 
-        self.n_events = 0
+        self.validate()
 
     @property
     def state(self):
@@ -135,24 +137,30 @@ class DynamicalSystem(DynamicalSystemBase):
 
     @output_equation.setter
     def output_equation(self, output_equation):
-        if output_equation is None:  # or other checks?
-            output_equation = self.state
-        try:
-            self.dim_output = len(output_equation)
-        except TypeError:
-            self.dim_output = 1
-        assert output_equation.atoms(sp.Symbol) <= (
-                set(self.constants_values.keys()) | set([dynamicsymbols._t])
-               )
-        if self.dim_state:
-            assert find_dynamicsymbols(output_equation) <= set(self.state)
+        if isinstance(output_equation, sp.Expr):
+            output_equation = Array([output_equation])
+        if output_equation is None and self.dim_state == 0:
+            output_equation = empty_array()
         else:
-            assert find_dynamicsymbols(output_equation) <= set(self.input)
+            if output_equation is None:
+                output_equation = self.state
+
+            assert output_equation.atoms(sp.Symbol) <= (
+                    set(self.constants_values.keys()) | set([dynamicsymbols._t])
+                   )
+
+            if self.dim_state:
+                assert find_dynamicsymbols(output_equation) <= set(self.state)
+            else:
+                assert find_dynamicsymbols(output_equation) <= set(self.input)
+                
+        self.dim_output = len(output_equation)
+
         self._output_equation = output_equation
         self.update_output_equation_function()
 
     def update_state_equation_function(self):
-        if not self.dim_state:
+        if not self.dim_state or self.state_equation == empty_array():
             return
         self.state_equation_function = self.code_generator(
             [dynamicsymbols._t] + sp.flatten(self.state) +
@@ -162,7 +170,7 @@ class DynamicalSystem(DynamicalSystemBase):
         )
 
     def update_state_jacobian_function(self):
-        if not self.dim_state:
+        if not self.dim_state or self.state_equation == empty_array():
             return
         self.state_jacobian_equation_function = self.code_generator(
             [dynamicsymbols._t] + sp.flatten(self.state) +
@@ -173,7 +181,7 @@ class DynamicalSystem(DynamicalSystemBase):
 
     def update_input_jacobian_function(self):
         # TODO: state-less systems should have an input/output jacobian
-        if not self.dim_state:
+        if not self.dim_state or self.state_equation == empty_array():
             return
         self.input_jacobian_equation_function = self.code_generator(
             [dynamicsymbols._t] + sp.flatten(self.state) +
@@ -183,7 +191,7 @@ class DynamicalSystem(DynamicalSystemBase):
         )
 
     def update_output_equation_function(self):
-        if not self.dim_output:
+        if not self.dim_output or self.output_equation == empty_array():
             return
         if self.dim_state:
             self.output_equation_function = self.code_generator(

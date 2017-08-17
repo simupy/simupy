@@ -1,8 +1,7 @@
-import numpy as np, sympy as sp,  matplotlib.pyplot as plt, numpy.matlib
-from simupy.systems.symbolic import DynamicalSystem
+import numpy as np, sympy as sp, matplotlib.pyplot as plt
+from simupy.systems.symbolic import DynamicalSystem, dynamicsymbols
 from simupy.block_diagram import BlockDiagram
-from sympy.physics.mechanics import dynamicsymbols
-from sympy.tensor.array import Array
+from simupy.array import Array, r_, c_
 
 plt.ion()
 
@@ -11,18 +10,23 @@ x1, x2 = x
 
 mu = sp.symbols('mu')
 
-sys = DynamicalSystem( Array([x2, -x1+mu*(1-x1**2)*x2]), x, constants_values={mu: 5})
+state_equation = r_[x2, -x1+mu*(1-x1**2)*x2]
+output_equation = r_[x1**2 + x2**2, sp.atan2(x2,x1)]
+
+sys = DynamicalSystem( state_equation, x, output_equation=output_equation, 
+constants_values={mu: 5})
 
 sys.initial_condition = np.array([1,1]).T
 
 BD = BlockDiagram(sys)
 res = BD.simulate(30)
 
-plt.plot(res.t,res.y)
+plt.figure()
+plt.plot(res.t,res.x)
 plt.legend([sp.latex(s, mode='inline') for s in sys.state])
 
 plt.figure()
-plt.plot(*res.y.T)
+plt.plot(*res.x.T)
 
-from simupy.array import r_, c_
-r_[x1,x2]
+plt.figure()
+plt.plot(res.t, res.y)
