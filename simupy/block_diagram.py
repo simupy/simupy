@@ -252,12 +252,12 @@ class BlockDiagram(object):
         else:
             tspan = np.array(tspan)
 
-        all_dt_sel = np.zeros((tspan.size, self.dts.size), dtype=np.bool)
+        
         if hybrid or 0 not in self.dts:
             all_dts = [np.arange(t0, tF+dt, dt) if dt != 0 else np.r_[t0, tF]
                        for dt in self.dts]
             tspan = np.unique(np.concatenate([tspan]+all_dts))
-
+            all_dt_sel = np.zeros((tspan.size, self.dts.size), dtype=np.bool)
             for idx, dt in enumerate(self.dts):
                 if dt != 0:
                     all_dt_sel[:, idx] = np.any(np.equal(
