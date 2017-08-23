@@ -317,7 +317,7 @@ class LTISystem(DynamicalSystem):
         # TODO: setup jacobian functions
         if len(args) == 1:
             self.K = K = args[0]
-            self.dim_input = self.K.shape[1]
+            self.dim_input = self.K.shape[1] if len(K.shape) > 1 else 1
             self.dim_output = self.K.shape[0]
             self.dim_state = 0
             self.initial_condition = np.zeros(self.dim_state)
@@ -331,18 +331,35 @@ class LTISystem(DynamicalSystem):
         elif len(args) == 3:
             F, G, H = args
 
-        self.F = F
-        self.G = G
-        self.H = H
+        if len(G.shape) == 1:
+            G = G.reshape(-1,1)
 
         self.dim_state = F.shape[0]
         self.dim_input = G.shape[1]
         self.dim_output = H.shape[0]
 
-        assert F.shape[0] == F.shape[1]
-        assert G.shape[0] == F.shape[0]
-        assert H.shape[1] == F.shape[0]
+        self.F = F
+        self.G = G
+        self.H = H
 
         self.initial_condition = initial_condition or np.zeros(self.dim_state)
         self.state_equation_function = lambda t, x, u: (F@x + G@u).reshape(-1)
         self.output_equation_function = lambda t, x: (H@x).reshape(-1)
+
+        self.validate()
+
+
+    def validate(self):
+        super().validate()
+        if self.dim_state:
+            assert self.F.shape[1] == self.dim_state
+            assert self.G.shape[0] == self.dim_state
+            assert self.H.shape[1] == self.dim_state
+
+
+    @property
+    def data(self):
+        if self.dim_state:
+            return self.F, self.G, self.H
+        else:
+            return self.K

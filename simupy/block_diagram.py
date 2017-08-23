@@ -262,6 +262,8 @@ class BlockDiagram(object):
                 if dt != 0:
                     all_dt_sel[:, idx] = np.any(np.equal(
                             *np.meshgrid(all_dts[idx], tspan)), axis=1)
+        else:
+            all_dt_sel = np.zeros((tspan.size, self.dts.size), dtype=np.bool)
 
         """
         tspan is used to indicate which times must be computed
