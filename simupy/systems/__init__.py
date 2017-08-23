@@ -106,7 +106,7 @@ class DynamicalSystem(object):
         if self.dim_output == 0:
             raise ValueError(zero_dim_output_msg)
 
-        if (self.dim_state > 0 
+        if (self.dim_state > 0
                 and getattr(self, 'state_equation_function', None) is None):
             raise ValueError(need_state_equation_function_msg)
 
@@ -194,7 +194,6 @@ class SwitchedSystem(DynamicalSystem):
         self.dim_output = dim_output or dim_state
         self.event_bounds = event_bounds
 
-
         self.state_equations_functions = np.empty(self.n_conditions,
                                                   dtype=object)
         self.state_equations_functions[:] = state_equations_functions
@@ -223,18 +222,17 @@ class SwitchedSystem(DynamicalSystem):
     def validate(self):
         super().validate()
 
-        if (self.dim_state > 0 
+        if (self.dim_state > 0
                 and np.any(np.equal(self.state_equations_functions, None))):
             raise ValueError(need_state_equation_function_msg)
 
-        if (self.dim_state == 0 
+        if (self.dim_state == 0
                 and np.any(np.equal(self.output_equations_functions, None))):
             raise ValueError(need_output_equation_function_msg)
 
         if self.event_variable_equation_function is None:
             raise ValueError("A SwitchedSystem requires " +
                              "event_variable_equation_function")
-
 
     @property
     def event_bounds(self):
@@ -332,7 +330,7 @@ class LTISystem(DynamicalSystem):
             F, G, H = args
 
         if len(G.shape) == 1:
-            G = G.reshape(-1,1)
+            G = G.reshape(-1, 1)
 
         self.dim_state = F.shape[0]
         self.dim_input = G.shape[1]
@@ -348,14 +346,12 @@ class LTISystem(DynamicalSystem):
 
         self.validate()
 
-
     def validate(self):
         super().validate()
         if self.dim_state:
             assert self.F.shape[1] == self.dim_state
             assert self.G.shape[0] == self.dim_state
             assert self.H.shape[1] == self.dim_state
-
 
     @property
     def data(self):

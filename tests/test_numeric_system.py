@@ -23,7 +23,7 @@ def test_state_equation_function_kwarg():
         DynamicalSystem(dim_state=N)
     args = np.random.rand(N+1)
     sys = DynamicalSystem(dim_state=N,
-                    state_equation_function=ones_equation_function)
+                          state_equation_function=ones_equation_function)
     npt.assert_allclose(
         sys.state_equation_function(args[0], args[1:]),
         np.ones(N)

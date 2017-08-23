@@ -5,10 +5,7 @@ from sympy.physics.mechanics.functions import find_dynamicsymbols
 from simupy.utils.symbolic import lambdify_with_vector_args, grad
 from simupy.array import Array, empty_array
 
-from simupy.systems import (DynamicalSystem as DynamicalSystemBase,
-                            need_state_equation_function_msg,
-                            need_output_equation_function_msg,
-                            zero_dim_output_msg)
+from simupy.systems import DynamicalSystem as DynamicalSystemBase
 
 DEFAULT_CODE_GENERATOR = lambdify_with_vector_args
 DEFAULT_CODE_GENERATOR_ARGS = {
@@ -146,14 +143,15 @@ class DynamicalSystem(DynamicalSystemBase):
                 output_equation = self.state
 
             assert output_equation.atoms(sp.Symbol) <= (
-                    set(self.constants_values.keys()) | set([dynamicsymbols._t])
+                    set(self.constants_values.keys())
+                    | set([dynamicsymbols._t])
                    )
 
             if self.dim_state:
                 assert find_dynamicsymbols(output_equation) <= set(self.state)
             else:
                 assert find_dynamicsymbols(output_equation) <= set(self.input)
-                
+
         self.dim_output = len(output_equation)
 
         self._output_equation = output_equation

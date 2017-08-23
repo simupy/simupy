@@ -82,6 +82,11 @@ class SwitchedSystem(SwitchedSystemBase, DiscontinuousSystem):
         self.state_equations = state_equations
         self.state_update_equation = state_update_equation
         self.condition_idx = None
+        self.validate(True)
+
+    def validate(self, from_self=False):
+        if from_self:
+            super().validate()
 
     @property
     def state_equations(self):

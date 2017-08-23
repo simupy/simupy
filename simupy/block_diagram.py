@@ -229,12 +229,6 @@ class BlockDiagram(object):
             detection
         """
 
-        # generate tspan based on DTs, add hybrid flag
-        if len(np.unique(self.dts)) > 1:
-            hybrid = True
-        else:
-            hybrid = False
-
         dense_output = True
         if np.isscalar(tspan):
             t0 = 0
@@ -252,8 +246,7 @@ class BlockDiagram(object):
         else:
             tspan = np.array(tspan)
 
-        
-        if hybrid or 0 not in self.dts:
+        if len(np.nonzero(self.dts)[0]) > 0:
             all_dts = [np.arange(t0, tF+dt, dt) if dt != 0 else np.r_[t0, tF]
                        for dt in self.dts]
             tspan = np.unique(np.concatenate([tspan]+all_dts))
@@ -550,7 +543,7 @@ class BlockDiagram(object):
             else:
                 sys.update_equation_function(t0)
 
-        dt_time_selector = all_dt_sel[1, :]
+        dt_time_selector = all_dt_sel[0, :]
         next_dt_x, y0, e0 = computation_step(
                 t0, all_x0, y0, (dt_time_selector | (self.dts == 0)), True)
         # initial_computation[0] is saved for the next round of selected DTs
@@ -787,14 +780,25 @@ class BlockDiagram(object):
                 latest_states[state_start:state_end] = \
                     next_dt_x[state_start:state_end]
 
+            if dense_output or len(ct_x0) == 0:
+                check_events = None
+
             next_states, current_outputs = computation_step(
                 next_t, latest_states, latest_outputs, dt_time_selector)
-            results.new_result(next_t, latest_states, current_outputs)
+            results.new_result(
+                next_t, latest_states, current_outputs, check_events)
             if np.any(np.isnan(current_outputs)):
                 break
 
             if next_t != tF:
-                next_dt_x = next_states
+                for sysidx in np.where(ct_time_slector)[0]:
+                    sys = self.systems[sysidx]
+                    state_start = self.cum_states[sysidx]
+                    state_end = self.cum_states[sysidx+1]
+
+                    next_dt_x[state_start:state_end] = \
+                        next_states[state_start:state_end]
+
         results.t = results.t[:results.res_idx]
         results.x = results.x[:results.res_idx, :]
         results.y = results.y[:results.res_idx, :]

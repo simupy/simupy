@@ -3,6 +3,9 @@ import numpy as np
 from scipy import linalg, signal
 import numpy.testing as npt
 from simupy.systems import LTISystem, SystemFromCallable
+from simupy.systems.symbolic import dynamicsymbols
+from simupy.discontinuities import SwitchedSystem
+from simupy.array import Array, r_, c_
 from simupy.utils import callable_from_trajectory
 import simupy.block_diagram as block_diagram
 
@@ -10,6 +13,7 @@ BlockDiagram = block_diagram.BlockDiagram
 block_diagram.DEFAULT_INTEGRATOR_OPTIONS['rtol'] = 1E-9
 
 TEST_TOL = 1E-6
+
 
 def get_double_integrator(m=1000, b=50, d=1):
     N = 2
@@ -70,8 +74,8 @@ def get_double_mechanical(m1=1, k1=1, b1=1, m2=1, k2=0, b2=0):
         # np.r_[0, 0, 1, 0],  # C
     )
     sys.initial_condition = np.r_[
-        0.5/k1 if k1 else 0, 
-        0, 
+        0.5/k1 if k1 else 0,
+        0,
         0.5/k2 if k2 else 0,
         0
     ]
@@ -85,6 +89,7 @@ def get_double_mechanical(m1=1, k1=1, b1=1, m2=1, k2=0, b2=0):
     ref = SystemFromCallable(ref_func, N, N)
 
     return sys, ref
+
 
 def get_cart_pendulum(m=1, M=3, L=0.5, g=9.81, pedant=False):
     N = 4
@@ -111,21 +116,26 @@ def get_cart_pendulum(m=1, M=3, L=0.5, g=9.81, pedant=False):
     return sys, ref
 
 
+@pytest.fixture(scope="module", params=['dopri5', 'lsoda'])
+def intname(request):
+    yield request.param
+
+
 @pytest.fixture(
     scope="module",
     params=[
-        get_double_integrator(m=1,d=1,b=4.0), # overdamped
-        get_double_integrator(m=1,d=1,b=2.0), # critically damped
-        get_double_integrator(m=1,d=1,b=1.0), # underdamped
-        get_double_integrator(m=1,d=1,b=0.0), # not damped
-        get_double_integrator(m=1,d=1,b=-0.5), # unstable
+        get_electromechanical(),  # generic electromechanical
 
-        get_electromechanical(), # generic electromechanical
-
-        get_double_mechanical(), # free end
-        get_double_mechanical(k2=1, b2=1), # sprung-damped end
+        get_double_mechanical(),  # free end
+        get_double_mechanical(k2=1, b2=1),  # sprung-damped end
 
         get_cart_pendulum(),  # generic cart-pendulum model
+
+        get_double_integrator(m=1, d=1, b=4.0),  # overdamped
+        get_double_integrator(m=1, d=1, b=2.0),  # critically damped
+        get_double_integrator(m=1, d=1, b=1.0),  # underdamped
+        get_double_integrator(m=1, d=1, b=0.0),  # not damped
+        get_double_integrator(m=1, d=1, b=-0.5),  # unstable
     ]
 )
 def control_systems(request):
@@ -136,23 +146,23 @@ def control_systems(request):
     Q = np.eye(Ac.shape[0])
     R = np.eye(Bc.shape[1] if len(Bc.shape) > 1 else 1)
 
-    Sc = linalg.solve_continuous_are(Ac, Bc.reshape(-1,1), Q, R,)
-    Kc = linalg.solve(R, Bc.T @ Sc).reshape(1,-1)
+    Sc = linalg.solve_continuous_are(Ac, Bc.reshape(-1, 1), Q, R,)
+    Kc = linalg.solve(R, Bc.T @ Sc).reshape(1, -1)
     ct_ctr = LTISystem(Kc)
-    
-    evals = np.sort( np.abs(
+
+    evals = np.sort(np.abs(
         linalg.eig(Ac, left=False, right=False, check_finite=False)
     ))
     dT = 1/(2*evals[-1])
 
-    Tsim = (8/np.min(evals[~np.isclose(evals[np.nonzero(evals)], 0)]) 
+    Tsim = (8/np.min(evals[~np.isclose(evals[np.nonzero(evals)], 0)])
             if np.sum(np.isclose(evals[np.nonzero(evals)], 0)) > 0
             else 8
-           )
+            )
 
-    dt_data = signal.cont2discrete((Ac, Bc.reshape(-1,1), Cc, Dc), dT)
+    dt_data = signal.cont2discrete((Ac, Bc.reshape(-1, 1), Cc, Dc), dT)
     Ad, Bd, Cd, Dd = dt_data[:-1]
-    Sd = linalg.solve_discrete_are(Ad, Bd.reshape(-1,1), Q, R,)
+    Sd = linalg.solve_discrete_are(Ad, Bd.reshape(-1, 1), Q, R,)
     Kd = linalg.solve(Bd.T @ Sd @ Bd + R, Bd.T @ Sd @ Ad)
 
     dt_sys = LTISystem(Ad, Bd, dt=dT)
@@ -192,9 +202,9 @@ def test_fixed_integration_step_equivalent(control_systems):
             )[1][::2]
 
             npt.assert_allclose(
-                var_res.x[var_sel,:], fix_res.x,
+                var_res.x[var_sel, :], fix_res.x,
                 atol=TEST_TOL
-            )   
+            )
 
     bd = BlockDiagram(dt_sys, ref, dt_ctr)
     bd.connect(dt_sys, ref)
@@ -202,44 +212,50 @@ def test_fixed_integration_step_equivalent(control_systems):
     bd.connect(dt_ctr, dt_sys)
 
     var_res = bd.simulate(Tsim)
-    fix_res = bd.simulate(var_res.t[var_res.t<Tsim])
+    fix_res = bd.simulate(var_res.t[var_res.t < Tsim])
 
     print()
     npt.assert_allclose(
-        var_res.x[var_res.t<Tsim], fix_res.x,
+        var_res.x[var_res.t < Tsim], fix_res.x,
         atol=TEST_TOL
     )
 
 
-
 @pytest.fixture(scope="module")
-def simulation_results(control_systems):
+def simulation_results(control_systems, intname):
     ct_sys, ct_ctr, dt_sys, dt_ctr, ref, Tsim = control_systems
+
+    if intname == 'dopri5':
+        tspan = Tsim
+    elif intname == 'lsoda':
+        tspan = np.arange(0, Tsim, dt_sys.dt*2**-2)
+
     results = []
     for sys, ctr in [(dt_sys, dt_ctr), (ct_sys, ct_ctr), (ct_sys, dt_ctr)]:
         bd = BlockDiagram(sys, ref, ctr)
         bd.connect(sys, ref)
         bd.connect(ref, ctr)
         bd.connect(ctr, sys)
-        results.append(bd.simulate(Tsim))
-    yield results, ct_sys, ct_ctr, dt_sys, dt_ctr, ref, Tsim
+        results.append(bd.simulate(tspan, intname))
+
+    yield results, ct_sys, ct_ctr, dt_sys, dt_ctr, ref, Tsim, tspan, intname
 
 
 def test_feedback_equivalent(simulation_results):
     # (A-BK) should be exactly same as system A,B under feedback K
-    results, ct_sys, ct_ctr, dt_sys, dt_ctr, ref, Tsim = simulation_results
-    
+    results, ct_sys, ct_ctr, dt_sys, dt_ctr, ref, Tsim, tspan, intname = \
+        simulation_results
+
     dt_equiv_sys = LTISystem(dt_sys.F - dt_sys.G @ dt_ctr.K,
                              dt_sys.G @ dt_ctr.K, dt=dt_sys.dt)
     dt_equiv_sys.initial_condition = dt_sys.initial_condition
 
     dt_bd = BlockDiagram(dt_equiv_sys, ref)
     dt_bd.connect(ref, dt_equiv_sys)
-    dt_equiv_res = dt_bd.simulate(Tsim)
+    dt_equiv_res = dt_bd.simulate(tspan, intname)
     npt.assert_allclose(
         dt_equiv_res.x, results[0].x
     )
-
 
     ct_equiv_sys = LTISystem(ct_sys.F - ct_sys.G @ ct_ctr.K,
                              ct_sys.G @ ct_ctr.K)
@@ -247,30 +263,44 @@ def test_feedback_equivalent(simulation_results):
 
     ct_bd = BlockDiagram(ct_equiv_sys, ref)
     ct_bd.connect(ref, ct_equiv_sys)
-    ct_equiv_res = ct_bd.simulate(Tsim)
+    ct_equiv_res = ct_bd.simulate(tspan, intname)
     unique_t, unique_t_sel = np.unique(ct_equiv_res.t, return_index=True)
-    ct_res = callable_from_trajectory(unique_t, ct_equiv_res.x[unique_t_sel, :])
+    ct_res = callable_from_trajectory(
+        unique_t,
+        ct_equiv_res.x[unique_t_sel, :]
+    )
 
     npt.assert_allclose(
         ct_res(results[1].t), results[1].x,
         atol=TEST_TOL
     )
-    
+
 
 def test_dt_ct_equivalent(simulation_results):
     # (stable?) CT system should match DT equivalent exactly at t=k*dT
-    # for the same inputs. 
-    results, ct_sys, ct_ctr, dt_sys, dt_ctr, ref, Tsim = simulation_results
+    # for the same inputs.
+    results, ct_sys, ct_ctr, dt_sys, dt_ctr, ref, Tsim, tspan, intname = \
+        simulation_results
 
-    discrete_sel = results[0].t<(Tsim*7/8) # np.where(results[1].t==results[1].t)[0] # 
-    mixed_sel = np.where(
+    dt_unique_t, dt_unique_t_idx = np.unique(
+        results[0].t, return_index=True
+    )
+    discrete_sel = dt_unique_t_idx[
+        (dt_unique_t < (Tsim*7/8)) & (dt_unique_t % dt_sys.dt == 0)
+    ]
+
+    mixed_t_discrete_t_equal_idx = np.where(
         np.equal(*np.meshgrid(results[2].t, results[0].t[discrete_sel]))
-    )[1][::2]
+    )[1]
+
+    mixed_unique_t, mixed_unique_t_idx_rev = np.unique(
+        results[2].t[mixed_t_discrete_t_equal_idx][::-1], return_index=True
+    )
+    mixed_unique_t_idx = (len(mixed_t_discrete_t_equal_idx)
+                          - mixed_unique_t_idx_rev - 1)
+    mixed_sel = mixed_t_discrete_t_equal_idx[mixed_unique_t_idx]
 
     npt.assert_allclose(
-        results[2].x[mixed_sel,:], results[0].x[discrete_sel,:],
+        results[2].x[mixed_sel, :], results[0].x[discrete_sel, :],
         atol=TEST_TOL
     )
-
-
-

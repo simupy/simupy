@@ -4,14 +4,13 @@ import sympy as sp
 import numpy.testing as npt
 from simupy.systems.symbolic import DynamicalSystem, dynamicsymbols
 from simupy.systems import (need_state_equation_function_msg,
-                            need_output_equation_function_msg,
                             zero_dim_output_msg)
 from simupy.array import Array, r_
 
 x = x1, x2 = Array(dynamicsymbols('x1:3'))
 mu = sp.symbols('mu')
 state_equation = r_[x2, -x1+mu*(1-x1**2)*x2]
-output_equation = r_[x1**2 + x2**2, sp.atan2(x2,x1)]
+output_equation = r_[x1**2 + x2**2, sp.atan2(x2, x1)]
 constants = {mu: 5}
 
 
@@ -24,8 +23,8 @@ def test_state_equation_kwarg():
     with pytest.raises(ValueError, match=need_state_equation_function_msg):
         DynamicalSystem(state=x, constants_values=constants)
     sys = DynamicalSystem(state=x,
-                    state_equation=state_equation,
-                    constants_values=constants)
+                          state_equation=state_equation,
+                          constants_values=constants)
     args = np.random.rand(len(x)+1)
     npt.assert_allclose(
         sys.state_equation_function(args[0], args[1:]),

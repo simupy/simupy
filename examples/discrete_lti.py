@@ -36,26 +36,43 @@ sysc = LTISystem(Ac, Bc,)
 ctrl = LTISystem(-Kd, dt=T)
 
 bd = BlockDiagram(sysc, sysd, ctrl)
+bd = BlockDiagram( sysd, ctrl)
 sysc.initial_condition = np.r_[-1,0]
 sysd.initial_condition = np.r_[-1,0]
-bd.connect(sysc, ctrl)
+bd.connect(sysd, ctrl)
 bd.connect(ctrl, sysd)
-bd.connect(ctrl, sysc)
+# bd.connect(ctrl, sysc)
 
-res0 = bd.simulate(np.arange(16))
+res0 = bd.simulate(np.arange(0,16, 0.5))
+res1 = bd.simulate(np.arange(0,16))
 res = bd.simulate(15)
 
 plt.ion()
-plt.subplot(2,1,1)
-plt.plot(res.t, res.y[:,0])
-plt.plot(res0.t, res0.y[:,0])
-plt.plot(res0.t, res0.y[:,2], 'o')
-plt.plot(res.t, res.y[:,2], 'x')
+plt.figure()
+plt.subplot(3,1,1)
+
+# plt.plot(res.t, res.y[:,0])
+# plt.plot(res0.t, res0.y[:,0])
+plt.plot(res.t, res.x[:,0], 'o')
+plt.plot(res1.t, res1.x[:,0], '+')
+plt.plot(res0.t, res0.x[:,0], 'x')
+
+plt.subplot(3,1,2)
+
+# plt.plot(res.t, res.y[:,0])
+# plt.plot(res0.t, res0.y[:,0])
+plt.plot(res.t, res.y[:,0], 'o')
+plt.plot(res1.t, res1.y[:,0], '+')
+plt.plot(res0.t, res0.y[:,0], 'x')
+
+# plt.plot(res0.t, res0.y[:,2], 'o')
+# plt.plot(res.t, res.y[:,2], 'x')
 
 
-plt.subplot(2,1,2)
-plt.plot(res0.t, res0.y[:,-1], 'o')
-plt.plot(res.t, res.y[:,-1], 'x')
+plt.subplot(3,1,3)
+plt.plot(res.t, res.y[:,-1], 'o')
+plt.plot(res1.t, res1.y[:,-1], '+')
+plt.plot(res0.t, res0.y[:,-1], 'x')
 
 
 """
