@@ -10,6 +10,10 @@ from simupy.array import r_,c_
 from simupy.utils import callable_from_trajectory
 
 int_opts = block_diagram.DEFAULT_INTEGRATOR_OPTIONS.copy()
+find_opts = block_diagram.DEFAULT_EVENT_FIND_OPTIONS.copy()
+
+tvar = dynamicsymbols._t
+# (x2*tvar - g*tvar**2/2).evalf(subs={g:9.81, x2: ic[1]})
 
 
 plt.ion()
@@ -35,16 +39,26 @@ BD = BlockDiagram(sys)
 int_opts['rtol'] = 1E-12
 int_opts['atol'] = 1E-15
 int_opts['nsteps'] = 1000
-# int_opts['max_step'] = 2**-3
-res = BD.simulate(np.arange(0,25,2**-8), 'dopri5', integrator_options=int_opts)
+int_opts['max_step'] = 2**-3
+
+find_opts['xtol'] = 1E-12
+find_opts['maxiter'] = int(1E3)
+# res = BD.simulate(np.arange(0,25,2**-8), 'lsoda', integrator_options=int_opts)
+res = BD.simulate(25, 'dopri5', integrator_options=int_opts, event_find_options=find_opts)
 unique_t, unique_t_sel = np.unique(res.t, return_index=True)
 # clbl = callable_from_trajectory(unique_t, res.x[unique_t_sel,:])
 
-t_sel = res.t > 20
+##
+v1 = np.sqrt(ic[1]**2 + 2 * constants[g] * ic[0])
+tstar = (ic[1] + v1 * (1 + constants[mu])/(1-constants[mu]))/constants[g]
+
+t_sel = (res.t < tstar*1.01) 
 
 plt.figure()
 plt.subplot(2,1,1)
 plt.plot(res.t[t_sel],res.x[t_sel,0])
+plt.plot(
+    2*[sp.solve((x2*tvar - g*tvar**2/2 + x1).subs({x1: ic[0], x2: ic[1], g:9.81}), tvar)[-1]], [0, 10])
 # plt.plot(np.linspace(0,6, 101), clbl(np.linspace(0,6, 101))[:, 0])
 plt.subplot(2,1,2)
 plt.plot(res.t[t_sel],res.x[t_sel,1])
