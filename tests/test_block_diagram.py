@@ -304,3 +304,47 @@ def test_dt_ct_equivalent(simulation_results):
         results[2].x[mixed_sel, :], results[0].x[discrete_sel, :],
         atol=TEST_TOL
     )
+
+
+def test_mixed_dts(simulation_results):
+    results, ct_sys, ct_ctr, dt_sys, dt_ctr, ref, Tsim, tspan, intname = \
+        simulation_results
+    Ac, Bc, Cc = ct_sys.data
+    Dc = np.zeros((Cc.shape[0], 1))
+
+    dt_unique_t, dt_unique_t_idx = np.unique(
+        results[0].t, return_index=True
+    )
+    discrete_sel = dt_unique_t_idx[
+        (dt_unique_t < (Tsim*7/8)) & (dt_unique_t % dt_sys.dt == 0)
+    ]
+
+    scale_factor = 1/2
+    Ad, Bd, Cd, Dd, dT = signal.cont2discrete(
+        (Ac, Bc.reshape(-1, 1), Cc, Dc),
+        dt_sys.dt*scale_factor
+    )
+    dt_sys2 = LTISystem(Ad, Bd, dt=dT)
+    dt_sys2.initial_condition = ct_sys.initial_condition
+
+    bd = BlockDiagram(dt_sys2, ref, dt_ctr)
+    bd.connect(dt_sys2, ref)
+    bd.connect(ref, dt_ctr)
+    bd.connect(dt_ctr, dt_sys2)
+    res = bd.simulate(tspan, intname)
+
+    mixed_t_discrete_t_equal_idx = np.where(
+        np.equal(*np.meshgrid(res.t, results[0].t[discrete_sel]))
+    )[1]
+
+    mixed_unique_t, mixed_unique_t_idx_rev = np.unique(
+        res.t[mixed_t_discrete_t_equal_idx][::-1], return_index=True
+    )
+    mixed_unique_t_idx = (len(mixed_t_discrete_t_equal_idx) 
+                          - mixed_unique_t_idx_rev - 1)
+    mixed_sel = mixed_t_discrete_t_equal_idx[mixed_unique_t_idx]
+    
+    npt.assert_allclose(
+        res.x[mixed_sel, :], results[0].x[discrete_sel, :],
+        atol=TEST_TOL
+    )
