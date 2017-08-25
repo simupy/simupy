@@ -33,4 +33,4 @@ where :math:`[k]` and :math:`(k)` indexes the value of the variable at time :mat
     x[k+1] &= f([k], x[k], u[k]) \\
     y[k] &= h([k], x[k])
 
-and makes sense in general for hybrid-time simulation.
+and makes sense in general for hybrid-time simulation. The validity of the timing and interconnection defintions is shown via tests in the ``test_block_diagram.py`` test file, including ``test_feedback_equivalent``, ``test_dt_ct_equivalent``, and ``test_mixed_dts``. It is also illustrated in the ``discrete_lti.py`` example.

@@ -46,7 +46,7 @@ Initial conditions for systems with non-zero state can be defined and the interc
     sys.initial_condition = np.matrix([5, -3, 1])
     res = BD.simulate(10)
 
-which uses ``scipy.integrate.ode`` to solve the initial-valued problem. The results are an instance of the ``SimulationResult`` class, with array attributes ``t``, ``x``, ``y``, and ``e``, holding time, state, output, and event values at integration time step. The first axis indexes the time step. For ``x``, ``y``, and ``e``, the second axis indexes the individual signal components, ordered first by the order of system addition to the block diagram then according to the system state and output specification. The simulation defaults to the ``dopri5`` solver with dense output, but other solvers and solver options can be passed. 
+which uses ``scipy.integrate.ode`` to solve the initial-valued problem. The results are an instance of the ``SimulationResult`` class, with array attributes ``t``, ``x``, ``y``, and ``e``, holding time, state, output, and event values at integration time step. The first axis indexes the time step. For ``x``, ``y``, and ``e``, the second axis indexes the individual signal components, ordered first by the order of system addition to the block diagram then according to the system state and output specification. The simulation defaults to the ``dopri5`` solver with dense output, but ``integrator_name`` and ``integrator_options`` options are passed onto the ``ode`` instance. 
 
 A number of utilities for constructing and manipulating systems and the simulation results are also included:
 
@@ -69,10 +69,10 @@ SimuPy is ``pip`` installable
 
     $ pip install simupy
 
-SimuPy requires
+SimuPy is tested against
 
- - Python >= 3.5
+ - Python >= 3.6
  - NumPy >= 1.11
  - SciPy >= 0.18
 
-Much of the functionality also derives from SymPy >= 1.0. 
+Much of the functionality also derives from SymPy >= 1.0.

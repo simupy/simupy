@@ -6,7 +6,7 @@ import numpy.testing as npt
 from simupy.systems import LTISystem, SystemFromCallable
 from simupy.systems.symbolic import dynamicsymbols
 from simupy.discontinuities import SwitchedSystem
-from simupy.array import Array, r_, c_
+from simupy.array import Array, r_
 from simupy.utils import callable_from_trajectory
 import simupy.block_diagram as block_diagram
 
@@ -219,7 +219,6 @@ def test_fixed_integration_step_equivalent(control_systems):
     var_res = bd.simulate(Tsim)
     fix_res = bd.simulate(var_res.t[var_res.t < Tsim])
 
-    print()
     npt.assert_allclose(
         var_res.x[var_res.t < Tsim], fix_res.x,
         atol=TEST_TOL
@@ -370,14 +369,14 @@ def test_events():
     int_opts['atol'] = 1E-15
     int_opts['nsteps'] = 1000
     int_opts['max_step'] = 2**-3
-    x = x1,x2 = Array(dynamicsymbols('x_1:3'))
+    x = x1, x2 = Array(dynamicsymbols('x_1:3'))
     mu, g = sp.symbols('mu g')
     constants = {mu: 0.8, g: 9.81}
     ic = np.r_[10, 15]
     sys = SwitchedSystem(
         x1, Array([0]),
-        state_equations=r_[x2,-g],
-        state_update_equation=r_[sp.Abs(x1),-mu*x2],
+        state_equations=r_[x2, -g],
+        state_update_equation=r_[sp.Abs(x1), -mu*x2],
         state=x,
         constants_values=constants,
         initial_condition=ic
@@ -388,7 +387,7 @@ def test_events():
     # compute actual impact time
     tvar = dynamicsymbols._t
     impact_eq = (x2*tvar - g*tvar**2/2 + x1).subs(
-        {x1: ic[0], x2: ic[1], g:9.81}
+        {x1: ic[0], x2: ic[1], g: 9.81}
     )
     t_impact = sp.solve(impact_eq, tvar)[-1]
 
@@ -396,4 +395,3 @@ def test_events():
     abs_diff_impact = np.abs(res.t - t_impact)
     impact_idx = np.where(abs_diff_impact == np.min(abs_diff_impact))[0]
     assert np.sign(res.x[impact_idx-1, 1]) != np.sign(res.x[impact_idx+1, 1])
-

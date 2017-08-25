@@ -1,105 +1,149 @@
 import numpy as np
-import scipy.signal as signal
-import scipy.linalg as linalg
-from simupy.systems import LTISystem, SystemFromCallable
+from scipy import signal, linalg
+from simupy.systems import LTISystem
 from simupy.block_diagram import BlockDiagram
-import control
 import matplotlib.pyplot as plt
 
-T=1
-K=0.692/(T**2/2)
-
-num = np.r_[1.]
-den = np.r_[1.,0,0]
-dt0 = signal.TransferFunction(num,den).to_ss().to_discrete(T)
-Ac,Bc,Cc,Dc = signal.tf2ss(num,den)
-dt1 = Ad, Bd, Cd, Dd, dT = signal.cont2discrete((Ac,Bc,Cc,Dc),T)
-
-
-# 
-# numd, dend, ddt = signal.cont2discrete((num,den),T)
-# dt2 = signal.TransferFunction(np.r_[0,1,1]*T**2, np.r_[1, -2, 1]*2, dt=1).to_ss()
-# dt3 = signal.TransferFunction(numd, dend, dt=ddt).to_ss()
-
-
-ctrl_dlti = signal.TransferFunction(K*np.r_[1, -0.63], np.r_[1, 0.44], dt=T)
-
-Q = np.eye(2)
-R = np.c_[1]
-S = linalg.solve_discrete_are(Ad, Bd, Q, R,)
-Kd = linalg.solve(Bd.T @ S @ Bd + R, Bd.T @ S @ Ad)
-
-# sysd = LTISystem(dt3.A, dt3.B, dt3.C, dt=T)
-# sysd = LTISystem(dt1[0], dt1[1], dt1[2], dt=T)
-sysd = LTISystem(Ad, Bd, dt=T)
-sysc = LTISystem(Ac, Bc,)
-ctrl = LTISystem(-Kd, dt=T)
-
-bd = BlockDiagram(sysc, sysd, ctrl)
-bd = BlockDiagram( sysd, ctrl)
-sysc.initial_condition = np.r_[-1,0]
-sysd.initial_condition = np.r_[-1,0]
-bd.connect(sysd, ctrl)
-bd.connect(ctrl, sysd)
-# bd.connect(ctrl, sysc)
-
-res0 = bd.simulate(np.arange(0,16, 0.5))
-res1 = bd.simulate(np.arange(0,16))
-res = bd.simulate(15)
-
 plt.ion()
+use_model = 0
+
+if use_model == 0:
+    m = 1
+    M = 3
+    L = 0.5
+    g = 9.81
+    pedant = False
+    Ac = np.c_[  # A
+        [0, 0, 0, 0],
+        [1, 0, 0, 0],
+        [0, m*g/M, 0, (-1)**(pedant)*(m+M)*g/(M*L)],
+        [0, 0, 1, 0]
+    ]
+    Bc = np.r_[0, 1/M, 0, 1/(M*L)].reshape(-1, 1)
+    Cc = np.eye(4)
+    Dc = np.zeros((4, 1))
+    ic = np.r_[0, 0, np.pi/3, 0]
+elif use_model == 1:
+    m = 1
+    d = 1
+    b = 1
+    Ac = np.c_[[0, 1], [1, -b/m]]
+    Bc = np.r_[0, d/m].reshape(-1, 1)
+    Cc = np.eye(2)
+    Dc = np.zeros((2, 1))
+    ic = np.r_[1, 0]
+
+ct_sys = LTISystem(Ac, Bc, Cc)
+ct_sys.initial_condition = ic
+
+n, m = Bc.shape
+
+evals = np.sort(np.abs(
+    linalg.eig(Ac, left=False, right=False, check_finite=False)
+))
+dT = 1/(2*evals[-1])
+Tsim = (8/np.min(evals[~np.isclose(evals[np.nonzero(evals)], 0)])
+        if np.sum(np.isclose(evals[np.nonzero(evals)], 0)) > 0
+        else 8
+        )
+
+Ad, Bd, Cd, Dd, dT = signal.cont2discrete((Ac, Bc, Cc, Dc), dT)
+dt_sys = LTISystem(Ad, Bd, Cd, dt=dT)
+dt_sys.initial_condition = ic
+
+Q = np.eye(Ac.shape[0])
+R = np.eye(Bc.shape[1] if len(Bc.shape) > 1 else 1)
+
+Sc = linalg.solve_continuous_are(Ac, Bc, Q, R,)
+Kc = linalg.solve(R, Bc.T @ Sc).reshape(1, -1)
+ct_ctr = LTISystem(-Kc)
+
+Sd = linalg.solve_discrete_are(Ad, Bd, Q, R,)
+Kd = linalg.solve(Bd.T @ Sd @ Bd + R, Bd.T @ Sd @ Ad)
+dt_ctr = LTISystem(-Kd, dt=dT)
+
+
+# Equality of discrete-time equivalent and original continuous-time
+# system
+
+dtct_bd = BlockDiagram(ct_sys, dt_ctr)
+dtct_bd.connect(ct_sys, dt_ctr)
+dtct_bd.connect(dt_ctr, ct_sys)
+dtct_res = dtct_bd.simulate(Tsim)
+
+dtdt_bd = BlockDiagram(dt_sys, dt_ctr)
+dtdt_bd.connect(dt_sys, dt_ctr)
+dtdt_bd.connect(dt_ctr, dt_sys)
+dtdt_res = dtct_bd.simulate(Tsim)
+
 plt.figure()
-plt.subplot(3,1,1)
+for st in range(n):
+    plt.subplot(n+m, 1, st+1)
+    plt.plot(dtct_res.t, dtct_res.y[:, st])
+    plt.step(dtdt_res.t, dtdt_res.y[:, st])
+    plt.ylabel('$x_{}(t)$'.format(st+1))
+for st in range(m):
+    plt.subplot(n+m, 1, st+n+1)
+    plt.step(dtct_res.t, dtct_res.y[:, st+n])
+    plt.step(dtct_res.t, dtdt_res.y[:, st+n])
+    plt.ylabel('$u(t)$')
+    plt.xlabel('$t$, s')
 
-# plt.plot(res.t, res.y[:,0])
-# plt.plot(res0.t, res0.y[:,0])
-plt.plot(res.t, res.x[:,0], 'o')
-plt.plot(res1.t, res1.x[:,0], '+')
-plt.plot(res0.t, res0.x[:,0], 'x')
-
-plt.subplot(3,1,2)
-
-# plt.plot(res.t, res.y[:,0])
-# plt.plot(res0.t, res0.y[:,0])
-plt.plot(res.t, res.y[:,0], 'o')
-plt.plot(res1.t, res1.y[:,0], '+')
-plt.plot(res0.t, res0.y[:,0], 'x')
-
-# plt.plot(res0.t, res0.y[:,2], 'o')
-# plt.plot(res.t, res.y[:,2], 'x')
+plt.subplot(n+m, 1, 1)
+plt.title('Equality of discrete-time equivalent and original\n' +
+          'continuous-time system subject to same control input')
+plt.legend(['continuous-time system', 'discrete-time equivalent'])
 
 
-plt.subplot(3,1,3)
-plt.plot(res.t, res.y[:,-1], 'o')
-plt.plot(res1.t, res1.y[:,-1], '+')
-plt.plot(res0.t, res0.y[:,-1], 'x')
+# Equivalence between controlled system and over-all system
+ctct_bd = BlockDiagram(ct_sys, ct_ctr)
+ctct_bd.connect(ct_sys, ct_ctr)
+ctct_bd.connect(ct_ctr, ct_sys)
+ctct_res = ctct_bd.simulate(Tsim)
+
+cteq_sys = LTISystem(Ac - Bc @ Kc, np.zeros((n, 0)))
+cteq_sys.initial_condition = ic
+cteq_bd = BlockDiagram(cteq_sys)
+cteq_res = cteq_bd.simulate(Tsim)
+
+plt.figure()
+for st in range(n):
+    plt.subplot(n+m, 1, st+1)
+    plt.plot(ctct_res.t, ctct_res.y[:, st], '+')
+    plt.plot(cteq_res.t, cteq_res.y[:, st], 'x')
+    plt.ylabel('$x_{}(t)$'.format(st+1))
+for st in range(m):
+    plt.subplot(n+m, 1, st+n+1)
+    plt.plot(ctct_res.t, ctct_res.y[:, st+n], '+')
+    plt.plot(cteq_res.t, -(Kc@cteq_res.y.T).T, 'x')
+    plt.ylabel('$u(t)$')
+    plt.xlabel('$t$, s')
+plt.subplot(n+m, 1, 1)
+plt.title('Equality of system under feedback control and\n' +
+          'equivalent closed-loop, continuous time')
+plt.legend([r'$\dot{x}(t) = A\ x(t) + B\ u(t)$; $u(t) = K\ x(t)$',
+            r'$\dot{x}(t) = (A - B\ K)\ x(t)$'])
 
 
-"""
-##
-comp1 = LTISystem(ctrl_dlti.A, ctrl_dlti.B, ctrl_dlti.B, dt=T)
-comp2 = LTISystem( np.c_[-ctrl_dlti.D, 1], dt=T)
+dteq_sys = LTISystem(Ad - Bd @ Kd, np.zeros((n, 0)), dt=dT)
+dteq_sys.initial_condition = ic
+dteq_bd = BlockDiagram(dteq_sys)
+dteq_res = dteq_bd.simulate(Tsim)
 
-
-bd = BlockDiagram(sysc, sysd, comp1, comp2)
-sysc.initial_condition = np.r_[0,-1]
-sysd.initial_condition = np.r_[0,-1]
-# bd.connect(sys, err)
-bd.connect(sysc, comp1)
-bd.connect(sysc, comp2, inputs=[0])
-bd.connect(comp1, comp2, inputs=[1])
-bd.connect(comp2, sysc)
-bd.connect(comp2, sysd)
-res0 = bd.simulate(np.arange(16))
-res = bd.simulate(15)
-
-plt.ion()
-plt.subplot(2,1,1)
-plt.plot(res.t, res.y[:,0])
-plt.plot(res0.t, res0.y[:,0])
-plt.step(res.t, res.y[:,1],)
-plt.plot(res0.t, res0.y[:,1], 'x')
-plt.subplot(2,1,2)
-plt.step(res.t, res.y[:,-1])
-plt.plot(res0.t, res0.y[:,-1], 'x')
-"""
+plt.figure()
+for st in range(n):
+    plt.subplot(n+m, 1, st+1)
+    plt.plot(dtct_res.t, dtdt_res.y[:, st], '+')
+    plt.plot(dteq_res.t, dteq_res.y[:, st], 'x')
+    plt.ylabel('$x_{}(t)$'.format(st+1))
+for st in range(m):
+    plt.subplot(n+m, 1, st+n+1)
+    plt.plot(dtct_res.t, dtct_res.y[:, st+n], '+')
+    plt.plot(dteq_res.t, -(Kd@dteq_res.y.T).T, 'x')
+    plt.ylabel('$u(t)$')
+    plt.xlabel('$t$, s')
+plt.subplot(n+m, 1, 1)
+plt.title('Equality of system under feedback control and\n' +
+          'equivalent closed-loop, discrete time')
+plt.legend([r'$x[k+1] = A\ x[k] + B\ u[k]$; $u[k] = K\ x[k]$',
+            r'$x[k+1] = (A - B\ K)\ x[k]$'])

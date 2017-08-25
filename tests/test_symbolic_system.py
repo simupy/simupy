@@ -27,7 +27,7 @@ def test_state_equation_kwarg():
                           constants_values=constants)
     args = np.random.rand(len(x)+1)
     npt.assert_allclose(
-        sys.state_equation_function(args[0], args[1:]),
+        sys.state_equation_function(args[0], args[1:]).squeeze(),
         np.r_[args[2], -args[1]+constants[mu]*(1-args[1]**2)*args[2]]
     )
 
@@ -40,7 +40,7 @@ def test_output_equation_function_kwarg():
                           state_equation=state_equation,
                           constants_values=constants)
     npt.assert_allclose(
-        sys.output_equation_function(args[0], args[1:]),
+        sys.output_equation_function(args[0], args[1:]).squeeze(),
         args[1:]
     )
     sys = DynamicalSystem(state=x,
@@ -48,6 +48,6 @@ def test_output_equation_function_kwarg():
                           output_equation=output_equation,
                           constants_values=constants)
     npt.assert_allclose(
-        sys.output_equation_function(args[0], args[1:]),
+        sys.output_equation_function(args[0], args[1:]).squeeze(),
         np.r_[args[1]**2 + args[2]**2, np.arctan2(args[2], args[1])]
     )
