@@ -3,7 +3,7 @@ SimuPy
 
 Overview
 --------
-SimuPy is a framework for simulating inter-connected dynamical system models. SimuPy is an open source, python based alternative to Simulink. Dynamical system models can be specified as an object with certain parameters and functions as described in the :doc:`API documentation<api/api>`. Models can also be constructed using symbolic expressions, as in
+SimuPy is a framework for simulating inter-connected dynamical system models. SimuPy is an open source, python-based alternative to Simulink. Dynamical system models can be specified as an object with certain parameters and functions as described in the :doc:`API documentation<api/api>`. Models can also be constructed using symbolic expressions, as in
 
 .. code-block :: python
 
@@ -30,7 +30,7 @@ A number of helper classes/functions exist to simplify the construction of model
     from simupy.systems import LTISystem
     ctrl = LTISystem(matrix([[-1.73992128, -0.99212953,  2.98819041]]))
 
-(the gains in the example come from the infinite horizon LQR based on the system linearized about the origin.) A block diagram of the feedback control can be constructed
+The gains in the example come from the infinite horizon LQR based on the system linearized about the origin. A block diagram of the feedback control can be constructed
 
 .. code-block :: python
 
@@ -39,14 +39,14 @@ A number of helper classes/functions exist to simplify the construction of model
     BD.connect(sys, ctrl) # connect the current state to the feedback controller
     BD.connect(ctrl, sys) # connect the controlled input to the system
 
-Initial conditions for systems with non-zero state can be defined and the interconnected systems can be simulated
+Initial conditions for systems with non-zero dimensional state can be defined (it defaults to zeros of the appropriate dimension) and the interconnected systems can be simulated
 
 .. code-block :: python
 
     sys.initial_condition = np.matrix([5, -3, 1])
     res = BD.simulate(10)
 
-which uses ``scipy.integrate.ode`` to solve the initial-valued problem. The results are an instance of the ``SimulationResult`` class, with array attributes ``t``, ``x``, ``y``, and ``e``, holding time, state, output, and event values at integration time step. The first axis indexes the time step. For ``x``, ``y``, and ``e``, the second axis indexes the individual signal components, ordered first by the order of system addition to the block diagram then according to the system state and output specification. The simulation defaults to the ``dopri5`` solver with dense output, but ``integrator_name`` and ``integrator_options`` options are passed onto the ``ode`` instance. 
+which uses ``scipy.integrate.ode`` to solve the initial-valued problem. The results are an instance of the ``SimulationResult`` class, with array attributes ``t``, ``x``, ``y``, and ``e``, holding time, state, output, and event values for each integrator time step. The first axis indexes the time step. For ``x``, ``y``, and ``e``, the second axis indexes the individual signal components, ordered first by the order each system was added to the block diagram then according to the system state and output specification. The simulation defaults to the ``dopri5`` solver with dense output, but ``integrator_name`` and ``integrator_options`` options are passed onto the ``ode`` instance. The default values used for future simulations can be changed following the pattern for the symbolic code generator options.
 
 A number of utilities for constructing and manipulating systems and the simulation results are also included:
 
@@ -76,3 +76,10 @@ SimuPy is tested against
  - SciPy >= 0.18
 
 Much of the functionality also derives from SymPy >= 1.0.
+
+Contributing
+------------
+
+1. To discuss problems or feature requests, File an issue.
+2. To contribute, make a pull request. Contributions should include tests for any new features/bug fixes and follow best practices including PEP8, etc.
+

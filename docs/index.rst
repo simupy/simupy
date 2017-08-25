@@ -1,7 +1,7 @@
 SimuPy
 ======
 
-A framework for modeling and simulating dynamical systems. This provides an open source, Python based alternative to Simulink.
+A framework for modeling and simulating dynamical systems. This provides an open source, python-based alternative to Simulink.
 
 .. toctree::
    :hidden:
