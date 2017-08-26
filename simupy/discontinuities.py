@@ -56,7 +56,7 @@ class SwitchedSystem(SwitchedSystemBase, DiscontinuousSystem):
         event_bounds_expressions : list-like of sympy Expressions or floats
             Ordered list-like values which define the boundaries of events
             (relative to event_variable_equation).
-        state_equations : Array or Matrix of sympy Expressions (optional)
+        state_equations : array_like of sympy Expressions (optional)
             The state equations of the system. The first dimension indexes the
             event-state and should be one more than the number of event bounds.
             This should also be indexed to match the boundaries (i.e., the
@@ -64,7 +64,7 @@ class SwitchedSystem(SwitchedSystemBase, DiscontinuousSystem):
             the first event_bounds value). The second dimension is dim_state
             of the system. If only 1-D, uses single equation for every
             condition.
-        output_equations : Array or Matrix of sympy Expressions (optional)
+        output_equations : array_like of sympy Expressions (optional)
             The output equations of the system. The first dimension indexes the
             event-state and should be one more than the number of event bounds.
             This should also be indexed to match the boundaries (i.e., the

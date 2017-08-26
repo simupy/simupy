@@ -9,9 +9,9 @@ def callable_from_trajectory(t, curves):
 
     Parameters
     ----------
-    t : 1D array-like
+    t : 1D array_like
         Array of m time indices of trajectory
-    curves : 2D array-like
+    curves : 2D array_like
         Array of m x n vector samples at the time indices. First dimension
         indexes time, second dimension indexes vector components
 
@@ -34,19 +34,19 @@ def callable_from_trajectory(t, curves):
 def array_callable_from_vector_trajectory(tt, x, unraveled, raveled):
     """
     Convert a trajectory into an interpolating callable that returns a 2D
-    array. The unraveled, raveled map how the array is filled in. See
+    array. The unraveled, raveled pair map how the array is filled in. See
     riccati_system example.
 
     Parameters
     ----------
-    tt : 1D array-like
+    tt : 1D array_like
         Array of m time indices of trajectory
-    xx : 2D array-like
+    xx : 2D array_like
         Array of m x n vector samples at the time indices. First dimension
         indexes time, second dimension indexes vector components
-    unraveled : 1D array-like
+    unraveled : 1D array_like
         Array of n unique keys matching xx.
-    raveled : 2D array-like
+    raveled : 2D array_like
         Array where the elements are the keys from unraveled. The mapping
         between unraveled and raveled is used to specify how the output array
         is filled in.

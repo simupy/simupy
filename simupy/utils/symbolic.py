@@ -77,16 +77,16 @@ def grad(f, basis, for_numerical=True):
 
     Parameters
     ----------
-    f : 1D array-like of sympy Expressions
+    f : 1D array_like of sympy Expressions
         The vector-valued function to compute the gradient of.
-    basis : 1D array-like of sympy symbols
+    basis : 1D array_like of sympy symbols
         The basis symbols to compute the gradient with respect to.
     for_numerical : boolean
         A placeholder for the option of numerically computing the gradient.
 
     Returns
     -------
-    grad : 2D array-like of sympy Expressions
+    grad : 2D array_like of sympy Expressions
         The symbolic gradient.
     """
     if hasattr(f, '__len__'):  # as of version 1.1.1, Array isn't supported
@@ -109,7 +109,7 @@ def augment_input(system, input_=[], update_outputs=True):
     ----------
     system : DynamicalSystem
         The sytsem to augment the input of
-    input_ : 1D array of symbols (optional)
+    input_ : array_like of symbols (optional)
         The input to augment. Use to augment only a subset of input components.
     update_outputs : boolean
         If true and the system provides full state output, will also add the

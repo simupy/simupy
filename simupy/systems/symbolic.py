@@ -24,23 +24,23 @@ class DynamicalSystem(DynamicalSystemBase):
 
         Parameters
         ----------
-        state_equation : Array or Matrix (1D) of sympy Expressions (optional)
+        state_equation : array_like of sympy Expressions (optional)
             Vector valued expression for the derivative of the state.
-        state : Array or Matrix (1D) of sympy symbols (optional)
+        state : array_like of sympy symbols (optional)
             Vector of symbols representing the components of the state, in the
             desired order, matching state_equation.
-        input_ : Array or Matrix (1D) of sympy symbols (optional)
+        input_ : array_like of sympy symbols (optional)
             Vector of symbols representing the components of the input, in the
             desired order. state_equation may depend on the system input. If
             the system has no state, the output_equation may depend on the
             system input.
-        output_equation : Array or Matrix (1D) of sympy Expressions
+        output_equation : array_like of sympy Expressions
             Vector valued expression for the output of the system.
         constants_values : dict
             Dictionary of constants substitutions.
         dt : float
             Sampling rate of system. Use 0 for continuous time systems.
-        initial_condition : Array or Matrix (1D) of numerical values (optional)
+        initial_condition : array_like of numerical values (optional)
             Array or Matrix used as the initial condition of the system.
             Defaults to zeros of the same dimension as the state.
         code_generator : callable (optional)
@@ -250,10 +250,10 @@ class MemorylessSystem(DynamicalSystem):
 
         Parameters
         ----------
-        input_ : Array or Matrix (1D) of sympy symbols
+        input_ : array_like of sympy symbols
             Vector of symbols representing the components of the input, in the
-            desired order. The output_equation may depend on the system input.
-        output_equation : Array or Matrix (1D) of sympy Expressions
+            desired order. The output may depend on the system input.
+        output_equation : array_like of sympy Expressions
             Vector valued expression for the output of the system.
         """
         super().__init__(

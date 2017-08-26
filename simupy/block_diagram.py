@@ -221,9 +221,9 @@ class BlockDiagram(object):
             where the trajectories will be stored.
 
         integrator_class : class (optional)
-            Class of integrator to use. Defaults to ``scipy.integrate.ode``
-            integrator to use. Default is ``scipy.integrate.ode``. Must provide
-            the following subset of the ``scipy.integrate.ode`` API:
+            Class of integrator to use. Defaults to ``scipy.integrate.ode``.
+            Must provide the following subset of the ``scipy.integrate.ode``
+            API:
 
                 - ``__init__(derivative_callable(time, state))``
                 - ``set_integrator(**kwargs)``
@@ -235,7 +235,7 @@ class BlockDiagram(object):
 
         integrator_options : dict (optional)
             Dictionary of keyword arguments to pass to
-            ``integrator_class.set_integrator``
+            ``integrator_class.set_integrator``.
         event_finder : callable (optional)
             Interval root-finder function. Defaults to
             ``scipy.optimize.brentq``, and must take the equivalent positional
