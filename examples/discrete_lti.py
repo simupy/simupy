@@ -5,7 +5,7 @@ from simupy.block_diagram import BlockDiagram
 import matplotlib.pyplot as plt
 
 plt.ion()
-use_model = 0
+use_model = 1
 
 if use_model == 0:
     m = 1

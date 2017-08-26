@@ -4,15 +4,16 @@ import warnings
 from simupy.utils import callable_from_trajectory
 from scipy.optimize import brentq
 
-DEFAULT_INTEGRATOR_NAME = 'dopri5'
-
+DEFAULT_INTEGRATOR_CLASS = ode
 DEFAULT_INTEGRATOR_OPTIONS = {
+        'name': 'dopri5',
         'rtol': 1e-6,
         'atol': 1e-12,
         'nsteps': 500,
         'max_step': 0.0
     }
 
+DEFAULT_EVENT_FINDER = brentq
 DEFAULT_EVENT_FIND_OPTIONS = {
         'xtol': 2e-12,
         'rtol': 8.8817841970012523e-16,
@@ -197,8 +198,9 @@ class BlockDiagram(object):
                                    (0, system.dim_input)),
                                   'constant', constant_values=0)
 
-    def simulate(self, tspan, integrator_name=DEFAULT_INTEGRATOR_NAME,
+    def simulate(self, tspan, integrator_class=DEFAULT_INTEGRATOR_CLASS,
                  integrator_options=DEFAULT_INTEGRATOR_OPTIONS,
+                 event_finder=DEFAULT_EVENT_FINDER,
                  event_find_options=DEFAULT_EVENT_FIND_OPTIONS):
         """
         Simulate the block diagram
@@ -218,15 +220,31 @@ class BlockDiagram(object):
             If more than two times are specified, these are the only times
             where the trajectories will be stored.
 
-        integrator_name : string (optional)
-            Name of scipy.integrate.ode integrator to use. Default is
-            'dopri5'.
+        integrator_class : class (optional)
+            Class of integrator to use. Defaults to ``scipy.integrate.ode``
+            integrator to use. Default is ``scipy.integrate.ode``. Must provide
+            the following subset of the ``scipy.integrate.ode`` API:
+
+                - ``__init__(derivative_callable(time, state))``
+                - ``set_integrator(**kwargs)``
+                - ``set_initial_value(state, time)``
+                - ``set_solout(successful_step_callable(time, state))``
+                - ``integrate(time)``
+                - ``successful()``
+                - ``y``, ``t`` properties
+
         integrator_options : dict (optional)
-            Dictionary of scipy.integrate.ode integrator options to use for
-            integration
+            Dictionary of keyword arguments to pass to
+            ``integrator_class.set_integrator``
+        event_finder : callable (optional)
+            Interval root-finder function. Defaults to
+            ``scipy.optimize.brentq``, and must take the equivalent positional
+            arguments, ``f``, ``a``, and ``b``, and return ``x0``, where
+            ``a <= x0 <= b`` and ``f(x0)`` is the zero.
         event_find_options : dict (optional)
-            Dictionary of scipy.optimize.brentq options to use for event
-            detection
+            Dictionary of keyword arguments to pass to ``event_finder``. It
+            must provide a key ``'xtol'``, and it is expected that the exact
+            zero lies within ``x0 +/- xtol/2``, as ``brentq`` provides.
         """
 
         dense_output = True
@@ -470,8 +488,8 @@ class BlockDiagram(object):
         # TODO: decouple integrator
         # setup the integrator if we have CT states
         if len(ct_x0) > 0:
-            r = ode(continuous_time_integration_step)
-            r.set_integrator(integrator_name, **integrator_options)
+            r = integrator_class(continuous_time_integration_step)
+            r.set_integrator(**integrator_options)
             r.set_initial_value(ct_x0, t0)
             if dense_output:
                 r.set_solout(collect_integrator_results)
@@ -704,12 +722,12 @@ class BlockDiagram(object):
                                 left_bracket = ts_to_collect[left_bracket_idx]
                         else:
                             left_bracket = results.t[prev_event_idx]
-                        event_ts[sysidx] = brentq(
-                            event_searchables[sysidx],
-                            left_bracket,
-                            r.t,
-                            **event_find_options
-                        )
+                            event_ts[sysidx] = event_finder(
+                                event_searchables[sysidx],
+                                left_bracket,
+                                r.t,
+                                **event_find_options
+                            )
 
                     next_event_t = np.min(event_ts[event_index_crossed])
                     ct_state_traj_callable = callable_from_trajectory(

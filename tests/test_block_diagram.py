@@ -229,6 +229,9 @@ def test_fixed_integration_step_equivalent(control_systems):
 def simulation_results(control_systems, intname):
     ct_sys, ct_ctr, dt_sys, dt_ctr, ref, Tsim = control_systems
 
+    intopts = block_diagram.DEFAULT_INTEGRATOR_OPTIONS.copy()
+    intopts['name'] = intname
+
     if intname == 'dopri5':
         tspan = Tsim
     elif intname == 'lsoda':
@@ -240,7 +243,7 @@ def simulation_results(control_systems, intname):
         bd.connect(sys, ref)
         bd.connect(ref, ctr)
         bd.connect(ctr, sys)
-        results.append(bd.simulate(tspan, intname))
+        results.append(bd.simulate(tspan, integrator_options=intopts))
 
     yield results, ct_sys, ct_ctr, dt_sys, dt_ctr, ref, Tsim, tspan, intname
 
@@ -250,13 +253,16 @@ def test_feedback_equivalent(simulation_results):
     results, ct_sys, ct_ctr, dt_sys, dt_ctr, ref, Tsim, tspan, intname = \
         simulation_results
 
+    intopts = block_diagram.DEFAULT_INTEGRATOR_OPTIONS.copy()
+    intopts['name'] = intname
+
     dt_equiv_sys = LTISystem(dt_sys.F - dt_sys.G @ dt_ctr.K,
                              dt_sys.G @ dt_ctr.K, dt=dt_sys.dt)
     dt_equiv_sys.initial_condition = dt_sys.initial_condition
 
     dt_bd = BlockDiagram(dt_equiv_sys, ref)
     dt_bd.connect(ref, dt_equiv_sys)
-    dt_equiv_res = dt_bd.simulate(tspan, intname)
+    dt_equiv_res = dt_bd.simulate(tspan, integrator_options=intopts)
     npt.assert_allclose(
         dt_equiv_res.x, results[0].x
     )
@@ -267,7 +273,7 @@ def test_feedback_equivalent(simulation_results):
 
     ct_bd = BlockDiagram(ct_equiv_sys, ref)
     ct_bd.connect(ref, ct_equiv_sys)
-    ct_equiv_res = ct_bd.simulate(tspan, intname)
+    ct_equiv_res = ct_bd.simulate(tspan, integrator_options=intopts)
     unique_t, unique_t_sel = np.unique(ct_equiv_res.t, return_index=True)
     ct_res = callable_from_trajectory(
         unique_t,
@@ -337,11 +343,14 @@ def test_mixed_dts(simulation_results):
     dt_sys2 = LTISystem(Ad, Bd, dt=dT)
     dt_sys2.initial_condition = ct_sys.initial_condition
 
+    intopts = block_diagram.DEFAULT_INTEGRATOR_OPTIONS.copy()
+    intopts['name'] = intname
+
     bd = BlockDiagram(dt_sys2, ref, dt_ctr)
     bd.connect(dt_sys2, ref)
     bd.connect(ref, dt_ctr)
     bd.connect(dt_ctr, dt_sys2)
-    res = bd.simulate(tspan, intname)
+    res = bd.simulate(tspan, integrator_options=intopts)
 
     mixed_t_discrete_t_equal_idx = np.where(
         np.equal(*np.meshgrid(res.t, results[0].t[discrete_sel]))

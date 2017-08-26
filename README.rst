@@ -46,7 +46,7 @@ Initial conditions for systems with non-zero dimensional state can be defined (i
     sys.initial_condition = np.matrix([5, -3, 1])
     res = BD.simulate(10)
 
-which uses ``scipy.integrate.ode`` to solve the initial-valued problem. The results are an instance of the ``SimulationResult`` class, with array attributes ``t``, ``x``, ``y``, and ``e``, holding time, state, output, and event values for each integrator time step. The first axis indexes the time step. For ``x``, ``y``, and ``e``, the second axis indexes the individual signal components, ordered first by the order each system was added to the block diagram then according to the system state and output specification. The simulation defaults to the ``dopri5`` solver with dense output, but ``integrator_name`` and ``integrator_options`` options are passed onto the ``ode`` instance. The default values used for future simulations can be changed following the pattern for the symbolic code generator options.
+which uses ``scipy.integrate.ode`` as the default solver for the initial-valued problem. The results are an instance of the ``SimulationResult`` class, with array attributes ``t``, ``x``, ``y``, and ``e``, holding time, state, output, and event values for each integrator time step. The first axis indexes the time step. For ``x``, ``y``, and ``e``, the second axis indexes the individual signal components, ordered first by the order each system was added to the block diagram then according to the system state and output specification. The simulation defaults to the ``dopri5`` solver with dense output, but a different ``integrator_class`` and ``integrator_options`` options can be used as long as it supports a subset of the ``scipy.integrate.ode`` API. The default values used for future simulations can be changed following the pattern for the symbolic code generator options.
 
 A number of utilities for constructing and manipulating systems and the simulation results are also included:
 
@@ -74,8 +74,9 @@ SimuPy is tested against
  - Python >= 3.6
  - NumPy >= 1.11
  - SciPy >= 0.18
+ - SymPy >= 1.0
 
-Much of the functionality also derives from SymPy >= 1.0.
+However, much of the functionality works without SymPy, so installation does not require it.
 
 Contributing
 ------------

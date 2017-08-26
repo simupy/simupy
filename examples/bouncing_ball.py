@@ -35,7 +35,7 @@ sys = SwitchedSystem(
 )
 bd = BlockDiagram(sys)
 res = bd.simulate(
-    25, 'dopri5', integrator_options=int_opts, event_find_options=find_opts
+    25, integrator_options=int_opts, event_find_options=find_opts
 )
 
 expr_subs = constants.copy()
