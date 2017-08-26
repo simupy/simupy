@@ -9,28 +9,47 @@ A system in a ``BlockDiagram`` needs to provide the following attributes:
     - ``dt`` : the sampling rate of the system; 0 for continuous time systems.
     - ``output_equation_function`` : A callable returning the system output.
 
-If ``dim_state``\=0, then ``output_equation_function`` recieves the current time and input as arguments during integration. If ``dim_state``\>0 then ``state_equation_function``, taking the current time, state, and input and returning the state derivative, must also be provided. In this case, ``output_equation_function`` recieves the current time and state as arguments during integration.
+If ``dim_state``\=0, then ``output_equation_function`` recieves the current
+time and input as arguments during integration. If ``dim_state``\>0 then
+``state_equation_function``, taking the current time, state, and input and
+returning the state derivative, must also be provided. In this case,
+``output_equation_function`` recieves the current time and state as arguments
+during integration.
 
-If ``event_equation_function`` and ``update_equation_function`` are provided, discontinuities at zero-crossing of ``event_equation_function`` are handled. The argument rules for ``event_equation_function`` and ``update_equation_function`` during integration are the same as ``output_equation_function``. Generally, ``update_equation_function`` is used to change what ``state_equation_function``, ``output_equation_function``, and ``event_equation_function`` compute based on the occurance of the discontinuity. If ``dim_state``\>0, ``update_equation_function`` must return the state immediately after the discontinuity.
+If ``event_equation_function`` and ``update_equation_function`` are provided,
+discontinuities at zero-crossing of ``event_equation_function`` are handled.
+The argument rules for ``event_equation_function`` and
+``update_equation_function`` during integration are the same as
+``output_equation_function``. Generally, ``update_equation_function`` is used
+to change what ``state_equation_function``, ``output_equation_function``, and
+``event_equation_function`` compute based on the occurance of the
+discontinuity. If ``dim_state``\>0, ``update_equation_function`` must return
+the state immediately after the discontinuity.
 
-Setting system property ``dt``\>0 will determine the sample rate that the outputs and state are computed; ``dt``\=0 is treated as a continuous-time system. In hybrid-time ``BlockDiagram``\s, the system is automatically integrated piecewise to improve accuracy.
+Setting system property ``dt``\>0 will determine the sample rate that the
+outputs and state are computed; ``dt``\=0 is treated as a continuous-time
+system. In hybrid-time ``BlockDiagram``\s, the system is automatically
+integrated piecewise to improve accuracy.
 
-In the future, providing jacobian functions will be used to construct ``BlockDiagram`` jacobians to use with solvers that support them.
+In the future, providing jacobian functions will be used to construct
+``BlockDiagram`` jacobians to use with solvers that support them.
 
 A quick overview of the of the modules:
 
 ``block_diagram`` (:doc:`docstrings<block_diagram>`)
-    implements the ``BlockDiagram`` class to simulate interconnected systems.
+   implements the ``BlockDiagram`` class to simulate interconnected systems.
 ``systems`` (:doc:`docstrings<systems>`)
-    provides a few base classes for purely numerical based systems.
+   provides a few base classes for purely numerical based systems.
 ``utils`` (:doc:`docstrings<utils>`)
-    provides utility functions, such as manipulating (numeric) systems and simulation results.
+   provides utility functions, such as manipulating (numeric) systems and
+   simulation results.
 ``systems.symbolic`` (:doc:`docstrings<symbolic_systems>`), ``descriptor`` (:doc:`docstrings<descriptor>`), and ``discontinuities`` (:doc:`docstrings<discontinuities>`)
-    provides niceties for using symbolic expressions to define systems.
-``array`` (:doc:`docstrings<array>`) and ``matrices`` (:doc:`docstrings<matrices>`) 
-    provide helper functions and classes for manipulating symbolic arrays, matrices, and their systems.
+   provides niceties for using symbolic expressions to define systems.
+``array`` (:doc:`docstrings<array>`) and ``matrices`` (:doc:`docstrings<matrices>`)
+   provide helper functions and classes for manipulating symbolic arrays,
+   matrices, and their systems.
 ``utils.symbolic`` (:doc:`docstrings<symbolic_utils>`)
-    provides utility symbolic functions, such as manipulating symbolic systems.
+   provides utility symbolic functions, such as manipulating symbolic systems.
 
 .. toctree::
    :hidden:
