@@ -18,11 +18,11 @@ def construct_explicit_matrix(name, n, m, symmetric=False, diagonal=0,
         Number of rows
     m : int
         Number of columns
-    symmetric : boolean
+    symmetric : bool, optional
         Use to enforce a symmetric matrix (repeat symbols above/below diagonal)
-    diagonal : boolean
+    diagonal : bool, optional
         Zeros out off diagonals. Takes precedence over symmetry.
-    dynamic : boolean
+    dynamic : bool, optional
         Whether to use sympy.physics.mechanics dynamicsymbol. If False, use
         sp.symbols
     kwargs : dict
@@ -123,9 +123,9 @@ def system_from_matrix_DE(mat_DE, mat_var, mat_input=None, constants={}):
         The matrix derivative expression (right hand side)
     mat_var : sympy Matrix
         The matrix state
-    mat_input : list-like of input expressions (optional)
+    mat_input : list-like of input expressions, optional
         A list-like of input expressions in the matrix differential equation
-    constants : dict (optional)
+    constants : dict, optional
         Dictionary of constants substitutions.
 
     Returns

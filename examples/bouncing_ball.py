@@ -12,6 +12,14 @@ find_opts = block_diagram.DEFAULT_EVENT_FIND_OPTIONS.copy()
 
 plt.ion()
 
+"""
+This example shows how to use a SwitchedSystem to model a bouncing ball. The
+event detection accurately finds the point of impact, and the simulation
+is generally accurate when the ball has sufficient energy. However, due to
+numerical error, the simulation does show the ball chattering after all
+the energy should have been dissipated.
+"""
+
 int_opts['rtol'] = 1E-12
 int_opts['atol'] = 1E-15
 int_opts['nsteps'] = 1000

@@ -8,6 +8,8 @@ from simupy.discontinuities import SwitchedOutput
 
 plt.ion()
 
+# This example shows how to implement a simple saturation block
+
 llim = -0.75
 ulim = 0.75
 

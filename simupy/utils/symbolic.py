@@ -81,7 +81,7 @@ def grad(f, basis, for_numerical=True):
         The vector-valued function to compute the gradient of.
     basis : 1D array_like of sympy symbols
         The basis symbols to compute the gradient with respect to.
-    for_numerical : boolean
+    for_numerical : bool, optional
         A placeholder for the option of numerically computing the gradient.
 
     Returns
@@ -109,7 +109,7 @@ def augment_input(system, input_=[], update_outputs=True):
     ----------
     system : DynamicalSystem
         The sytsem to augment the input of
-    input_ : array_like of symbols (optional)
+    input_ : array_like of symbols, optional
         The input to augment. Use to augment only a subset of input components.
     update_outputs : boolean
         If true and the system provides full state output, will also add the

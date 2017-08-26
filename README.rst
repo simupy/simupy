@@ -22,7 +22,7 @@ also be constructed using symbolic expressions, as in
 which will automatically create callable functions for the state equations,
 output equations, and jacobians. By default, the code generator uses a wrapper
 for ``sympy.lambdify``. You can change it by passing the system initialization
-arguments ``code_generator`` (the function) and additional key-word arguments
+arguments ``code_generator`` (the function) and additional keyword arguments
 to the generator in a dictionary ``code_generator_args``. You can change the
 defaults for future systems by changing the module values
 
@@ -60,7 +60,7 @@ systems can be simulated
    sys.initial_condition = np.matrix([5, -3, 1])
    res = BD.simulate(10)
 
-which uses `scipy.integrate.ode` as the default solver for the initial-valued
+which uses ``scipy.integrate.ode`` as the default solver for the initial-valued
 problem. The results are an instance of the ``SimulationResult`` class, with
 array attributes ``t``, ``x``, ``y``, and ``e``, holding time, state, output,
 and event values for each integrator time step. The first axis indexes the time
@@ -88,8 +88,8 @@ simulation results are also included:
 - ``MemorylessSystem`` and ``LTISystem`` are subclasses to more quickly create
   these types of systems
 - ``DescriptorSystem`` is used to construct systems with dynamics of the form
-  ``M(t, x) * x'(t) = f(t,x,u)``. In the future, this form can be used in DAE
-  solvers, etc
+  ``M(t, x) * x'(t) = f(t,x,u)``. This is mainly useful for analysis, although
+  future versions of SimuPy may support DAE solvers, etc.
 - ``DiscontinuousSystem`` is used to construct systems with discontinuities,
   defined by zero-crossings of the ``event_equation_function`` output.
 
@@ -120,6 +120,6 @@ not require it.
 Contributing
 ------------
 
-1. To discuss problems or feature requests, File an issue.
+1. To discuss problems or feature requests, file an issue.
 2. To contribute, make a pull request. Contributions should include tests for
-any new features/bug fixes and follow best practices including PEP8, etc.
+   any new features/bug fixes and follow best practices including PEP8, etc.

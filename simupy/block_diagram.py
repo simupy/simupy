@@ -143,10 +143,10 @@ class BlockDiagram(object):
             The system (already added to BlockDiagram) to which inputs will be
             connected. Note that any previous input connections will be
             over-written.
-        outputs : list-like (optional)
+        outputs : list-like, optional
             Selector index of the outputs to connect. If not specified or of
             length 0, will connect all of the outputs.
-        inputs : list-like (optional)
+        inputs : list-like, optional
             Selector index of the inputs to connect. If not specified or of
             length 0, will connect all of the inputs.
         """
@@ -220,7 +220,7 @@ class BlockDiagram(object):
             If more than two times are specified, these are the only times
             where the trajectories will be stored.
 
-        integrator_class : class (optional)
+        integrator_class : class, optional
             Class of integrator to use. Defaults to ``scipy.integrate.ode``.
             Must provide the following subset of the ``scipy.integrate.ode``
             API:
@@ -233,15 +233,15 @@ class BlockDiagram(object):
                 - ``successful()``
                 - ``y``, ``t`` properties
 
-        integrator_options : dict (optional)
+        integrator_options : dict, optional
             Dictionary of keyword arguments to pass to
             ``integrator_class.set_integrator``.
-        event_finder : callable (optional)
+        event_finder : callable, optional
             Interval root-finder function. Defaults to
             ``scipy.optimize.brentq``, and must take the equivalent positional
             arguments, ``f``, ``a``, and ``b``, and return ``x0``, where
             ``a <= x0 <= b`` and ``f(x0)`` is the zero.
-        event_find_options : dict (optional)
+        event_find_options : dict, optional
             Dictionary of keyword arguments to pass to ``event_finder``. It
             must provide a key ``'xtol'``, and it is expected that the exact
             zero lies within ``x0 +/- xtol/2``, as ``brentq`` provides.

@@ -31,8 +31,9 @@ outputs and state are computed; ``dt``\=0 is treated as a continuous-time
 system. In hybrid-time ``BlockDiagram``\s, the system is automatically
 integrated piecewise to improve accuracy.
 
-In the future, providing jacobian functions will be used to construct
-``BlockDiagram`` jacobians to use with solvers that support them.
+Future versions of SimuPy may support passing jacobian functions to ode solvers 
+if all systems in the ``BlockDiagram`` provide the appropriate necessary
+jacobian functions.
 
 A quick overview of the of the modules:
 

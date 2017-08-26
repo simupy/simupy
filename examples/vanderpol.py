@@ -7,6 +7,8 @@ from simupy.array import Array, r_
 
 plt.ion()
 
+# This example simulates the Van der Pol oscillator.
+
 x = x1, x2 = Array(dynamicsymbols('x1:3'))
 
 mu = sp.symbols('mu')
@@ -38,7 +40,7 @@ plt.figure()
 plt.plot(*res.x.T)
 plt.xlabel('$x_1(t)$')
 plt.ylabel('$x_2(t)$')
-plt.title('phase plane of system')
+plt.title('phase portrait of system')
 plt.tight_layout()
 
 plt.figure()

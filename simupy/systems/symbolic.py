@@ -24,12 +24,12 @@ class DynamicalSystem(DynamicalSystemBase):
 
         Parameters
         ----------
-        state_equation : array_like of sympy Expressions (optional)
+        state_equation : array_like of sympy Expressions, optional
             Vector valued expression for the derivative of the state.
-        state : array_like of sympy symbols (optional)
+        state : array_like of sympy symbols, optional
             Vector of symbols representing the components of the state, in the
             desired order, matching state_equation.
-        input_ : array_like of sympy symbols (optional)
+        input_ : array_like of sympy symbols, optional
             Vector of symbols representing the components of the input, in the
             desired order. state_equation may depend on the system input. If
             the system has no state, the output_equation may depend on the
@@ -40,18 +40,18 @@ class DynamicalSystem(DynamicalSystemBase):
             Dictionary of constants substitutions.
         dt : float
             Sampling rate of system. Use 0 for continuous time systems.
-        initial_condition : array_like of numerical values (optional)
+        initial_condition : array_like of numerical values, optional
             Array or Matrix used as the initial condition of the system.
             Defaults to zeros of the same dimension as the state.
-        code_generator : callable (optional)
+        code_generator : callable, optional
             Function to be used as code generator.
-        code_generator_args : dict (optional)
+        code_generator_args : dict, optional
             Dictionary of keyword args to pass to the code generator.
 
 
         By default, the code generator uses a wrapper for ``sympy.lambdify``.
         You can change it by passing the system initialization arguments
-        ``code_generator`` (the function) and additional key-word arguments to
+        ``code_generator`` (the function) and additional keyword arguments to
         the generator in a dictionary ``code_generator_args``. You can change
         the defaults for future systems by changing the module values. See the
         readme or docs for an example.

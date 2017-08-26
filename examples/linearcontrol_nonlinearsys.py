@@ -7,8 +7,15 @@ from simupy.block_diagram import BlockDiagram
 from sympy.tensor.array import Array
 
 plt.ion()
-legends = [r'$x_1$', r'$x_2$', r'$x_3$', r'$u$']
-tF = 10
+legends = [r'$x_1(t)$', r'$x_2(t)$', r'$x_3(t)$', r'$u(t)$']
+tF = 6
+
+"""
+This example shows the design of a linear quadratic regulator for a
+nonlinear system linearized about the origin. It is stable for some initial
+conditions, but not all initial conditions. The region of stability is not
+dependent only on the distance from the origin.
+"""
 
 # construct system
 x = Array(dynamicsymbols('x1:4'))

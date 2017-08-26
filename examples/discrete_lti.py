@@ -7,6 +7,14 @@ import matplotlib.pyplot as plt
 plt.ion()
 use_model = 1
 
+"""
+This example shows several mathematical features of the design of LQR
+controllers for a cart-pendulum model (use_model = 0) and a double-integrator
+(use_model = 1). This example also shows how a zero-order hold transformation
+is exact for LTI systems and how block diagram algebra can be performed to
+form equivalent systems.
+"""
+
 if use_model == 0:
     m = 1
     M = 3
@@ -74,18 +82,19 @@ dtct_res = dtct_bd.simulate(Tsim)
 dtdt_bd = BlockDiagram(dt_sys, dt_ctr)
 dtdt_bd.connect(dt_sys, dt_ctr)
 dtdt_bd.connect(dt_ctr, dt_sys)
-dtdt_res = dtct_bd.simulate(Tsim)
+dtdt_res = dtdt_bd.simulate(Tsim)
 
 plt.figure()
 for st in range(n):
     plt.subplot(n+m, 1, st+1)
-    plt.plot(dtct_res.t, dtct_res.y[:, st])
-    plt.step(dtdt_res.t, dtdt_res.y[:, st])
+    plt.plot(dtct_res.t, dtct_res.y[:, st], '+-')
+    plt.stem(dtdt_res.t, dtdt_res.y[:, st],
+             linefmt='-C1', markerfmt='xC1', basefmt='C1-')
     plt.ylabel('$x_{}(t)$'.format(st+1))
 for st in range(m):
     plt.subplot(n+m, 1, st+n+1)
-    plt.step(dtct_res.t, dtct_res.y[:, st+n])
-    plt.step(dtct_res.t, dtdt_res.y[:, st+n])
+    plt.step(dtct_res.t, dtct_res.y[:, st+n], '+-')
+    plt.plot(dtdt_res.t, dtdt_res.y[:, st+n], 'x')
     plt.ylabel('$u(t)$')
     plt.xlabel('$t$, s')
 
@@ -133,12 +142,12 @@ dteq_res = dteq_bd.simulate(Tsim)
 plt.figure()
 for st in range(n):
     plt.subplot(n+m, 1, st+1)
-    plt.plot(dtct_res.t, dtdt_res.y[:, st], '+')
+    plt.plot(dtdt_res.t, dtdt_res.y[:, st], '+')
     plt.plot(dteq_res.t, dteq_res.y[:, st], 'x')
     plt.ylabel('$x_{}(t)$'.format(st+1))
 for st in range(m):
     plt.subplot(n+m, 1, st+n+1)
-    plt.plot(dtct_res.t, dtct_res.y[:, st+n], '+')
+    plt.plot(dtdt_res.t, dtdt_res.y[:, st+n], '+')
     plt.plot(dteq_res.t, -(Kd@dteq_res.y.T).T, 'x')
     plt.ylabel('$u(t)$')
     plt.xlabel('$t$, s')

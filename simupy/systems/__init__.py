@@ -47,26 +47,26 @@ class DynamicalSystem(object):
         """
         Parameters
         ----------
-        state_equation_function : callable (optional)
+        state_equation_function : callable, optional
             The derivative (or update equation) of the system state. Not needed
             if ``dim_state`` is zero.
-        output_equation_function : callable (optional)
+        output_equation_function : callable, optional
             The output equation of the system. A system must have an
             ``output_equation_function``. If not set, uses full state output.
-        event_equation_function : callable (optional)
+        event_equation_function : callable, optional
             The function whose output determines when discontinuities occur.
-        update_equation_function : callable (optional)
+        update_equation_function : callable, optional
             The function called when a discontinuity occurs.
-        dim_state : int (optional)
+        dim_state : int, optional
             Dimension of the system state. Optional, defaults to 0.
-        dim_input : int (optional)
+        dim_input : int, optional
             Dimension of the system input. Optional, defaults to 0.
-        dim_output : int (optional)
+        dim_output : int, optional
             Dimension of the system output. Optional, defaults to dim_state.
-        dt : float (optional)
+        dt : float, optional
             Sample rate of the system. Optional, defaults to 0 representing a
             continuous time system.
-        initial_condition : array_like of numerical values (optional)
+        initial_condition : array_like of numerical values, optional
             Array or Matrix used as the initial condition of the system.
             Defaults to zeros of the same dimension as the state.
         """
@@ -152,7 +152,7 @@ class SwitchedSystem(DynamicalSystem):
         """
         Parameters
         ----------
-        state_equation_functions : array_like of callables (optional)
+        state_equation_functions : array_like of callables, optional
             The derivative (or update equation) of the system state. Not needed
             if ``dim_state`` is zero. The array indexes the
             event-state and should be one more than the number of event bounds.
@@ -160,7 +160,7 @@ class SwitchedSystem(DynamicalSystem):
             first function is used when the event variable is below the first
             event_bounds value). If only one callable is provided, the callable
             is used in each condition.
-        output_equation_functions : array_like of callables (optional)
+        output_equation_functions : array_like of callables, optional
             The output equation of the system. A system must have an
             ``output_equation_function``. If not set, uses full state output.
             The array indexes the event-state and should be one more than the
@@ -174,18 +174,18 @@ class SwitchedSystem(DynamicalSystem):
         event_bounds : array_like of floats
             Defines the boundary points the trigger discontinuity events based
             on the output of ``event_variable_equation_function``.
-        state_update_equation_function : callable (optional)
+        state_update_equation_function : callable, optional
             When an event occurs, the state update equation function is called
             to determine the state update. If not set, uses full state output,
             so the state is not changed upon a zero-crossing of the event
             variable function.
-        dim_state : int (optional)
+        dim_state : int, optional
             Dimension of the system state. Optional, defaults to 0.
-        dim_input : int (optional)
+        dim_input : int, optional
             Dimension of the system input. Optional, defaults to 0.
-        dim_output : int (optional)
+        dim_output : int, optional
             Dimension of the system output. Optional, defaults to dim_state.
-        dt : float (optional)
+        dt : float, optional
             Sample rate of the system. Optional, defaults to 0 representing a
             continuous time system.
         """

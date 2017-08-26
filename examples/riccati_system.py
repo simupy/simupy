@@ -8,6 +8,24 @@ from simupy.matrices import (construct_explicit_matrix, matrix_subs,
 
 plt.ion()
 
+"""
+This example is shows how to solve a quadratic tracking problem.
+
+The plant is
+
+xdot_1(t) = x2(t)
+xdot_2(t) = -2*x1(t) -3*x2(t) + u(t)
+
+The goal is to minimize the quadrtic cost
+
+J = integral((x1(t)-2*t)**2 + 0.02*u(t)**2, t, 0, 20)
+
+This cost function implies the tracking problem for x1(t) following r(t) = 2*t.
+The approach used here to define the appropriate differential algebraic Riccati
+equation and solve it using the sweep method.
+
+"""
+
 # symbolic matrices
 As = construct_explicit_matrix('a', 2, 2, dynamic=False)
 Bs = construct_explicit_matrix('b', 2, 1, dynamic=False)
