@@ -1,5 +1,6 @@
 from sympy.tensor.array import Array
-from numpy.lib.index_tricks import RClass, CClass
+from sympy import ImmutableDenseMatrix as Matrix
+from numpy.lib.index_tricks import RClass, CClass, AxisConcatenator
 
 
 class SymAxisConcatenatorMixin:
@@ -7,13 +8,29 @@ class SymAxisConcatenatorMixin:
     A mix-in to convert numpy AxisConcatenator classes to use with sympy N-D
     arrays.
     """
+
+    # support numpy >= 1.13
+    concatenate = staticmethod(
+        lambda *args, **kwargs: Array(
+            AxisConcatenator.concatenate(*args, **kwargs)
+        )
+    )
+    makemat = staticmethod(Matrix)
+
+    def _retval(self, res):  # support numpy < 1.13
+        if self.matrix:
+            cls = Matrix
+        else:
+            cls = Array
+        return cls(super()._retval(res))
+
     def __getitem__(self, key):
-        return Array(super().__getitem__(tuple(
+        return super().__getitem__(tuple(
             k if isinstance(k, str) else
             Array(k) if hasattr(k, '__len__')
             else Array([k])
             for k in key
-        )))
+        ))
 
 
 class SymRClass(SymAxisConcatenatorMixin, RClass):
