@@ -169,8 +169,8 @@ class SwitchedSystem(DynamicalSystem):
             variable is below the first event_bounds value). If only one
             callable is provided, the callable is used in each condition.
         event_variable_equation_function : callable
-            When this output of this function crosses the values in
-            ``event_bounds``, a discont event occurs.
+            When the output of this function crosses the values in
+            ``event_bounds``, a discontuity event occurs.
         event_bounds : array_like of floats
             Defines the boundary points the trigger discontinuity events based
             on the output of ``event_variable_equation_function``.

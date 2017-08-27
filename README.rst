@@ -90,7 +90,7 @@ simulation results are also included:
 - ``DescriptorSystem`` is used to construct systems with dynamics of the form
   ``M(t, x) * x'(t) = f(t,x,u)``. This is mainly useful for analysis, although
   future versions of SimuPy may support DAE solvers, etc.
-- ``DiscontinuousSystem`` is used to construct systems with discontinuities,
+- ``SwitchedSystem`` is used to construct systems with discontinuities,
   defined by zero-crossings of the ``event_equation_function`` output.
 
 By choice, control design is outside the scope of SimuPy. So controller design
