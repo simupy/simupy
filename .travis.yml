@@ -4,4 +4,5 @@ python:
   - "nightly"
 install:
   - "pip install -r requirements-test.txt"
-script: py.test
+  - "pip install ."
+script: pytest
