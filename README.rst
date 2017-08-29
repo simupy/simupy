@@ -1,6 +1,20 @@
 SimuPy
 ======
 
+.. image:: https://readthedocs.org/projects/simupy/badge/?style=flat
+    :target: https://readthedocs.org/projects/simupy
+    :alt: Documentation Status
+
+.. image:: https://travis-ci.org/sixpearls/simupy.svg?branch=master
+    :alt: Travis-CI Build Status
+    :target: https://travis-ci.org/sixpearls/simupy
+
+.. image:: https://codecov.io/gh/sixpearls/simupy/branch/master/graph/badge.svg
+  :alt: Coverage Status
+  :target: https://codecov.io/gh/sixpearls/simupy
+
+
+
 Overview
 --------
 SimuPy is a framework for simulating inter-connected dynamical system models.
