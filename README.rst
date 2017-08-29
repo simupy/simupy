@@ -1,17 +1,21 @@
 SimuPy
 ======
 
+.. image:: https://img.shields.io/pypi/v/simupy.svg
+    :alt: PyPI Package latest release
+    :target: https://pypi.python.org/pypi/simupy
+
 .. image:: https://readthedocs.org/projects/simupy/badge/?style=flat
-    :target: https://readthedocs.org/projects/simupy
+    :target: http://simupy.readthedocs.io/en/latest/
     :alt: Documentation Status
 
-.. image:: https://travis-ci.org/sixpearls/simupy.svg?branch=master
+.. image:: https://travis-ci.org/simupy/simupy.svg?branch=master
     :alt: Travis-CI Build Status
-    :target: https://travis-ci.org/sixpearls/simupy
+    :target: https://travis-ci.org/simupy/simupy
 
-.. image:: https://codecov.io/gh/sixpearls/simupy/branch/master/graph/badge.svg
+.. image:: https://codecov.io/gh/simupy/simupy/branch/master/graph/badge.svg
   :alt: Coverage Status
-  :target: https://codecov.io/gh/sixpearls/simupy
+  :target: https://codecov.io/gh/simupy/simupy
 
 
 
