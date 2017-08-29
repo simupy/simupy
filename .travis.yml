@@ -3,7 +3,7 @@ python:
   - "3.6"
 install:
   - "pip install -r requirements-test.txt"
-  - "pip install pytest-cov codecov"
+  - "pip install pytest-cov"
   - "pip install -e ."
 script: 
   - pytest --cov=./
