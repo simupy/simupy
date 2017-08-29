@@ -1,2 +1,2 @@
 -r requirements-doc.txt
-pytest-cov
+pytest
