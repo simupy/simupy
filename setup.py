@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 from codecs import open
 from os import path
 import re
@@ -13,10 +13,10 @@ long_description = re.sub(r':doc:`([^<]+)[^`]+`', r'\1', long_description)
 
 setup(
     name='simupy',
-    version='0.1.0.dev5',
+    version='0.1.0.dev7',
     description='A framework for modeling and simulating dynamical systems.',
     long_description=long_description,
-    packages=['simupy'],
+    packages=find_packages(),
     author='Benjamin Margolis',
     author_email='ben@sixpearls.com',
     url='https://github.com/sixpearls/simupy',
