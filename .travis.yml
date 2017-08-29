@@ -7,4 +7,4 @@ install:
   - "pip install -e ."
 script: 
   - pytest --cov=./
-  - codecov -t
+  - codecov -t CODECOV_TOKEN
