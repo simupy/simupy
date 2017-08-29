@@ -156,7 +156,7 @@ def control_systems(request):
     ))
     dT = 1/(2*evals[-1])
 
-    Tsim = (8/np.min(evals[~np.isclose(evals[np.nonzero(evals)], 0)])
+    Tsim = (8/np.min(evals[~np.isclose(evals, 0)])
             if np.sum(np.isclose(evals[np.nonzero(evals)], 0)) > 0
             else 8
             )
