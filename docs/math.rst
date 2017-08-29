@@ -1,9 +1,9 @@
 Mathematical Formulation
 ========================
 
-SimuPy assumes systems have no direct fee\Delta through between inputs and outputs;
+SimuPy assumes systems have no direct feedthrough between inputs and outputs;
 this discpline avoids algebraic loops. You can simulate a system model that
-includes a fee\Delta through by augmenting the system. Augment the system using the
+includes a feedthrough by augmenting the system. Augment the system using the
 input by including input components in the state and using derivatives of those
 signals in the control input. You can augment the system using the output by
 including the original output components in the state and using integrals of

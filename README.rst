@@ -107,10 +107,8 @@ simulation results are also included:
 - ``SwitchedSystem`` is used to construct systems with discontinuities,
   defined by zero-crossings of the ``event_equation_function`` output.
 
-By choice, control design is outside the scope of SimuPy. So controller design
-tools (for example, feedback linearization, sliding mode, "adapative", etc)
-should be in its own library(/ies), but analysis tools that might help in
-controller design could be appropriate here.
+The examples subdirectory includes a number of worked problems. The 
+documentation and docstrings are also available for reference.
 
 Installation
 ------------
@@ -121,15 +119,15 @@ SimuPy is ``pip`` installable
 
    $ pip install simupy
 
-SimuPy is tested against
+SimuPy has been tested locally against
 
  - Python >= 3.6
  - NumPy >= 1.11
  - SciPy >= 0.18
  - SymPy >= 1.0
 
-However, much of the functionality works without SymPy, so installation does
-not require it.
+but tests on Travis may run with newer versions. Much of the functionality
+works without SymPy, so installation does not require it.
 
 Contributing
 ------------
