@@ -1,0 +1,22 @@
+{
+  "@context": "https://raw.githubusercontent.com/codemeta/codemeta/master/codemeta.jsonld",
+  "@type": "Code",
+  "author": [
+    {
+      "@id": "http://orcid.org/0000-0001-5602-1888",
+      "@type": "Person",
+      "email": "ben@sixpearls.com",
+      "name": "Benjamin W. L. Margolis",
+      "affiliation": "University of California, Davis"
+    }
+  ],
+  "identifier": "",
+  "codeRepository": "https://github.com/simupy/simupy",
+  "datePublished": "2016-01-28",
+  "dateModified": "2016-01-28",
+  "dateCreated": "2017-08-29",
+  "description": "A python framework for modeling and simulating dynamical systems",
+  "keywords": "software, archiving, credit for code",
+  "license": "BSD 2-clause",
+  "title": "simupy",
+}
