@@ -1,8 +1,6 @@
-SimuPy
-======
-
-.. image:: docs/_static/simupy.png
+.. image:: docs/_static/simupy_color.png
    :alt: SimuPy Logo
+   :scale: 75%
 
 
 .. image:: https://img.shields.io/pypi/v/simupy.svg
