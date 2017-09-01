@@ -1,6 +1,10 @@
 SimuPy
 ======
 
+.. image:: docs/_static/simupy.png
+   :alt: SimuPy Logo
+
+
 .. image:: https://img.shields.io/pypi/v/simupy.svg
     :alt: PyPI Package latest release
     :target: https://pypi.python.org/pypi/simupy
