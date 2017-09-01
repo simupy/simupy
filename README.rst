@@ -1,8 +1,8 @@
-|simupy_logo|
-=============
-
 .. |simupy_logo| image:: docs/_static/simupy_color_small.png
    :alt: SimuPy
+
+|simupy_logo|
+=============
 
 .. image:: https://img.shields.io/pypi/v/simupy.svg
     :alt: PyPI Package latest release
@@ -20,15 +20,12 @@
   :alt: Coverage Status
   :target: https://codecov.io/gh/simupy/simupy
 
-
-
-Overview
---------
-SimuPy is a framework for simulating inter-connected dynamical system models.
-SimuPy is an open source, python-based alternative to Simulink. Dynamical
-system models can be specified as an object with certain parameters and
-functions as described in the :doc:`API documentation<api/api>`. Models can
-also be constructed using symbolic expressions, as in
+SimuPy is a framework for simulating interconnected dynamical system models and
+provides an open source, python-based tool that can be used in the model-based
+design and simulation workflow. Dynamical system models can be specified as an
+object with certain parameters and functions as described in the 
+:doc:`API documentation<api/api>`. Models can also be constructed using symbolic
+expressions, as in
 
 .. code-block :: python
 
@@ -129,16 +126,27 @@ SimuPy is ``pip`` installable
 SimuPy has been tested locally against
 
  - Python >= 3.6
- - NumPy >= 1.11
- - SciPy >= 0.18
- - SymPy >= 1.0
+ - NumPy_ >= 1.11
+ - SciPy_ >= 0.18
+ - SymPy_ >= 1.0
 
 but tests on Travis may run with newer versions. Much of the functionality
-works without SymPy, so installation does not require it.
+works without SymPy, so installation does not require it. The examples use
+matplotlib_ to visualize the results. Testing uses pytest_. The documents are
+built with Sphinx_ == 1.6.3.
+
+.. _NumPy: http://numpy.scipy.org
+.. _SymPy: http://sympy.org
+.. _SciPy: http://www.scipy.org/scipylib/index.html
+.. _matplotlib: http://matplotlib.org
+.. _pytest: https://docs.pytest.org/en/latest/
+.. _Sphinx: http://sphinx-doc.org/
 
 Contributing
 ------------
 
-1. To discuss problems or feature requests, file an issue.
+1. To discuss problems or feature requests, file an issue. For bugs, please
+   include as much information as possible, including operating system, python
+   version, and version of all dependencies. 
 2. To contribute, make a pull request. Contributions should include tests for
    any new features/bug fixes and follow best practices including PEP8, etc.
