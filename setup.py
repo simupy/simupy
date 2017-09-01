@@ -5,13 +5,14 @@ import re
 
 here = path.abspath(path.dirname(__file__))
 
+# get the version
 exec(open('simupy/version.py').read())
 
 # Get the long description from the README file
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
-long_description = re.sub(r':doc:`([^<]+)[^`]+`', r'\1', long_description)
+long_description = re.sub(r':doc:`(([^<]+))[^`]+`', r'\2', long_description)
 
 setup(
     name='simupy',

@@ -152,7 +152,7 @@ class SwitchedSystem(DynamicalSystem):
         """
         Parameters
         ----------
-        state_equation_functions : array_like of callables, optional
+        state_equations_functions : array_like of callables, optional
             The derivative (or update equation) of the system state. Not needed
             if ``dim_state`` is zero. The array indexes the
             event-state and should be one more than the number of event bounds.
@@ -160,7 +160,7 @@ class SwitchedSystem(DynamicalSystem):
             first function is used when the event variable is below the first
             event_bounds value). If only one callable is provided, the callable
             is used in each condition.
-        output_equation_functions : array_like of callables, optional
+        output_equations_functions : array_like of callables, optional
             The output equation of the system. A system must have an
             ``output_equation_function``. If not set, uses full state output.
             The array indexes the event-state and should be one more than the

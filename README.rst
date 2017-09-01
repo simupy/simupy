@@ -1,7 +1,10 @@
-.. image:: docs/_static/simupy_color.png
-   :alt: SimuPy Logo
-   :scale: 75%
+|simupy_logo|
+=============
 
+.. |simupy_logo| image:: docs/_static/simupy_color_small.png
+   :alt: SimuPy
+
+|
 
 .. image:: https://img.shields.io/pypi/v/simupy.svg
     :alt: PyPI Package latest release
