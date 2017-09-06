@@ -313,7 +313,10 @@ class LTISystem(DynamicalSystem):
               y = Kx
 
 
-        The matrices should be numeric arrays of consistent shape.
+        The matrices should be numeric arrays of consistent shape. The class
+        provides ``A``, ``B``, ``C`` and ``F``, ``G``, ``H`` aliases for the
+        matrices of systems with state, as well as a ``K`` alias for the gain
+        matrix. The ``data`` alias provides the matrices as a tuple.
         """
         self.dt = dt
 
@@ -323,11 +326,14 @@ class LTISystem(DynamicalSystem):
         # TODO: setup jacobian functions
         if len(args) == 1:
             self.gain_matrix = gain_matrix = args[0]
-            self.dim_input = self.gain_matrix.shape[1] if len(gain_matrix.shape) > 1 else 1
+            self.dim_input = (self.gain_matrix.shape[1]
+                              if len(gain_matrix.shape) > 1
+                              else 1)
             self.dim_output = self.gain_matrix.shape[0]
             self.dim_state = 0
             self.initial_condition = np.zeros(self.dim_state)
-            self.output_equation_function = lambda t, x: (gain_matrix@x).reshape(-1)
+            self.output_equation_function = \
+                lambda t, x: (gain_matrix@x).reshape(-1)
             return
 
         if len(args) == 2:
@@ -349,8 +355,10 @@ class LTISystem(DynamicalSystem):
         self.output_matrix = output_matrix
 
         self.initial_condition = initial_condition or np.zeros(self.dim_state)
-        self.state_equation_function = lambda t, x, u: (state_matrix@x + input_matrix@u).reshape(-1)
-        self.output_equation_function = lambda t, x: (output_matrix@x).reshape(-1)
+        self.state_equation_function = \
+            lambda t, x, u: (state_matrix@x + input_matrix@u).reshape(-1)
+        self.output_equation_function = \
+            lambda t, x: (output_matrix@x).reshape(-1)
 
         self.validate()
 
@@ -367,3 +375,31 @@ class LTISystem(DynamicalSystem):
             return self.state_matrix, self.input_matrix, self.output_matrix
         else:
             return self.gain_matrix
+
+    @property
+    def A(self):
+        return self.state_matrix
+
+    @property
+    def F(self):
+        return self.state_matrix
+
+    @property
+    def B(self):
+        return self.input_matrix
+
+    @property
+    def G(self):
+        return self.input_matrix
+
+    @property
+    def C(self):
+        return self.output_matrix
+
+    @property
+    def H(self):
+        return self.output_matrix
+
+    @property
+    def K(self):
+        return self.gain_matrix
