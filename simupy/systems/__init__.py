@@ -296,16 +296,24 @@ class LTISystem(DynamicalSystem):
         """
         Construct an LTI system with the following input formats:
 
-        1. A, B, C matrices for systems with state::
-            x' = Ax + Bu
-            y = Hx
-        2. A,B matrices for systems with state, assume full state output::
-            x' = Ax + Bu
-            y = Ix
-        3. K matrix for systems without state::
-            y = Kx
+        1. state matrix A, input matrix B, output matrix C for systems with
+           state::
 
-        The matrices should be numeric arrays of the appropriate shape.
+              dx_dt = Ax + Bu
+              y = Hx
+
+        2. state matrix A, input matrix B for systems with state, assume full
+           state output::
+
+              dx_dt = Ax + Bu
+              y = Ix
+
+        3. gain matrix K for systems without state::
+
+              y = Kx
+
+
+        The matrices should be numeric arrays of consistent shape.
         """
         self.dt = dt
 
@@ -314,48 +322,48 @@ class LTISystem(DynamicalSystem):
 
         # TODO: setup jacobian functions
         if len(args) == 1:
-            self.K = K = args[0]
-            self.dim_input = self.K.shape[1] if len(K.shape) > 1 else 1
-            self.dim_output = self.K.shape[0]
+            self.gain_matrix = gain_matrix = args[0]
+            self.dim_input = self.gain_matrix.shape[1] if len(gain_matrix.shape) > 1 else 1
+            self.dim_output = self.gain_matrix.shape[0]
             self.dim_state = 0
             self.initial_condition = np.zeros(self.dim_state)
-            self.output_equation_function = lambda t, x: (K@x).reshape(-1)
+            self.output_equation_function = lambda t, x: (gain_matrix@x).reshape(-1)
             return
 
         if len(args) == 2:
-            F, G = args
-            H = np.eye(F.shape[0])
+            state_matrix, input_matrix = args
+            output_matrix = np.eye(state_matrix.shape[0])
 
         elif len(args) == 3:
-            F, G, H = args
+            state_matrix, input_matrix, output_matrix = args
 
-        if len(G.shape) == 1:
-            G = G.reshape(-1, 1)
+        if len(input_matrix.shape) == 1:
+            input_matrix = input_matrix.reshape(-1, 1)
 
-        self.dim_state = F.shape[0]
-        self.dim_input = G.shape[1]
-        self.dim_output = H.shape[0]
+        self.dim_state = state_matrix.shape[0]
+        self.dim_input = input_matrix.shape[1]
+        self.dim_output = output_matrix.shape[0]
 
-        self.F = F
-        self.G = G
-        self.H = H
+        self.state_matrix = state_matrix
+        self.input_matrix = input_matrix
+        self.output_matrix = output_matrix
 
         self.initial_condition = initial_condition or np.zeros(self.dim_state)
-        self.state_equation_function = lambda t, x, u: (F@x + G@u).reshape(-1)
-        self.output_equation_function = lambda t, x: (H@x).reshape(-1)
+        self.state_equation_function = lambda t, x, u: (state_matrix@x + input_matrix@u).reshape(-1)
+        self.output_equation_function = lambda t, x: (output_matrix@x).reshape(-1)
 
         self.validate()
 
     def validate(self):
         super().validate()
         if self.dim_state:
-            assert self.F.shape[1] == self.dim_state
-            assert self.G.shape[0] == self.dim_state
-            assert self.H.shape[1] == self.dim_state
+            assert self.state_matrix.shape[1] == self.dim_state
+            assert self.input_matrix.shape[0] == self.dim_state
+            assert self.output_matrix.shape[1] == self.dim_state
 
     @property
     def data(self):
         if self.dim_state:
-            return self.F, self.G, self.H
+            return self.state_matrix, self.input_matrix, self.output_matrix
         else:
-            return self.K
+            return self.gain_matrix
