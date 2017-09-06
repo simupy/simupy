@@ -44,7 +44,7 @@ A quick overview of the of the modules:
 ``utils`` (:doc:`docstrings<utils>`)
    provides utility functions, such as manipulating (numeric) systems and
    simulation results.
-``systems.symbolic`` (:doc:`docstrings<symbolic_systems>`), ``descriptor`` (:doc:`docstrings<descriptor>`), and ``discontinuities`` (:doc:`docstrings<discontinuities>`)
+``systems.symbolic`` (:doc:`docstrings<symbolic_systems>`) and ``discontinuities`` (:doc:`docstrings<discontinuities>`)
    provides niceties for using symbolic expressions to define systems.
 ``array`` (:doc:`docstrings<array>`) and ``matrices`` (:doc:`docstrings<matrices>`)
    provide helper functions and classes for manipulating symbolic arrays,
@@ -60,7 +60,6 @@ A quick overview of the of the modules:
    systems
    utils
    symbolic_systems
-   descriptor
    discontinuities
    array
    matrices

@@ -23,6 +23,6 @@ setup(
     author='Benjamin Margolis',
     author_email='ben@sixpearls.com',
     url='https://github.com/simupy/simupy',
-    install_requires=['numpy>=1.11.3','scipy>=0.18.1'],
+    install_requires=['numpy>=1.11.3', 'scipy>=0.18.1'],
     license="BSD 2-clause \"Simplified\" License",
 )

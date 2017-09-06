@@ -105,9 +105,6 @@ simulation results are also included:
   to a state-less system (typically controller) to simulate
 - ``MemorylessSystem`` and ``LTISystem`` are subclasses to more quickly create
   these types of systems
-- ``DescriptorSystem`` is used to construct systems with dynamics of the form
-  ``M(t, x) * x'(t) = f(t,x,u)``. This is mainly useful for analysis, although
-  future versions of SimuPy may support DAE solvers, etc.
 - ``SwitchedSystem`` is used to construct systems with discontinuities,
   defined by zero-crossings of the ``event_equation_function`` output.
 
