@@ -4,7 +4,6 @@ from simupy.systems import LTISystem
 from simupy.block_diagram import BlockDiagram
 import matplotlib.pyplot as plt
 
-plt.ion()
 use_model = 1
 
 """
@@ -102,7 +101,7 @@ plt.subplot(n+m, 1, 1)
 plt.title('Equality of discrete-time equivalent and original\n' +
           'continuous-time system subject to same control input')
 plt.legend(['continuous-time system', 'discrete-time equivalent'])
-
+plt.show()
 
 # Equivalence between controlled system and over-all system
 ctct_bd = BlockDiagram(ct_sys, ct_ctr)
@@ -132,7 +131,7 @@ plt.title('Equality of system under feedback control and\n' +
           'equivalent closed-loop, continuous time')
 plt.legend([r'$\dot{x}(t) = A\ x(t) + B\ u(t)$; $u(t) = K\ x(t)$',
             r'$\dot{x}(t) = (A - B\ K)\ x(t)$'])
-
+plt.show()
 
 dteq_sys = LTISystem(Ad - Bd @ Kd, np.zeros((n, 0)), dt=dT)
 dteq_sys.initial_condition = ic
@@ -156,3 +155,4 @@ plt.title('Equality of system under feedback control and\n' +
           'equivalent closed-loop, discrete time')
 plt.legend([r'$x[k+1] = A\ x[k] + B\ u[k]$; $u[k] = K\ x[k]$',
             r'$x[k+1] = (A - B\ K)\ x[k]$'])
+plt.show()

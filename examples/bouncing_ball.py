@@ -10,8 +10,6 @@ BlockDiagram = block_diagram.BlockDiagram
 int_opts = block_diagram.DEFAULT_INTEGRATOR_OPTIONS.copy()
 find_opts = block_diagram.DEFAULT_EVENT_FIND_OPTIONS.copy()
 
-plt.ion()
-
 """
 This example shows how to use a SwitchedSystem to model a bouncing ball. The
 event detection accurately finds the point of impact, and the simulation
@@ -74,6 +72,7 @@ plt.plot(res.t[t_sel], res.x[t_sel, 1])
 plt.ylabel('ball velocity, m/s')
 plt.xlabel('time, s')
 plt.tight_layout()
+plt.show()
 
 
 plt.figure()
@@ -88,3 +87,4 @@ plt.plot(res.t[t_sel], res.x[t_sel, 1])
 plt.ylabel('ball velocity, m/s')
 plt.xlabel('time, s')
 plt.tight_layout()
+plt.show()

@@ -6,8 +6,6 @@ from simupy.block_diagram import BlockDiagram
 from simupy.matrices import (construct_explicit_matrix, matrix_subs,
                              system_from_matrix_DE)
 
-plt.ion()
-
 """
 This example is shows how to solve a quadratic tracking problem.
 
@@ -21,8 +19,8 @@ The goal is to minimize the quadrtic cost
 J = integral((x1(t)-2*t)**2 + 0.02*u(t)**2, t, 0, 20)
 
 This cost function implies the tracking problem for x1(t) following r(t) = 2*t.
-The approach used here to define the appropriate differential algebraic Riccati
-equation and solve it using the sweep method.
+The optimal controller is found by definining the appropriate differential 
+algebraic Riccati equation and solve it using the sweep method.
 
 """
 
@@ -95,6 +93,7 @@ plt.legend(['$s_{11}$', '$s_{12}$', '$s_{22}$'])
 plt.title('unforced component of solution to Riccatti differential equation')
 plt.xlabel('$t$, s')
 plt.ylabel('$s_{ij}(t)$')
+plt.show()
 
 # Plot G components
 plt.figure()
@@ -103,6 +102,7 @@ plt.title('forced component of solution to Riccatti differential equation')
 plt.legend(['$g_1$', '$g_2$'])
 plt.xlabel('$t$, s')
 plt.ylabel('$g_{i}(t)$')
+plt.show()
 
 # Construct controller from solution to riccati differential algebraic equation
 tracking_controller = SystemFromCallable(
@@ -126,6 +126,7 @@ plt.title('reference and state vs. time')
 plt.xlabel('$t$, s')
 plt.legend([r'$x_1$', r'$x_2$', r'$r_1$'])
 plt.ylabel('$x_{i}(t)$')
+plt.show()
 
 # plot control input
 plt.figure()
@@ -133,3 +134,4 @@ plt.plot(control_res.t, control_res.y[:, -1])
 plt.title('optimal control law vs. time')
 plt.xlabel('$t$, s')
 plt.ylabel('$u(t)$')
+plt.show()

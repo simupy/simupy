@@ -6,7 +6,6 @@ from simupy.systems.symbolic import DynamicalSystem, dynamicsymbols
 from simupy.block_diagram import BlockDiagram
 from sympy.tensor.array import Array
 
-plt.ion()
 legends = [r'$x_1(t)$', r'$x_2(t)$', r'$x_3(t)$', r'$u(t)$']
 tF = 6
 
@@ -51,6 +50,7 @@ plt.legend(legends)
 plt.title('controlled system with unstable initial conditions')
 plt.xlabel('$t$, s')
 plt.tight_layout()
+plt.show()
 
 # case 2 - recoverable
 sys.initial_condition = np.r_[5, -3, 1]
@@ -61,3 +61,4 @@ plt.legend(legends)
 plt.title('controlled system with stable initial conditions')
 plt.xlabel('$t$, s')
 plt.tight_layout()
+plt.show()
