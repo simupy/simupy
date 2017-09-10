@@ -19,7 +19,7 @@ The goal is to minimize the quadrtic cost
 J = integral((x1(t)-2*t)**2 + 0.02*u(t)**2, t, 0, 20)
 
 This cost function implies the tracking problem for x1(t) following r(t) = 2*t.
-The optimal controller is found by definining the appropriate differential 
+The optimal controller is found by definining the appropriate differential
 algebraic Riccati equation and solve it using the sweep method.
 
 """

@@ -23,6 +23,23 @@ setup(
     author='Benjamin Margolis',
     author_email='ben@sixpearls.com',
     url='https://github.com/simupy/simupy',
-    install_requires=['numpy>=1.11.3', 'scipy>=0.18.1'],
     license="BSD 2-clause \"Simplified\" License",
+    python_requires='>=3',
+    install_requires=['numpy>=1.11.3', 'scipy>=0.18.1'],
+    extras_require={
+        'symbolic': ['sympy>=1.0'],
+        'doc': ['sphinx>=1.6.3', 'sympy>=1.0'],
+        'examples': ['matplotlib>=2.0', 'sympy>=1.0'],
+    },
+
+    classifiers=[
+        'License :: OSI Approved :: BSD License',
+        'Programming Language :: Python :: 3',
+        'Intended Audience :: Education',
+        'Intended Audience :: Science/Research',
+        'Operating System :: OS Independent',
+        'Topic :: Scientific/Engineering :: Physics',
+        'Topic :: Scientific/Engineering :: Mathematics',
+
+    ],
 )
