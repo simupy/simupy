@@ -1,5 +1,6 @@
 recursive-include docs *
 prune docs/_build
+recursive-exclude docs/_static *.lyx* *.pdf *.svg
 include LICENSE
 include *.rst
 recursive-include tests *.py
