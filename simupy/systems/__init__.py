@@ -356,9 +356,9 @@ class LTISystem(DynamicalSystem):
 
         self.initial_condition = initial_condition or np.zeros(self.dim_state)
         self.state_equation_function = \
-            lambda t, x, u: (state_matrix@x + input_matrix@u).reshape(-1)
+            lambda t, x, u=np.zeros(0): (state_matrix@x + input_matrix@u)
         self.output_equation_function = \
-            lambda t, x: (output_matrix@x).reshape(-1)
+            lambda t, x: (output_matrix@x)
 
         self.validate()
 

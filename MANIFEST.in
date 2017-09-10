@@ -1,0 +1,6 @@
+recursive-include docs *
+prune docs/_build
+include LICENSE
+include *.rst
+recursive-include tests *.py
+recursive-include examples *.py

@@ -343,7 +343,9 @@ class BlockDiagram(object):
                         np.where(
                             self.connections[:, input_start:input_end].T
                         )[1]]
-                if len(input_values):
+                if len(input_values) == 0:
+                    input_values = np.zeros(sys.dim_input)
+                if sys.dim_input:
                     outputs[output_start:output_end] = \
                       sys.output_equation_function(t, input_values).reshape(-1)
                 else:
@@ -366,10 +368,19 @@ class BlockDiagram(object):
                         np.where(
                                 self.connections[:, input_start:input_end].T
                         )[1]]
+                if len(input_values) == 0:
+                    input_values = np.zeros(sys.dim_input)
 
-                states[state_start:state_end] = \
-                    sys.state_equation_function(
-                        t, state_values, input_values).reshape(-1)
+                if sys.dim_input:
+                    states[state_start:state_end] = \
+                        sys.state_equation_function(
+                            t, state_values, input_values
+                        ).reshape(-1)
+                else:
+                    states[state_start:state_end] = \
+                        sys.state_equation_function(
+                            t, state_values
+                        ).reshape(-1)
 
             if do_events:
                 events = np.zeros(self.systems.size)
@@ -397,7 +408,9 @@ class BlockDiagram(object):
                             np.where(
                                 self.connections[:, input_start:input_end].T
                             )[1]]
-                    if len(input_values):
+                    if len(input_values) == 0:
+                        input_values = np.zeros(sys.dim_input)
+                    if sys.dim_input:
                         events[sysidx] = sys.event_equation_function(
                                                 t, input_values).reshape(-1)
                     else:
@@ -477,15 +490,14 @@ class BlockDiagram(object):
 
             if np.any(np.isnan(new_outputs)):
                 np.where(np.isnan(new_outputs))
-                warnings.warn(nan_warning_message.format({
+                warnings.warn(nan_warning_message.format(
                         "variable step-size collection",
                         t,
                         new_states,
                         new_outputs
-                    }))
+                    ))
                 return -1
 
-        # TODO: decouple integrator
         # setup the integrator if we have CT states
         if len(ct_x0) > 0:
             r = integrator_class(continuous_time_integration_step)
@@ -527,8 +539,11 @@ class BlockDiagram(object):
             input_start = self.cum_inputs[sysidx]
             input_end = self.cum_inputs[sysidx+1]
             input_values = y0[np.where(
-                    self.connections[:, input_start:input_end].T)[1]]
-            if len(input_values):
+                    self.connections[:, input_start:input_end].T)[1]
+            ]
+            if len(input_values) == 0:
+                input_values = np.zeros(sys.dim_input)
+            if sys.dim_input:
                 y0[output_start:output_end] = sys.output_equation_function(
                         t0, input_values).reshape(-1)
             else:
@@ -555,8 +570,11 @@ class BlockDiagram(object):
             input_start = self.cum_inputs[sysidx]
             input_end = self.cum_inputs[sysidx+1]
             input_values = y0[np.where(
-                    self.connections[:, input_start:input_end].T)[1]]
-            if len(input_values):
+                    self.connections[:, input_start:input_end].T)[1]
+            ]
+            if len(input_values) == 0:
+                input_values = np.zeros(sys.dim_input)
+            if sys.dim_input:
                 sys.update_equation_function(t0, input_values)
             else:
                 sys.update_equation_function(t0)
@@ -571,12 +589,12 @@ class BlockDiagram(object):
         # main simulation loop
         for t_idx, next_t in enumerate(tspan[1:]):
             if np.any(np.isnan(results.y[:results.res_idx, :])):
-                warnings.warn(nan_warning_message.format({
+                warnings.warn(nan_warning_message.format(
                         "tspan iteration after discrete integration",
                         tspan[t_idx-1],
                         results.x[results.res_idx-1, :],
                         results.y[results.res_idx-1, :]
-                    }))
+                    ))
                 break
 
             if len(ct_x0) > 0:  # handle continuous time integration
@@ -595,12 +613,12 @@ class BlockDiagram(object):
                         continuous_time_integration_step(r.t, r.y, False)
 
                     if np.any(np.isnan(check_outputs)):
-                        warnings.warn(nan_warning_message.format({
+                        warnings.warn(nan_warning_message.format(
                                 "tspan iteration after continuous integration",
                                 r.t,
                                 check_states,
                                 check_outputs
-                            }))
+                            ))
                         break
 
                     if (not dense_output and
