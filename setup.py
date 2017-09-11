@@ -13,6 +13,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 long_description = re.sub(r':doc:`(([^<]+))[^`]+`', r'\2', long_description)
+# long_description = "\nSimuPy"+long_description.split("|simupy_logo|")[-1]
 
 setup(
     name='simupy',
@@ -40,6 +41,5 @@ setup(
         'Operating System :: OS Independent',
         'Topic :: Scientific/Engineering :: Physics',
         'Topic :: Scientific/Engineering :: Mathematics',
-
     ],
 )
