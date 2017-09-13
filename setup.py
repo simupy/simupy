@@ -12,8 +12,6 @@ exec(open('simupy/version.py').read())
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
-long_description = re.sub(r':doc:`(([^<]+))[^`]+`', r'\2', long_description)
-
 setup(
     name='simupy',
     version=__version__,

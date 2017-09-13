@@ -20,11 +20,14 @@
   :alt: Coverage Status
   :target: https://codecov.io/gh/simupy/simupy
 
+.. |API documentation| replace:: `API Documentation`_
+.. _API Documentation: https://simupy.readthedocs.io/en/latest/api/api.html
+
 SimuPy is a framework for simulating interconnected dynamical system models and
 provides an open source, python-based tool that can be used in the model-based
 design and simulation workflow. Dynamical system models can be specified as an
 object with certain parameters and functions as described in the 
-:doc:`API documentation<api/api>`. Models can also be constructed using symbolic
+|API documentation|. Models can also be constructed using symbolic
 expressions, as in
 
 .. code-block :: python
