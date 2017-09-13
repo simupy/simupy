@@ -12,6 +12,13 @@ exec(open('simupy/version.py').read())
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
+long_description = long_description.replace(
+    "https://simupy.readthedocs.io/en/latest/",
+    "https://simupy.readthedocs.io/en/simupy-{}/".format(
+        '.'.join('0.2.0.dev12'.split('.')[:3])
+    )
+)
+
 setup(
     name='simupy',
     version=__version__,

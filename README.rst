@@ -9,7 +9,7 @@
     :target: https://pypi.python.org/pypi/simupy
 
 .. image:: https://readthedocs.org/projects/simupy/badge/?style=flat
-    :target: http://simupy.readthedocs.io/en/latest/
+    :target: https://simupy.readthedocs.io/en/latest/
     :alt: Documentation Status
 
 .. image:: https://travis-ci.org/simupy/simupy.svg?branch=master
