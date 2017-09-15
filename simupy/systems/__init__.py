@@ -91,13 +91,15 @@ class DynamicalSystem(object):
 
     @property
     def initial_condition(self):
-        return (self._initial_condition
-                if self._initial_condition is not None
-                else np.zeros(self.dim_state))
+        return self._initial_condition
 
     @initial_condition.setter
     def initial_condition(self, initial_condition):
-        self._initial_condition = initial_condition
+        if initial_condition is not None:
+            assert len(initial_condition) == self.dim_state
+            self._initial_condition = np.array(initial_condition)
+        else:
+            self._initial_condition = np.zeros(self.dim_state)
 
     def prepare_to_integrate(self):
         return
@@ -325,7 +327,7 @@ class LTISystem(DynamicalSystem):
 
         # TODO: setup jacobian functions
         if len(args) == 1:
-            self.gain_matrix = gain_matrix = args[0]
+            self.gain_matrix = gain_matrix = np.array(args[0])
             self.dim_input = (self.gain_matrix.shape[1]
                               if len(gain_matrix.shape) > 1
                               else 1)
@@ -338,13 +340,19 @@ class LTISystem(DynamicalSystem):
 
         if len(args) == 2:
             state_matrix, input_matrix = args
-            output_matrix = np.eye(state_matrix.shape[0])
+            output_matrix = np.eye(
+                getattr(state_matrix, 'shape', len(state_matrix))[0]
+            )
 
         elif len(args) == 3:
             state_matrix, input_matrix, output_matrix = args
 
         if len(input_matrix.shape) == 1:
             input_matrix = input_matrix.reshape(-1, 1)
+
+        state_matrix = np.array(state_matrix)
+        input_matrix = np.array(input_matrix)
+        output_matrix = np.array(output_matrix)
 
         self.dim_state = state_matrix.shape[0]
         self.dim_input = input_matrix.shape[1]

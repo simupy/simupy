@@ -22,9 +22,9 @@ and
 
 
 are both valid formulations. Here, :math:`t` is the time variable, :math:`x`
-is the system state, :math:`u` is the system input, :math:`y` is the sytem
+is the system state, :math:`u` is the system input, and :math:`y` is the sytem
 output. We call :math:`f` the state equation and :math:`h` the output equation.
-SimuPy can also handle discrete time systems with update rate :math:`\Delta t`
+SimuPy can also handle discrete-time systems with sample period :math:`\Delta t`
 of the form
 
 .. math::
@@ -71,11 +71,11 @@ are the same as the autonomous system
     y(t) &= I \, x(t).
 
 Similarly, timing transformations are consistent. The discrete-time equivalent
-of the system continuous-time LTI system above,
+of the continuous-time LTI system above,
 
 .. math::
     x[k+1] &= \Phi\, x[k] + \Gamma\, u[k], \\
-    y[k] &= C\, x[k],
+    y[k] &= I \, x[k],
 
 will travel through the same state trajectory at times :math:`k\, \Delta t` if
 both are subject to the same piecewise constant inputs and the state and input 

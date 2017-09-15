@@ -24,9 +24,9 @@
 .. _API Documentation: https://simupy.readthedocs.io/en/latest/api/api.html
 
 SimuPy is a framework for simulating interconnected dynamical system models and
-provides an open source, python-based tool that can be used in the model-based
-design and simulation workflow. Dynamical system models can be specified as an
-object with certain parameters and functions as described in the 
+provides an open source, python-based tool that can be used in model- and
+system- based design and simulation workflows. Dynamical system models can be
+specified as an object with the correct interface as described in the 
 |API documentation|. Models can also be constructed using symbolic
 expressions, as in
 
@@ -38,14 +38,14 @@ expressions, as in
 
     x = x1, x2, x3 = Array(dynamicsymbols('x1:4'))
     u = dynamicsymbols('u')
-    sys = DynamicalSystem(sp.Matrix([-x1+x2-x3, -x1*x2-x2+u, -x1+u]), x, u)
+    sys = DynamicalSystem(Array([-x1+x2-x3, -x1*x2-x2+u, -x1+u]), x, u)
 
 which will automatically create callable functions for the state equations,
 output equations, and jacobians. By default, the code generator uses a wrapper
 for ``sympy.lambdify``. You can change it by passing the system initialization
 arguments ``code_generator`` (the function) and additional keyword arguments
 to the generator in a dictionary ``code_generator_args``. You can change the
-defaults for future systems by changing the module values
+defaults for future systems by changing the module variables
 
 .. code-block :: python
 
@@ -59,11 +59,11 @@ models. For example, a linear feedback controller can be defined as
 .. code-block :: python
 
    from simupy.systems import LTISystem
-   ctrl = LTISystem(matrix([[-1.73992128, -0.99212953,  2.98819041]]))
+   ctrl = LTISystem([[1.73992128, 0.99212953,  -2.98819041]])
 
 The gains in the example come from the infinite horizon LQR based on the system
-linearized about the origin. A block diagram of the feedback control can be
-constructed
+linearized about the origin. A block diagram of the system under feedback
+control can be constructed
 
 .. code-block :: python
 
@@ -74,11 +74,11 @@ constructed
 
 Initial conditions for systems with non-zero dimensional state can be defined
 (it defaults to zeros of the appropriate dimension) and the interconnected
-systems can be simulated
+systems can be simulated with the ``BlockDiagram``'s ``simulate`` method,
 
 .. code-block :: python
 
-   sys.initial_condition = np.matrix([5, -3, 1])
+   sys.initial_condition = [5, -3, 1]
    res = BD.simulate(10)
 
 which uses ``scipy.integrate.ode`` as the default solver for the initial-valued
@@ -105,7 +105,7 @@ simulation results are also included:
 - ``simupy.matrices`` includes tools for constructing (vector) systems using
   matrix expressions and re-wrapping the results into matrix form
 - ``simupy.systems.SystemFromCallable`` is a helper for converting a function
-  to a state-less system (typically controller) to simulate
+  to a state-less system (typically a controller) to simulate
 - ``MemorylessSystem`` and ``LTISystem`` are subclasses to more quickly create
   these types of systems
 - ``SwitchedSystem`` is used to construct systems with discontinuities,

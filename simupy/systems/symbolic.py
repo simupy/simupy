@@ -1,4 +1,3 @@
-import numpy as np
 import sympy as sp
 from sympy.physics.mechanics import dynamicsymbols
 from sympy.physics.mechanics.functions import find_dynamicsymbols
@@ -203,18 +202,6 @@ class DynamicalSystem(DynamicalSystemBase):
                 self.output_equation.subs(self.constants_values),
                 **self.code_generator_args
             )
-
-    @property
-    def initial_condition(self):
-        return self._initial_condition
-
-    @initial_condition.setter
-    def initial_condition(self, initial_condition):
-        if initial_condition is not None:
-            assert len(initial_condition) == self.dim_state
-            self._initial_condition = initial_condition
-        else:
-            self._initial_condition = np.zeros(self.dim_state)
 
     def prepare_to_integrate(self):
         pass
