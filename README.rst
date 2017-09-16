@@ -26,7 +26,7 @@
 SimuPy is a framework for simulating interconnected dynamical system models and
 provides an open source, python-based tool that can be used in model- and
 system- based design and simulation workflows. Dynamical system models can be
-specified as an object with the correct interface as described in the 
+specified as an object with the interface described in the 
 |API documentation|. Models can also be constructed using symbolic
 expressions, as in
 
