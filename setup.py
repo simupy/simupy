@@ -14,7 +14,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 long_description = long_description.replace(
     "https://simupy.readthedocs.io/en/latest/",
     "https://simupy.readthedocs.io/en/simupy-{}/".format(
-        '.'.join('0.2.0.dev12'.split('.')[:3])
+        '.'.join(__version__.split('.')[:3])
     )
 )
 
