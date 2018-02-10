@@ -647,10 +647,11 @@ class BlockDiagram(object):
                     )
 
                     # find which system(s) crossed
-                    event_index_crossed = np.where(
+                    event_cross_check = (
                         np.sign(results.e[results.res_idx-1, :]) !=
                         np.sign(check_events)
-                    )[0]
+                    )
+                    event_index_crossed = np.where(event_cross_check)[0]
 
                     # interpolate to find first t crossing
                     # holds t's where event occured
@@ -771,7 +772,12 @@ class BlockDiagram(object):
                     right_t = next_event_t+event_find_options['xtol']/2
                     ct_xtright = ct_state_traj_callable(right_t).reshape(-1)
 
-                    for sysidx in np.where(event_ts == next_event_t)[0]:
+                    update_equation_function_indexes = np.where(
+                        event_cross_check &
+                        (event_ts == next_event_t)
+                    )[0]
+
+                    for sysidx in update_equation_function_indexes:
                         sys = self.systems[sysidx]
                         update_return_value = sys.update_equation_function(
                             next_event_t,
