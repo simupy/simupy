@@ -14,6 +14,7 @@ import simupy.block_diagram as block_diagram
 
 BlockDiagram = block_diagram.BlockDiagram
 block_diagram.DEFAULT_INTEGRATOR_OPTIONS['rtol'] = 1E-9
+
 TEST_ATOL = 1E-6
 TEST_RTOL = 1E-6
 
@@ -175,6 +176,8 @@ def control_systems(request):
 
 @pytest.fixture(scope="module", params=['dopri5', 'lsoda'])
 def intname(request):
+    if request.param == 'lsoda':
+        pytest.xfail("Only support adaptive step-size and dense output.")
     yield request.param
 
 
@@ -200,7 +203,7 @@ def simulation_results(control_systems, intname):
 
     yield results, ct_sys, ct_ctr, dt_sys, dt_ctr, ref, Tsim, tspan, intname
 
-
+@pytest.mark.xfail
 def test_fixed_integration_step_equivalent(control_systems):
     """
     using the a list-like tspan or float like tspan should give the same
@@ -268,6 +271,12 @@ def test_feedback_equivalent(simulation_results):
     dt_bd = BlockDiagram(dt_equiv_sys, ref)
     dt_bd.connect(ref, dt_equiv_sys)
     dt_equiv_res = dt_bd.simulate(tspan, integrator_options=intopts)
+
+    mixed_t_discrete_t_equal_idx = np.where(
+        np.equal(*np.meshgrid(dt_equiv_res.t, results[0].t))
+    )[1]
+
+
     npt.assert_allclose(
         dt_equiv_res.x, results[0].x,
         atol=TEST_ATOL, rtol=TEST_RTOL

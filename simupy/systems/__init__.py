@@ -300,6 +300,12 @@ class SwitchedSystem(DynamicalSystem):
 
     def update_equation_function(self, *args):
         event_var = self.event_variable_equation_function(*args)
+        if self.condition_idx is None: 
+            self.condition_idx = np.where(np.all(np.r_[
+                    np.c_[[[True]], event_var >= self.event_bounds],
+                    np.c_[event_var <= self.event_bounds, [[True]]]
+                    ], axis=0))[0][0]
+            return
         sq_dist = (event_var - self.event_bounds)**2
         crossed_root_idx = np.where(sq_dist == np.min(sq_dist))[1][0]
         if crossed_root_idx == self.condition_idx:
@@ -314,11 +320,15 @@ class SwitchedSystem(DynamicalSystem):
         return self.state_update_equation_function(*args)
 
     def prepare_to_integrate(self):
-        event_var = self.event_variable_equation_function(0, self.initial_condition)
-        self.condition_idx = np.where(np.all(np.r_[
-                np.c_[[[True]], event_var >= self.event_bounds],
-                np.c_[event_var <= self.event_bounds, [[True]]]
-                ], axis=0))[0][0]
+        if self.dim_state:
+            event_var = self.event_variable_equation_function(0, 
+                self.initial_condition)
+            self.condition_idx = np.where(np.all(np.r_[
+                    np.c_[[[True]], event_var >= self.event_bounds],
+                    np.c_[event_var <= self.event_bounds, [[True]]]
+                    ], axis=0))[0][0]
+        else:
+            self.condition_idx = None
 
 
 class LTISystem(DynamicalSystem):

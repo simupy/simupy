@@ -31,6 +31,35 @@ def callable_from_trajectory(t, curves):
     return interpolated_callable
 
 
+def discrete_callable_from_trajectory(t, curves):
+    """
+    Build a callable that interpolates a discrete-time curve by returning the
+    value of the previous time-step.
+
+    Parameters
+    ----------
+    t : 1D array_like
+        Array of m time indices of trajectory
+    curves : 2D array_like
+        Array of m x n vector samples at the time indices. First dimension
+        indexes time, second dimension indexes vector components
+
+    Returns
+    -------
+    nearest_neighbor_callable : callable
+        Callable which interpolates the given discrete-time curve/trajectories
+    """
+    local_time = np.array(t).copy()
+    local_curves = np.array(curves).copy()
+    def nearest_neighbor_callable(t, *args):
+        return local_curves[
+            np.argmax((local_time.reshape(1,-1)>=np.array([t]).reshape(-1,1)),
+                axis=1), :]
+
+    return nearest_neighbor_callable
+
+
+
 def array_callable_from_vector_trajectory(tt, x, unraveled, raveled):
     """
     Convert a trajectory into an interpolating callable that returns a 2D
