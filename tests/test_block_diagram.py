@@ -319,6 +319,11 @@ def test_dt_ct_equivalent(simulation_results):
     mixed_sel = mixed_t_discrete_t_equal_idx[mixed_unique_t_idx]
 
     npt.assert_allclose(
+        results[2].t[mixed_sel], results[0].t[discrete_sel],
+        atol=TEST_ATOL, rtol=TEST_RTOL
+    )
+
+    npt.assert_allclose(
         results[2].x[mixed_sel, :], results[0].x[discrete_sel, :],
         atol=TEST_ATOL, rtol=TEST_RTOL
     )

@@ -87,13 +87,12 @@ plt.figure()
 for st in range(n):
     plt.subplot(n+m, 1, st+1)
     plt.plot(dtct_res.t, dtct_res.y[:, st], '+-')
-    plt.stem(dtdt_res.t, dtdt_res.y[:, st],
-             linefmt='-C1', markerfmt='xC1', basefmt='C1-')
+    plt.plot(dtdt_res.t, dtdt_res.y[:, st], 'x-')
     plt.ylabel('$x_{}(t)$'.format(st+1))
 for st in range(m):
     plt.subplot(n+m, 1, st+n+1)
-    plt.step(dtct_res.t, dtct_res.y[:, st+n], '+-')
-    plt.plot(dtdt_res.t, dtdt_res.y[:, st+n], 'x')
+    plt.plot(dtct_res.t, dtct_res.y[:, st+n], '+-')
+    plt.plot(dtdt_res.t, dtdt_res.y[:, st+n], 'x-')
     plt.ylabel('$u(t)$')
     plt.xlabel('$t$, s')
 

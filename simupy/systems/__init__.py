@@ -65,7 +65,7 @@ class DynamicalSystem(object):
             Dimension of the system output. Optional, defaults to dim_state.
         dt : float, optional
             Sample rate of the system. Optional, defaults to 0 representing a
-            continuous time system.
+            continuous time system. 
         initial_condition : array_like of numerical values, optional
             Array or Matrix used as the initial condition of the system.
             Defaults to zeros of the same dimension as the state.
@@ -82,15 +82,50 @@ class DynamicalSystem(object):
             else output_equation_function
         )
 
+        self.initial_condition = initial_condition
+
         self.event_equation_function = event_equation_function
         self.update_equation_function = update_equation_function
-        self.initial_condition = initial_condition
+
         self.dt = dt
 
         self.validate()
 
     @property
+    def dt(self):
+        return self._dt
+
+    @dt.setter
+    def dt(self, dt):
+        if dt <= 0:
+            self._dt = 0
+            return
+        if (self.event_equation_function is not None  
+                and self.update_equation_function is not None):
+            raise ValueError("Cannot set dt > 0 and the event API with " +
+                             "event_equation_function and " +
+                             "update_equation_function.")
+        self._dt = dt
+        self.event_equation_function = lambda t, *args: (np.sin(np.pi*t/self.dt))
+        #    if t else np.sin(np.finfo(np.float_).eps))
+        self._state_equation_function = self.state_equation_function
+        self._output_equation_function = self.output_equation_function
+        self.state_equation_function = \
+            lambda *args: np.zeros(self.dim_state)
+        if self.dim_state:
+            self.update_equation_function = self._state_equation_function
+        else:
+            self._prev_input = (0, np.zeros(self.dim_input))
+            def _update_equation_function(*args):
+                self._prev_input = args
+            self.update_equation_function = _update_equation_function
+            self.output_equation_function = lambda *args: self._output_equation_function(*self._prev_input)
+
+
+    @property
     def initial_condition(self):
+        if self._initial_condition is None:
+            return np.zeros(self.dim_state)
         return self._initial_condition
 
     @initial_condition.setter
@@ -99,7 +134,8 @@ class DynamicalSystem(object):
             assert len(initial_condition) == self.dim_state
             self._initial_condition = np.array(initial_condition)
         else:
-            self._initial_condition = np.zeros(self.dim_state)
+            self._initial_condition = None
+            
 
     def prepare_to_integrate(self):
         return
@@ -150,7 +186,7 @@ class SwitchedSystem(DynamicalSystem):
                  output_equations_functions=None,
                  event_variable_equation_function=None, event_bounds=None,
                  state_update_equation_function=None, dim_state=0, dim_input=0,
-                 dim_output=0, dt=0, initial_condition=None):
+                 dim_output=0, initial_condition=None):
         """
         Parameters
         ----------
@@ -187,9 +223,6 @@ class SwitchedSystem(DynamicalSystem):
             Dimension of the system input. Optional, defaults to 0.
         dim_output : int, optional
             Dimension of the system output. Optional, defaults to dim_state.
-        dt : float, optional
-            Sample rate of the system. Optional, defaults to 0 representing a
-            continuous time system.
         """
         self.dim_state = dim_state
         self.dim_input = dim_input
@@ -216,8 +249,8 @@ class SwitchedSystem(DynamicalSystem):
             full_state_output
         )
 
-        self.initial_condition = initial_condition or np.zeros(dim_state)
-        self.dt = dt
+        self.initial_condition = initial_condition
+        self.dt = 0
 
         self.validate()
 
@@ -267,27 +300,25 @@ class SwitchedSystem(DynamicalSystem):
 
     def update_equation_function(self, *args):
         event_var = self.event_variable_equation_function(*args)
-        if self.condition_idx is None:
-            self.condition_idx = np.where(np.all(np.r_[
-                    np.c_[[[True]], event_var >= self.event_bounds],
-                    np.c_[event_var <= self.event_bounds, [[True]]]
-                    ], axis=0))[0][0]
+        sq_dist = (event_var - self.event_bounds)**2
+        crossed_root_idx = np.where(sq_dist == np.min(sq_dist))[1][0]
+        if crossed_root_idx == self.condition_idx:
+            self.condition_idx += 1
+        elif crossed_root_idx == self.condition_idx-1:
+            self.condition_idx -= 1
         else:
-            sq_dist = (event_var - self.event_bounds)**2
-            crossed_root_idx = np.where(sq_dist == np.min(sq_dist))[1][0]
-            if crossed_root_idx == self.condition_idx:
-                self.condition_idx += 1
-            elif crossed_root_idx == self.condition_idx-1:
-                self.condition_idx -= 1
-            else:
-                warnings.warn("SwitchedSystem did not cross a neighboring " +
-                              "boundary. This may indicate an integration " +
-                              "error. Continuing without updating " +
-                              "condition_idx", UserWarning)
+            warnings.warn("SwitchedSystem did not cross a neighboring " +
+                          "boundary. This may indicate an integration " +
+                          "error. Continuing without updating " +
+                          "condition_idx", UserWarning)
         return self.state_update_equation_function(*args)
 
     def prepare_to_integrate(self):
-        self.condition_idx = None
+        event_var = self.event_variable_equation_function(0, self.initial_condition)
+        self.condition_idx = np.where(np.all(np.r_[
+                np.c_[[[True]], event_var >= self.event_bounds],
+                np.c_[event_var <= self.event_bounds, [[True]]]
+                ], axis=0))[0][0]
 
 
 class LTISystem(DynamicalSystem):
@@ -320,10 +351,12 @@ class LTISystem(DynamicalSystem):
         matrices of systems with state, as well as a ``K`` alias for the gain
         matrix. The ``data`` alias provides the matrices as a tuple.
         """
-        self.dt = dt
 
         if len(args) not in (1, 2, 3):
             raise ValueError("LTI system expects 1, 2, or 3 args")
+
+        self.event_equation_function = None
+        self.update_equation_function = None
 
         # TODO: setup jacobian functions
         if len(args) == 1:
@@ -333,9 +366,11 @@ class LTISystem(DynamicalSystem):
                               else 1)
             self.dim_output = self.gain_matrix.shape[0]
             self.dim_state = 0
-            self.initial_condition = np.zeros(self.dim_state)
+            self.initial_condition = None
+            self.state_equation_function = None
             self.output_equation_function = \
                 lambda t, x: (gain_matrix@x).reshape(-1)
+            self.dt = dt
             return
 
         if len(args) == 2:
@@ -362,11 +397,14 @@ class LTISystem(DynamicalSystem):
         self.input_matrix = input_matrix
         self.output_matrix = output_matrix
 
-        self.initial_condition = initial_condition or np.zeros(self.dim_state)
+        self.initial_condition = initial_condition
         self.state_equation_function = \
-            lambda t, x, u=np.zeros(0): (state_matrix@x + input_matrix@u)
+            (lambda t, x, u=np.zeros(self.dim_input): \
+                (state_matrix@x + input_matrix@u))
         self.output_equation_function = \
             lambda t, x: (output_matrix@x)
+
+        self.dt = dt
 
         self.validate()
 

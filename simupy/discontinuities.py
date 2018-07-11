@@ -169,9 +169,10 @@ class SwitchedSystem(SwitchedSystemBase, DiscontinuousSystem):
         self._state_update_equation = state_update_equation
         if self.dim_state:
             assert find_dynamicsymbols(state_update_equation) <= \
-                set(self.state)
+                set(self.state) | set(self.input)
             self.state_update_equation_function = self.code_generator(
-                    [dynamicsymbols._t] + sp.flatten(self.state),
+                    ([dynamicsymbols._t] + 
+                     sp.flatten(self.state) + sp.flatten(self.input)),
                     self._state_update_equation.subs(self.constants_values),
                     **self.code_generator_args
             )
