@@ -264,8 +264,6 @@ class BlockDiagram(object):
         else:
             tspan = np.array(tspan)
 
-        all_dt_sel = np.zeros((tspan.size, self.dts.size), dtype=np.bool)
-
         """
         tspan is used to indicate which times must be computed
         these are end-points for continuous time simulations, meshed data 
@@ -276,21 +274,10 @@ class BlockDiagram(object):
         results = SimulationResult(self.cum_states[-1], self.cum_outputs[-1],
                                    tspan, self.systems.size)
 
-        all_x0 = np.array([])  # TODO: pre-allocate?
-        ct_x0 = np.array([]) # TODO: delete me
+        x0 = np.array([])  # TODO: pre-allocate?
         for sys in self.systems:
             sys.prepare_to_integrate()
-            all_x0 = np.append(all_x0, sys.initial_condition)
-            # if sys.dt == 0:
-            ct_x0 = np.append(ct_x0, sys.initial_condition)
-
-        state_sel_ct = np.empty(0, dtype=np.int_) # TODO: delete me
-        for sysidx in np.where((np.diff(self.cum_states) > 0))[0]:
-            sys = self.systems[sysidx]
-            state_start = self.cum_states[sysidx]
-            state_end = self.cum_states[sysidx+1]
-            state_sel_ct = np.r_[state_sel_ct,
-                                 np.arange(state_start, state_end)]
+            x0 = np.append(x0, sys.initial_condition)
 
         def computation_step(t, states_in, outputs_in, selector=None,
                              do_events=False):
@@ -497,7 +484,7 @@ class BlockDiagram(object):
             state_start = self.cum_states[sysidx]
             state_end = self.cum_states[sysidx+1]
 
-            state_values = all_x0[state_start:state_end]
+            state_values = x0[state_start:state_end]
             y0[output_start:output_end] = sys.output_equation_function(
                     t0, state_values).reshape(-1)
 
@@ -524,23 +511,24 @@ class BlockDiagram(object):
                 y0[output_start:output_end] = sys.output_equation_function(
                         t0).reshape(-1)
 
-        dt_time_selector = all_dt_sel[0, :]
-        next_dt_x, y0, e0 = computation_step( # TODO: this is where logic for events needs to happen
-            t0, all_x0, y0, np.ones_like(self.systems, dtype=np.bool_), True)
+        dx_dt_0, y0, e0 = computation_step( # TODO: this is where logic for events needs to happen
+             t0, x0, y0, True, True)
         # initial_computation[0] is saved for the next round of selected DTs
-        results.new_result(t0, all_x0, y0, e0)
+        results.new_result(t0, x0, y0, e0)
         prev_event_t = t0
 
-        # setup the integrator if we have CT states
-        if len(ct_x0) > 0:
-            r = integrator_class(continuous_time_integration_step)
-            r.set_integrator(**integrator_options)
-            r.set_initial_value(ct_x0, t0)
-            if dense_output:
-                r.set_solout(collect_integrator_results)
+        # setup the integrator
+        r = integrator_class(continuous_time_integration_step)
+        r.set_integrator(**integrator_options)
+        r.set_initial_value(x0, t0)
+        if dense_output:
+            r.set_solout(collect_integrator_results)
 
         # main simulation loop
-        for t_idx, next_t in enumerate(tspan[1:]):
+        t_idx = 0
+        next_t = tspan[1]
+        # TODO: fix extra points being added to results
+        while True:
             if np.any(np.isnan(results.y[:results.res_idx, :])):
                 warnings.warn(nan_warning_message.format(
                         "tspan iteration after discrete integration",
@@ -550,276 +538,258 @@ class BlockDiagram(object):
                     ))
                 break
 
-            # TODO: this `if` is possibly unnecessary
-            if len(ct_x0) > 0:  # handle continuous time integration
-                # loop to integrate until next_t, while handling events
-                while True:
-                    r.integrate(next_t)
+            # loop to integrate until next_t, while handling events
+            
+            r.integrate(next_t)
 
-                    if dense_output:
-                        latest_t, latest_states, latest_outputs = \
-                            results.last_result()
-                        if r.t == next_t or np.any(np.isnan(latest_outputs)):
-                            break
+            """
+            possible branches:
+                1. if dense:
+                    a. event occured, process it                    
+                    b. integration completed (to next_t), so exit
+                    c. some other error, abort
 
-                    check_states, check_outputs, check_events = \
-                        continuous_time_integration_step(r.t, r.y, False)
+                2. if meshed:
+                    a. event occured, process it
+                    b. mesh point achieved, no event
+                        i. if next_t == tF, exit
+                        ii. otherwise, do the next one.
+                    c. some other error, abort
 
-                    if np.any(np.isnan(check_outputs)):
-                        warnings.warn(nan_warning_message.format(
-                                "tspan iteration after continuous integration",
-                                r.t,
-                                check_states,
-                                check_outputs
-                            ))
-                        break
+                1b, 2b, require adding the final point to the system (maybe not 1b)
+                1a and 2a are the same, except if not dense, maybe don't save the point?? mesh should have fixed output datasize
+                or, just don't allow meshed datapoints??
+                1c and 2c are the same
 
-                    if (not dense_output and
-                            np.all(
-                                np.sign(results.e[results.res_idx-1, :]) ==
-                                np.sign(check_events)
-                            )):
-                        latest_states, latest_outputs, = \
-                            check_states, check_outputs
-                        break
+                TODO: decide what to do about meshed data points, stiff solvers
+                TODO: figure out how to run tests that don't involve those solvers
+            """
 
-                    if not r.successful():
-                        warnings.warn("Integrator quit unsuccessfully.")
-                        break
+            if dense_output:
+                latest_t, latest_states, latest_outputs = \
+                    results.last_result()
+                if r.t == next_t or np.any(np.isnan(latest_outputs)):
+                    break
 
-                    #
-                    # need to handle event
-                    #
+            check_states, check_outputs, check_events = \
+                continuous_time_integration_step(r.t, r.y, False)
 
-                    # results index from previous event crossing
-                    prev_event_idx = np.where(
-                        results.t[:results.res_idx, None] == prev_event_t
-                     )[0][-1]
-                    prev_event_idx = max(
-                        min(prev_event_idx, results.res_idx-3), 0
-                    )
+            if np.any(np.isnan(check_outputs)):
+                warnings.warn(nan_warning_message.format(
+                        "tspan iteration after continuous integration",
+                        r.t,
+                        check_states,
+                        check_outputs
+                    ))
+                break
 
-                    # find which system(s) crossed
-                    event_cross_check = (
-                        np.sign(results.e[results.res_idx-1, :]) !=
+            if (not dense_output and
+                    np.all(
+                        np.sign(results.e[results.res_idx-1, :]) ==
                         np.sign(check_events)
-                    )
-                    event_index_crossed = np.where(event_cross_check)[0]
+                    )):
+                latest_states, latest_outputs, = \
+                    check_states, check_outputs
+                break
 
-                    # interpolate to find first t crossing
-                    # holds t's where event occured
-                    event_ts = np.zeros(self.systems.size)
-                    # holds callable for root finding
-                    event_searchables = np.empty(self.systems.size,
-                                                 dtype=object)
-                    event_callables = np.empty(self.systems.size,
-                                               dtype=object)
+            if not r.successful():
+                warnings.warn("Integrator quit unsuccessfully.")
+                break
 
-                    ts_to_collect = np.r_[
-                        results.t[prev_event_idx:results.res_idx],
-                    ]
+            #
+            # need to handle event
+            #
 
-                    unique_ts_to_collect, unique_ts_to_collect_idx = \
-                        np.unique(ts_to_collect, return_index=True)
-
-                    if unique_ts_to_collect.size <= 3:
-                        warnings.warn("BlockDiagram encountered an event that"+
-                            " could not be resolved due to insufficient steps"+
-                            ". This is likely chatter, but may be solved by "+
-                            "increasing tolerances.")
-                        break
-
-                    state_values = results.x[
-                        prev_event_idx:results.res_idx,
-                    ]
-                    state_values = np.r_[
-                        state_values,
-                        check_states.reshape(1,-1)
-                    ]
-
-                    state_traj_callable = callable_from_trajectory(
-                        unique_ts_to_collect,
-                        state_values[unique_ts_to_collect_idx, :]
-                    )
-
-                    output_values = results.y[prev_event_idx:results.res_idx]
-
-                    output_values = np.r_[
-                        output_values,
-                        check_outputs.reshape(1,-1)
-                    ]
-
-                    output_traj_callable = callable_from_trajectory(
-                        unique_ts_to_collect,
-                        output_values[unique_ts_to_collect_idx, :]
-                    )
-
-                    for sysidx in event_index_crossed:
-                        sys = self.systems[sysidx]
-
-                        state_start = self.cum_states[sysidx]
-                        state_end = self.cum_states[sysidx+1]
-
-                        input_start = self.cum_inputs[sysidx]
-                        input_end = self.cum_inputs[sysidx+1]
-
-                        if sys.dim_state:
-                            event_searchables[sysidx] = \
-                                lambda t: sys.event_equation_function(
-                                    t, state_traj_callable(t)[..., 
-                                        state_start:state_end]
-                                )
-                        else:
-                            event_searchables[sysidx] = \
-                                lambda t: sys.event_equation_function(
-                                    t, output_traj_callable(t)[..., 
-                                        np.where(
-                                            self.connections[
-                                                :, input_start:input_end
-                                            ].T
-                                        )[1]
-                                    ]
-                                )
-                        if np.prod(np.sign(np.r_[
-                          event_searchables[sysidx](results.t[prev_event_idx]),
-                          event_searchables[sysidx](r.t)])) not in [0,-1]:
-                                e_checks = np.r_[
-                                    results.e[
-                                        prev_event_idx:results.res_idx,
-                                        sysidx
-                                    ],
-                                    check_events[sysidx]
-                                ]
-                                left_bracket_idx = np.where(
-                                    np.sign(e_checks[:-1]) !=
-                                    np.sign(e_checks[-1])
-                                )[0][-1]
-                                left_bracket = ts_to_collect[left_bracket_idx]
-                        else:
-                            left_bracket = results.t[prev_event_idx]
-                            event_ts[sysidx] = event_finder(
-                                event_searchables[sysidx],
-                                left_bracket + np.finfo(np.float_).eps,
-                                r.t,
-                                **event_find_options
-                            )
-
-                    next_event_t = np.min(event_ts[event_index_crossed])
-                    state_traj_callable = callable_from_trajectory(
-                        unique_ts_to_collect,
-                        np.r_[
-                            results.x[
-                                prev_event_idx:results.res_idx,
-                            ],
-                            r.y.reshape(1, -1)
-                        ][unique_ts_to_collect_idx, :]
-                    )
-
-                    left_t = next_event_t-event_find_options['xtol']/2
-                    left_x = state_traj_callable(left_t)
-
-                    new_states, new_outputs, new_events = \
-                        continuous_time_integration_step(
-                            left_t, left_x, False)
-                    results.new_result(
-                        left_t, new_states, new_outputs, new_events)
-
-                    right_t = next_event_t+event_find_options['xtol']/2
-                    right_x = state_traj_callable(right_t).reshape(-1)
-                    right_y = output_traj_callable(right_t).reshape(-1)
-
-                    # need to update the output for any stateful, probably do full pattern (i.e., output of system with state and event, output of system (with event only?), etc. Or just leave like this ssince it works??) from continuous_time_integration_step (for_integrator = False)
-                    # TODO: when cleaning up the integration loops, clean the event update too! 
-                    update_equation_function_indexes = np.where(
-                        event_cross_check & (event_ts == next_event_t)
-                    )[0]
-
-                    for sysidx in update_equation_function_indexes:
-                        sys = self.systems[sysidx]
-                        output_start = self.cum_outputs[sysidx]
-                        output_end = self.cum_outputs[sysidx+1]
-                        input_start = self.cum_inputs[sysidx]
-                        input_end = self.cum_inputs[sysidx+1]
-                        input_values = right_y[np.where(
-                            self.connections[:, input_start:input_end].T
-                        )[1]]
-                        state_start = self.cum_states[sysidx]
-                        state_end = self.cum_states[sysidx+1]
-                        state_values = right_x[state_start:state_end]
-                        if sys.dim_state and sys.dim_input:
-                            update_return_value = sys.update_equation_function(
-                              right_t,
-                              state_values,
-                              input_values
-                            )
-                        elif sys.dim_state:
-                            update_return_value = sys.update_equation_function(
-                              right_t,
-                              state_values
-                            )
-                        else:
-                            update_return_value = sys.update_equation_function(
-                              right_t, input_values)
-                        if sys.dim_state:
-                            right_x[state_start:state_end] = \
-                                update_return_value.reshape(-1)
-
-                            right_y[output_start:output_end] = \
-                                sys.output_equation_function(right_t, update_return_value)
-                        else:
-                            right_y[output_start:output_end] = \
-                                sys.output_equation_function(right_t, input_values)
-
-                    new_states, new_outputs, new_events = \
-                        continuous_time_integration_step(
-                            right_t, right_x, False)
-                    results.new_result(
-                        right_t, new_states, new_outputs, new_events)
-
-                    # set x (r.y), store in result as t+epsilon? if not dense,
-                    # add extra 1=-0
-                    r.set_initial_value(right_x, right_t)
-                    prev_event_t = right_t
-                prev_event_t = next_t
-                dt_time_selector = all_dt_sel[t_idx+1, :]
-
-            else:  # get previous computed states to begin discrete time
-                # integration step
-                latest_t, latest_states, latest_outputs = results.last_result()
-                # TODO: delete this??
-                dt_time_selector = all_dt_sel[t_idx+1, :]
-
-            # handle discrete integration steps
-            latest_states = latest_states.copy()
-            ct_time_slector = (
-                (np.diff(self.cum_states) > 0) & all_dt_sel[t_idx+1, :]
+            # results index from previous event crossing
+            prev_event_idx = np.where(
+                results.t[:results.res_idx, None] == prev_event_t
+             )[0][-1]
+            prev_event_idx = max(
+                min(prev_event_idx, results.res_idx-3), 0
             )
-            for sysidx in np.where(ct_time_slector)[0]:
+
+            # find which system(s) crossed
+            event_cross_check = (
+                np.sign(results.e[results.res_idx-1, :]) !=
+                np.sign(check_events)
+            )
+            event_index_crossed = np.where(event_cross_check)[0]
+
+            # interpolate to find first t crossing
+            # holds t's where event occured
+            event_ts = np.zeros(self.systems.size)
+            # holds callable for root finding
+            event_searchables = np.empty(self.systems.size,
+                                         dtype=object)
+            event_callables = np.empty(self.systems.size,
+                                       dtype=object)
+
+            ts_to_collect = np.r_[
+                results.t[prev_event_idx:results.res_idx],
+            ]
+
+            unique_ts_to_collect, unique_ts_to_collect_idx = \
+                np.unique(ts_to_collect, return_index=True)
+
+            if unique_ts_to_collect.size <= 3:
+                warnings.warn("BlockDiagram encountered an event that"+
+                    " could not be resolved due to insufficient steps"+
+                    ". This is likely chatter, but may be solved by "+
+                    "increasing tolerances.")
+                break
+
+            state_values = results.x[
+                prev_event_idx:results.res_idx,
+            ]
+            state_values = np.r_[
+                state_values,
+                check_states.reshape(1,-1)
+            ]
+
+            state_traj_callable = callable_from_trajectory(
+                unique_ts_to_collect,
+                state_values[unique_ts_to_collect_idx, :]
+            )
+
+            output_values = results.y[prev_event_idx:results.res_idx]
+
+            output_values = np.r_[
+                output_values,
+                check_outputs.reshape(1,-1)
+            ]
+
+            output_traj_callable = callable_from_trajectory(
+                unique_ts_to_collect,
+                output_values[unique_ts_to_collect_idx, :]
+            )
+
+            for sysidx in event_index_crossed:
                 sys = self.systems[sysidx]
+
                 state_start = self.cum_states[sysidx]
                 state_end = self.cum_states[sysidx+1]
 
-                latest_states[state_start:state_end] = \
-                    next_dt_x[state_start:state_end]
+                input_start = self.cum_inputs[sysidx]
+                input_end = self.cum_inputs[sysidx+1]
 
-            if dense_output or len(ct_x0) == 0:
-                check_events = None
+                if sys.dim_state:
+                    event_searchables[sysidx] = \
+                        lambda t: sys.event_equation_function(
+                            t, state_traj_callable(t)[..., 
+                                state_start:state_end]
+                        )
+                else:
+                    event_searchables[sysidx] = \
+                        lambda t: sys.event_equation_function(
+                            t, output_traj_callable(t)[..., 
+                                np.where(
+                                    self.connections[
+                                        :, input_start:input_end
+                                    ].T
+                                )[1]
+                            ]
+                        )
+                if np.prod(np.sign(np.r_[
+                  event_searchables[sysidx](results.t[prev_event_idx]),
+                  event_searchables[sysidx](r.t)])) not in [0,-1]:
+                        e_checks = np.r_[
+                            results.e[
+                                prev_event_idx:results.res_idx,
+                                sysidx
+                            ],
+                            check_events[sysidx]
+                        ]
+                        left_bracket_idx = np.where(
+                            np.sign(e_checks[:-1]) !=
+                            np.sign(e_checks[-1])
+                        )[0][-1]
+                        left_bracket = ts_to_collect[left_bracket_idx]
+                else:
+                    left_bracket = results.t[prev_event_idx]
+                    event_ts[sysidx] = event_finder(
+                        event_searchables[sysidx],
+                        left_bracket + np.finfo(np.float_).eps,
+                        r.t,
+                        **event_find_options
+                    )
 
-            next_states, current_outputs = computation_step(
-                next_t, latest_states, latest_outputs, dt_time_selector)
+            next_event_t = np.min(event_ts[event_index_crossed])
+            state_traj_callable = callable_from_trajectory(
+                unique_ts_to_collect,
+                np.r_[
+                    results.x[
+                        prev_event_idx:results.res_idx,
+                    ],
+                    r.y.reshape(1, -1)
+                ][unique_ts_to_collect_idx, :]
+            )
+
+            left_t = next_event_t-event_find_options['xtol']/2
+            left_x = state_traj_callable(left_t)
+
+            new_states, new_outputs, new_events = \
+                continuous_time_integration_step(
+                    left_t, left_x, False)
             results.new_result(
-                next_t, latest_states, current_outputs, check_events)
-            if np.any(np.isnan(current_outputs)):
-                break
+                left_t, new_states, new_outputs, new_events)
 
-            if next_t != tF:
-                for sysidx in np.where(ct_time_slector)[0]:
-                    sys = self.systems[sysidx]
-                    state_start = self.cum_states[sysidx]
-                    state_end = self.cum_states[sysidx+1]
+            right_t = next_event_t+event_find_options['xtol']/2
+            right_x = state_traj_callable(right_t).reshape(-1)
+            right_y = output_traj_callable(right_t).reshape(-1)
 
-                    next_dt_x[state_start:state_end] = \
-                        next_states[state_start:state_end]
+            # need to update the output for any stateful, probably do full pattern (i.e., output of system with state and event, output of system (with event only?), etc. Or just leave like this ssince it works??) from continuous_time_integration_step (for_integrator = False)
+            # TODO: when cleaning up the integration loops, clean the event update too! 
+            update_equation_function_indexes = np.where(
+                event_cross_check & (event_ts == next_event_t)
+            )[0]
+
+            for sysidx in update_equation_function_indexes:
+                sys = self.systems[sysidx]
+                output_start = self.cum_outputs[sysidx]
+                output_end = self.cum_outputs[sysidx+1]
+                input_start = self.cum_inputs[sysidx]
+                input_end = self.cum_inputs[sysidx+1]
+                input_values = right_y[np.where(
+                    self.connections[:, input_start:input_end].T
+                )[1]]
+                state_start = self.cum_states[sysidx]
+                state_end = self.cum_states[sysidx+1]
+                state_values = right_x[state_start:state_end]
+                if sys.dim_state and sys.dim_input:
+                    update_return_value = sys.update_equation_function(
+                      right_t,
+                      state_values,
+                      input_values
+                    )
+                elif sys.dim_state:
+                    update_return_value = sys.update_equation_function(
+                      right_t,
+                      state_values
+                    )
+                else:
+                    update_return_value = sys.update_equation_function(
+                      right_t, input_values)
+                if sys.dim_state:
+                    right_x[state_start:state_end] = \
+                        update_return_value.reshape(-1)
+
+                    right_y[output_start:output_end] = \
+                        sys.output_equation_function(right_t, update_return_value)
+                else:
+                    right_y[output_start:output_end] = \
+                        sys.output_equation_function(right_t, input_values)
+
+            new_states, new_outputs, new_events = \
+                continuous_time_integration_step(
+                    right_t, right_x, False)
+            results.new_result(
+                right_t, new_states, new_outputs, new_events)
+
+            # set x (r.y), store in result as t+epsilon? if not dense,
+            # add extra 1=-0
+            r.set_initial_value(right_x, right_t)
+            prev_event_t = right_t
+            # TODO: THIS IS WHERE PREVIOUS EVENT HANDLING LOOP ENDED
 
         results.t = results.t[:results.res_idx]
         results.x = results.x[:results.res_idx, :]
