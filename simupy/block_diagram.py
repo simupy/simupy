@@ -105,8 +105,8 @@ class BlockDiagram(object):
         self.cum_states = np.array([0], dtype=np.int_)
         self.cum_events = np.array([0], dtype=np.int_)
 
-        self._outputs = np.array([], dtype=np.int_)
-        self._outputs = np.array([], dtype=np.int_)
+        self.inputs = np.array([], dtype=np.bool_).reshape((0,0))
+        self.dim_input = 0
 
         for sys in systems:
             self.add_system(sys)
@@ -117,6 +117,7 @@ class BlockDiagram(object):
 
     @property
     def dim_output(self):
+        # TODO: allow internal outputs to be "closed"? For now, no defensive
         if self._outputs.size == 0:
             return self.cum_outputs[-1]
         else:
@@ -127,11 +128,57 @@ class BlockDiagram(object):
         return self.dts.min()
     
     def prepare_to_integrate(self):
-        return
+        for sys in self.systems:
+            sys.prepare_to_integrate()
+
+    def create_input(self, to_system_input, channels=[], inputs=[]):
+        """
+        Create or use input channels to use block diagram as a subsystem.
+
+        Parameters
+        ----------
+        channels : list-like
+            Selector index of the input channels to connect.
+        to_system_input : dynamical system
+            The system (already added to BlockDiagram) to which inputs will be
+            connected. Note that any previous input connections will be
+            over-written.
+        inputs : list-like, optional
+            Selector index of the inputs to connect. If not specified or of
+            length 0, will connect all of the inputs.
+        """
+        channels = np.asarray(channels)
+        if len(channels) == 0:
+            raise ValueError("Cannot create input without specifying channel")
+        if np.min(channels) < 0:
+            raise ValueError("Cannot create input channel < 0")
+
+        if len(inputs) == 0:
+            inputs = np.arange(to_system_input.dim_input)
+        else:
+            inputs = np.asarray(inputs)
+        inputs = inputs + self.cum_inputs[
+                      np.where(self.systems == to_system_input)
+                  ]
+
+        if len(channels) != len(inputs) and len(channels) != 1:
+            raise ValueError("Cannot broadcast channels to inputs")
+
+        if np.max(channels) > self.dim_input+1:
+            self.inputs = np.pad(self.inputs,
+                                    ((0, np.max(channels) - self.dim_input+1),
+                                     (0, 0)),
+                                    'constant', constant_values = 0)
+            self.dim_input = np.max(channels)+1
+
+        self.inputs[:, inputs] = False
+        self.connections[:, inputs] = False
+
+        self.inputs[channels, inputs] = True
 
 
-    def connect(self, from_system_output, to_system_input, outputs=[],
-                inputs=[]):
+    def connect(self, from_system_output, to_system_input, outputs=[], 
+        inputs=[]):
         """
         Connect systems in the block diagram.
 
@@ -168,7 +215,9 @@ class BlockDiagram(object):
                       np.where(self.systems == to_system_input)
                   ]
 
-        self.connections[:, inputs] = False  # reset old connections
+        self.inputs[:, inputs] = False
+        self.connections[:, inputs] = False
+
         self.connections[outputs, inputs] = True
 
     def add_system(self, system):
@@ -192,11 +241,168 @@ class BlockDiagram(object):
                         getattr(system, 'update_equation_function', None)))
         self.cum_events = np.append(self.cum_events,
                                     self.cum_events[-1] + self.events[-1])
-        self.dts = np.append(self.dts, system.dt)
+        self.dts = np.append(self.dts, getattr(system, 'dt', 0))
         self.connections = np.pad(self.connections,
                                   ((0, system.dim_output),
                                    (0, system.dim_input)),
                                   'constant', constant_values=0)
+        self.inputs = np.pad(self.inputs,
+                                  ((0, 0),
+                                   (0, system.dim_input)),
+                                  'constant', constant_values=0)
+
+    def output_equation_function(self, t, state, update_memoryless_event=False):
+        output = np.zeros(self.cum_outputs[-1])
+
+        # compute outputs for full systems, y[t_k]=h(t_k,x[t_k])
+        for sysidx in np.where((np.diff(self.cum_states) > 0))[0]:
+            sys = self.systems[sysidx]
+            output_start = self.cum_outputs[sysidx]
+            output_end = self.cum_outputs[sysidx+1]
+            state_start = self.cum_states[sysidx]
+            state_end = self.cum_states[sysidx+1]
+
+            state_values = state[state_start:state_end]
+            output[output_start:output_end] = \
+                sys.output_equation_function(t, state_values).reshape(-1)
+
+        # compute outputs for memoryless systems, y[t_k]=h(t_k,u[t_k])
+        for sysidx in np.where((np.diff(self.cum_states) == 0))[0]:
+            sys = self.systems[sysidx]
+            output_start = self.cum_outputs[sysidx]
+            output_end = self.cum_outputs[sysidx+1]
+            input_start = self.cum_inputs[sysidx]
+            input_end = self.cum_inputs[sysidx+1]
+            input_values = output[
+                    np.where(
+                        self.connections[:, input_start:input_end].T
+                    )[1]]
+            if len(input_values) == 0:
+                input_values = np.zeros(sys.dim_input)
+            if sys.dim_input:
+                if self.events[sysidx] and update_memoryless_event:
+                    sys.update_equation_function(t, input_values)
+                output[output_start:output_end] = \
+                  sys.output_equation_function(t, input_values).reshape(-1)
+            else:
+                if self.events[sysidx] and update_memoryless_event:
+                    sys.update_equation_function(t)
+                output[output_start:output_end] = \
+                  sys.output_equation_function(t).reshape(-1)
+
+        return output
+
+    def state_equation_function(self, t, state, input_=None, output=None):
+        # TODO: how to define available inputs?? 
+        dxdt = np.zeros(self.cum_states[-1])
+        output = output if output is not None else \
+            self.output_equation_function(t,state)
+        input_ = input_ if input_ is not None else np.zeros(self.dim_input)
+
+        for sysidx in np.where((np.diff(self.cum_states) > 0))[0]:
+            sys = self.systems[sysidx]
+
+            state_start = self.cum_states[sysidx]
+            state_end = self.cum_states[sysidx+1]
+            state_values = state[state_start:state_end]
+
+            input_start = self.cum_inputs[sysidx]
+            input_end = self.cum_inputs[sysidx+1]
+            input_values = output[
+                np.where(
+                    self.connections[:, input_start:input_end].T
+                )[1]]
+            as_system_input = input_[np.where(
+                    self.inputs[:, input_start:input_end].T
+                )[1]].reshape(-1)
+            
+            if as_system_input.size:
+                input_values += as_system_input
+
+            if len(input_values) == 0:
+                input_values = np.zeros(sys.dim_input)
+
+            if sys.dim_input:
+                dxdt[state_start:state_end] = \
+                    sys.state_equation_function(
+                        t, state_values, input_values
+                    ).reshape(-1)
+            else:
+                dxdt[state_start:state_end] = \
+                    sys.state_equation_function(t, state_values).reshape(-1)
+
+        return dxdt
+
+    def systems_event_equation_functions(self, t, state, output):
+        events = np.zeros(self.systems.size)
+
+        # compute events for stateful systems
+        for sysidx in np.where(
+                    (np.diff(self.cum_states) > 0) & self.events
+                )[0]:
+            sys = self.systems[sysidx]
+            state_start = self.cum_states[sysidx]
+            state_end = self.cum_states[sysidx+1]
+            state_values = state[state_start:state_end]
+            events[sysidx] = sys.event_equation_function(
+                                t, state_values).reshape(-1)
+
+        # compute events for memoryless systems
+        for sysidx in np.where(
+                    (np.diff(self.cum_states) == 0) & self.events
+                )[0]:
+            sys = self.systems[sysidx]
+            input_start = self.cum_inputs[sysidx]
+            input_end = self.cum_inputs[sysidx+1]
+            input_values = output[
+                    np.where(
+                        self.connections[:, input_start:input_end].T
+                    )[1]]
+            if len(input_values) == 0:
+                input_values = np.zeros(sys.dim_input)
+            if sys.dim_input:
+                events[sysidx] = sys.event_equation_function(
+                                        t, input_values).reshape(-1)
+            else:
+                events[sysidx] = sys.event_equation_function(
+                                        t).reshape(-1)
+
+        return events
+
+    def event_equation_function(self, t, state, output=None):
+        output = output or self.output_equation_function(t,state)
+        return np.prod(
+            self.systems_event_equation_functions(t, state, output))
+
+    def update_equation_function(self, t, state, input_=None, output=None):
+        next_state = state.copy()
+        output = output or self.output_equation_function(t,state)
+        input_ = input_ or np.zeros(self.dim_input)
+        # find which one(s) crossed
+        # call that/those systems's update_equation_function & fill in next_state
+        return next_state
+
+    def computation_step(self, t, state, output=None, selector=True, do_events=False):
+        """
+        callable to compute system outputs and state derivatives
+        """
+        # TODO: make sure this still works
+
+        # TODO: p sure I just had output_equation_function here
+        # I guess the outputs_in wasn't really necessary?
+        output = output if output is not None else \
+            self.output_equation_function(t, state)
+
+        # compute state equation for full systems,
+        # x[t_k']=f(t_k,x[t_k],u[t_k])
+        dxdt = self.state_equation_function(t, state, output=output)
+        
+        if do_events:
+            events = self.systems_event_equation_functions(t, state, output)
+
+            return dxdt, output, events
+
+        return dxdt, output
 
     def simulate(self, tspan, integrator_class=DEFAULT_INTEGRATOR_CLASS,
                  integrator_options=DEFAULT_INTEGRATOR_OPTIONS,
@@ -274,245 +480,63 @@ class BlockDiagram(object):
         results = SimulationResult(self.cum_states[-1], self.cum_outputs[-1],
                                    tspan, self.systems.size)
 
-        x0 = np.array([])  # TODO: pre-allocate?
-        for sys in self.systems:
-            sys.prepare_to_integrate()
-            x0 = np.append(x0, sys.initial_condition)
-
-        def computation_step(t, states_in, outputs_in, selector=None,
-                             do_events=False):
-            """
-            callable to compute system outputs and state derivatives
-            """
-            states = np.copy(states_in)
-            outputs = np.copy(outputs_in)
-
-            # compute outputs for full systems, y[t_k]=h(t_k,x[t_k])
-            # TODO: Is it possible to refactor these loops using a function
-            # that takes the total selector, input name, output name, and
-            # callable name?
-            for sysidx in np.where(
-                    (np.diff(self.cum_states) > 0) & selector)[0]:
-                sys = self.systems[sysidx]
-                output_start = self.cum_outputs[sysidx]
-                output_end = self.cum_outputs[sysidx+1]
-                state_start = self.cum_states[sysidx]
-                state_end = self.cum_states[sysidx+1]
-
-                state_values = states_in[state_start:state_end]
-                outputs[output_start:output_end] = \
-                    sys.output_equation_function(t, state_values).reshape(-1)
-
-            # compute outputs for memoryless systems, y[t_k]=h(t_k,u[t_k])
-            for sysidx in np.where(
-                    (np.diff(self.cum_states) == 0) & selector)[0]:
-                sys = self.systems[sysidx]
-                output_start = self.cum_outputs[sysidx]
-                output_end = self.cum_outputs[sysidx+1]
-                input_start = self.cum_inputs[sysidx]
-                input_end = self.cum_inputs[sysidx+1]
-                input_values = outputs[
-                        np.where(
-                            self.connections[:, input_start:input_end].T
-                        )[1]]
-                if len(input_values) == 0:
-                    input_values = np.zeros(sys.dim_input)
-                if sys.dim_input:
-                    outputs[output_start:output_end] = \
-                      sys.output_equation_function(t, input_values).reshape(-1)
-                else:
-                    outputs[output_start:output_end] = \
-                      sys.output_equation_function(t).reshape(-1)
-
-            # compute state equation for full systems,
-            # x[t_k']=f(t_k,x[t_k],u[t_k])
-            for sysidx in np.where(
-                    (np.diff(self.cum_states) > 0) & selector)[0]:
-                sys = self.systems[sysidx]
-
-                state_start = self.cum_states[sysidx]
-                state_end = self.cum_states[sysidx+1]
-                state_values = states_in[state_start:state_end]
-
-                input_start = self.cum_inputs[sysidx]
-                input_end = self.cum_inputs[sysidx+1]
-                input_values = outputs[
-                        np.where(
-                                self.connections[:, input_start:input_end].T
-                        )[1]]
-                if len(input_values) == 0:
-                    input_values = np.zeros(sys.dim_input)
-
-                if sys.dim_input:
-                    states[state_start:state_end] = \
-                        sys.state_equation_function(
-                            t, state_values, input_values
-                        ).reshape(-1)
-                else:
-                    states[state_start:state_end] = \
-                        sys.state_equation_function(
-                            t, state_values
-                        ).reshape(-1)
-
-            if do_events:
-                events = np.zeros(self.systems.size)
-
-                for sysidx in np.where(
-                            (np.diff(self.cum_states) > 0) & self.events &
-                            selector
-                        )[0]:
-                    sys = self.systems[sysidx]
-                    state_start = self.cum_states[sysidx]
-                    state_end = self.cum_states[sysidx+1]
-                    state_values = states_in[state_start:state_end]
-                    events[sysidx] = sys.event_equation_function(
-                                        t, state_values).reshape(-1)
-
-                # compute outputs for memoryless systems, y[t_k]=h(t_k,u[t_k])
-                for sysidx in np.where(
-                            (np.diff(self.cum_states) == 0) & self.events &
-                            selector
-                        )[0]:
-                    sys = self.systems[sysidx]
-                    input_start = self.cum_inputs[sysidx]
-                    input_end = self.cum_inputs[sysidx+1]
-                    input_values = outputs[
-                            np.where(
-                                self.connections[:, input_start:input_end].T
-                            )[1]]
-                    if len(input_values) == 0:
-                        input_values = np.zeros(sys.dim_input)
-                    if sys.dim_input:
-                        events[sysidx] = sys.event_equation_function(
-                                                t, input_values).reshape(-1)
-                    else:
-                        events[sysidx] = sys.event_equation_function(
-                                                t).reshape(-1)
-
-                return states, outputs, events
-
-            return states, outputs
-
-        def continuous_time_integration_step(t, ct_states,
-                                             for_integrator=True):
+        def continuous_time_integration_step(t, state, for_integrator=True):
             """
             function to manipulate stored states and integrator state
             to pass to between computation_step and integrator
             """
-            ct_selector = np.ones_like(self.systems, dtype=np.bool_) # TODO: delete me
-            prevt, states, outputs = results.last_result(copy=True)
-
-            # pass the integrator's current values to the computation step
-            # TODO: is there a more efficient way to do this? See how events
-            # get selected
-            ct_state_accumulator = 0
-            for sysidx in np.where(
-                    (np.diff(self.cum_states) > 0) & ct_selector)[0]:
-                sys = self.systems[sysidx]
-                state_start = self.cum_states[sysidx]
-                state_end = self.cum_states[sysidx+1]
-                states[state_start:state_end] = ct_states.reshape(-1)[
-                        ct_state_accumulator:ct_state_accumulator+sys.dim_state
-                    ]
-                ct_state_accumulator += sys.dim_state
-
-            if not for_integrator:  # i.e., to collect the results
-                comp_states, comp_out, comp_events = computation_step(
-                      t, states, outputs, selector=ct_selector, do_events=True)
-                return states, comp_out, comp_events
-
-            comp_states, comp_out = computation_step(
-                    t, states, outputs, selector=ct_selector)
-
-            # return the comptued derivatives to the integrator
-            ct_derivative = np.zeros_like(ct_states)
-            ct_state_accumulator = 0
-            for sysidx in np.where(
-                    (np.diff(self.cum_states) > 0) & ct_selector)[0]:
-                sys = self.systems[sysidx]
-                state_start = self.cum_states[sysidx]
-                state_end = self.cum_states[sysidx+1]
-                ct_derivative[
-                        ct_state_accumulator:ct_state_accumulator+sys.dim_state
-                    ] = comp_states[state_start:state_end]
-                ct_state_accumulator += sys.dim_state
-
-            return ct_derivative
+            comp_result = self.computation_step(
+                  t, state.reshape(-1), selector=True, do_events=~for_integrator)
+            if not for_integrator:
+                return (state,) + comp_result[1:]
+            return comp_result[0]
 
         # store the results from each continuous integration step
-        def collect_integrator_results(t, ct_states):
-            new_states, new_outputs, new_events = \
-                continuous_time_integration_step(t, ct_states, False)
+        def collect_integrator_results(t, state):
+            dxdt, output, events = \
+                continuous_time_integration_step(t, state,
+                    for_integrator=False)
             test_sel = results.res_idx - np.arange(3)-1
             if (t in results.t[test_sel] and
-                    new_states in results.x[test_sel, :] and
-                    new_outputs in results.y[test_sel, :]):
-
+                    state in results.x[test_sel, :] and
+                    output in results.y[test_sel, :]):
                 return
 
             # check for events here -- before saving, because it is potentially
             # invalid
             prev_events = results.e[results.res_idx-1, :]
-            if (np.any(np.sign(prev_events) != np.sign(new_events)) &
+            if (np.any(np.sign(prev_events) != np.sign(events)) &
                 (results.t[results.res_idx-1] > 0)):
                 return -1
             else:
-                results.new_result(t, new_states, new_outputs, new_events)
+                results.new_result(t, state, output, events)
 
-            if np.any(np.isnan(new_outputs)):
-                np.where(np.isnan(new_outputs))
+            if np.any(np.isnan(output)):
                 warnings.warn(nan_warning_message.format(
                         "variable step-size collection",
                         t,
-                        new_states,
-                        new_outputs
+                        state,
+                        output
                     ))
                 return -1
 
+
+        x0 = np.array([])  # TODO: pre-allocate?
+        for sys in self.systems:
+            sys.prepare_to_integrate()
+            x0 = np.append(x0, sys.initial_condition)
+
         # initial condition computation, populate initial condition in results
-        y0 = np.zeros(self.cum_outputs[-1])
 
         #
         # Initial event computation
         #
 
         # compute first output for stateful systems
-        for sysidx in np.where((np.diff(self.cum_states) > 0))[0]:
-            sys = self.systems[sysidx]
-            output_start = self.cum_outputs[sysidx]
-            output_end = self.cum_outputs[sysidx+1]
-            state_start = self.cum_states[sysidx]
-            state_end = self.cum_states[sysidx+1]
+        y0 = self.output_equation_function(t0, x0, update_memoryless_event=True)
 
-            state_values = x0[state_start:state_end]
-            y0[output_start:output_end] = sys.output_equation_function(
-                    t0, state_values).reshape(-1)
-
-        # compute outputs for memoryless systems
-        for sysidx in np.where((np.diff(self.cum_states) == 0))[0]:
-            sys = self.systems[sysidx]
-            output_start = self.cum_outputs[sysidx]
-            output_end = self.cum_outputs[sysidx+1]
-            input_start = self.cum_inputs[sysidx]
-            input_end = self.cum_inputs[sysidx+1]
-            input_values = y0[np.where(
-                    self.connections[:, input_start:input_end].T)[1]
-            ]
-            if len(input_values) == 0:
-                input_values = np.zeros(sys.dim_input)
-            if sys.dim_input:
-                if self.events[sysidx]:
-                    sys.update_equation_function(t0, input_values)
-                y0[output_start:output_end] = sys.output_equation_function(
-                        t0, input_values).reshape(-1)
-            else:
-                if self.events[sysidx]:
-                    sys.update_equation_function(t0)
-                y0[output_start:output_end] = sys.output_equation_function(
-                        t0).reshape(-1)
-
-        dx_dt_0, y0, e0 = computation_step( # TODO: this is where logic for events needs to happen
-             t0, x0, y0, True, True)
+        dx_dt_0, y0, e0 = self.computation_step( # TODO: this is where logic for events needs to happen
+             t0, x0, y0, selector=True, do_events=True)
         # initial_computation[0] is saved for the next round of selected DTs
         results.new_result(t0, x0, y0, e0)
         prev_event_t = t0
@@ -531,7 +555,7 @@ class BlockDiagram(object):
         while True:
             if np.any(np.isnan(results.y[:results.res_idx, :])):
                 warnings.warn(nan_warning_message.format(
-                        "tspan iteration after discrete integration",
+                        "tspan iteration (after event or meshed time-step)",
                         tspan[t_idx-1],
                         results.x[results.res_idx-1, :],
                         results.y[results.res_idx-1, :]
