@@ -15,7 +15,7 @@ ulim = 0.75
 
 x = Array([dynamicsymbols('x')])
 tvar = dynamicsymbols._t
-sin = DynamicalSystem(Array([sp.cos(tvar)]), x)
+sin = DynamicalSystem(Array([sp.cos(tvar)]), x) 
 
 sin_bd = BlockDiagram(sin)
 sin_res = sin_bd.simulate(2*np.pi)

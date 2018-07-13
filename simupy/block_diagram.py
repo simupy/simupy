@@ -215,6 +215,8 @@ class BlockDiagram(object):
                       np.where(self.systems == to_system_input)
                   ]
 
+        # TODO: Check that this can be broadcast correctly
+
         self.inputs[:, inputs] = False
         self.connections[:, inputs] = False
 
@@ -267,18 +269,20 @@ class BlockDiagram(object):
                 sys.output_equation_function(t, state_values).reshape(-1)
 
         # compute outputs for memoryless systems, y[t_k]=h(t_k,u[t_k])
-        for sysidx in np.where((np.diff(self.cum_states) == 0))[0]:
+        for sysidx in np.where((np.diff(self.cum_states) == 0))[0][::-1]:
             sys = self.systems[sysidx]
             output_start = self.cum_outputs[sysidx]
             output_end = self.cum_outputs[sysidx+1]
             input_start = self.cum_inputs[sysidx]
             input_end = self.cum_inputs[sysidx+1]
-            input_values = output[
-                    np.where(
-                        self.connections[:, input_start:input_end].T
-                    )[1]]
-            if len(input_values) == 0:
-                input_values = np.zeros(sys.dim_input)
+
+            input_values = np.zeros(sys.dim_input)
+            
+            input_index, output_index = np.where(
+                self.connections[:, input_start:input_end].T
+            )
+            input_values[input_index] = output[output_index]
+
             if sys.dim_input:
                 if self.events[sysidx] and update_memoryless_event:
                     sys.update_equation_function(t, input_values)
@@ -308,19 +312,20 @@ class BlockDiagram(object):
 
             input_start = self.cum_inputs[sysidx]
             input_end = self.cum_inputs[sysidx+1]
-            input_values = output[
-                np.where(
-                    self.connections[:, input_start:input_end].T
-                )[1]]
-            as_system_input = input_[np.where(
-                    self.inputs[:, input_start:input_end].T
-                )[1]].reshape(-1)
-            
-            if as_system_input.size:
-                input_values += as_system_input
 
-            if len(input_values) == 0:
-                input_values = np.zeros(sys.dim_input)
+            input_values = np.zeros(sys.dim_input)
+            
+            input_index, output_index = np.where(
+                self.connections[:, input_start:input_end].T
+            )
+            input_values[input_index] = output[output_index]
+
+            input_index, as_sys_input_index = np.where(
+                self.inputs[:, input_start:input_end].T
+            )
+            
+            if as_sys_input_index.size:
+                input_values[input_index] = input_[as_sys_input_index]
 
             if sys.dim_input:
                 dxdt[state_start:state_end] = \
@@ -354,12 +359,14 @@ class BlockDiagram(object):
             sys = self.systems[sysidx]
             input_start = self.cum_inputs[sysidx]
             input_end = self.cum_inputs[sysidx+1]
-            input_values = output[
-                    np.where(
-                        self.connections[:, input_start:input_end].T
-                    )[1]]
-            if len(input_values) == 0:
-                input_values = np.zeros(sys.dim_input)
+
+            input_values = np.zeros(sys.dim_input)
+            
+            input_index, output_index = np.where(
+                self.connections[:, input_start:input_end].T
+            )
+            input_values[input_index] = output[output_index]
+
             if sys.dim_input:
                 events[sysidx] = sys.event_equation_function(
                                         t, input_values).reshape(-1)
@@ -521,10 +528,13 @@ class BlockDiagram(object):
                 return -1
 
 
-        x0 = np.array([])  # TODO: pre-allocate?
-        for sys in self.systems:
+        x0 = np.zeros(self.cum_states[-1])  # TODO: pre-allocate?
+        for sysidx in np.where(self.systems)[0]:
+            sys = self.systems[sysidx]
+            state_start = self.cum_states[sysidx]
+            state_end = self.cum_states[sysidx+1]
+            x0[state_start:state_end] = sys.initial_condition
             sys.prepare_to_integrate()
-            x0 = np.append(x0, sys.initial_condition)
 
         # initial condition computation, populate initial condition in results
 

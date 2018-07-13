@@ -204,7 +204,8 @@ class DynamicalSystem(DynamicalSystemBase):
             )
 
     def prepare_to_integrate(self):
-        pass
+        self.update_output_equation_function()
+        self.update_state_equation_function()
 
     def copy(self):
         copy = self.__class__(

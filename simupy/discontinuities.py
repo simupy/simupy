@@ -84,6 +84,17 @@ class SwitchedSystem(SwitchedSystemBase, DiscontinuousSystem):
         self.condition_idx = None
         self.validate(True)
 
+    def prepare_to_integrate(self):
+        # TODO: refactor the setters so I can call an update instead
+        self.event_variable_equation = self.event_variable_equation
+        self.event_bounds_expressions = self.event_bounds_expressions
+        self.output_equations = self.output_equations
+        self.state_equations = self.state_equations
+        self.state_update_equation = self.state_update_equation
+
+        super().prepare_to_integrate()
+
+
     def validate(self, from_self=False):
         if from_self:
             super().validate()
@@ -222,9 +233,9 @@ class SwitchedSystem(SwitchedSystemBase, DiscontinuousSystem):
         if hasattr(self, 'output_equations_functions'):
             assert len(event_bounds_exp)+1 == \
                 self.output_equations_functions.size
-        if hasattr(self, 'state_equations'):
+        if getattr(self, 'state_equations', None) is not None:
             assert len(event_bounds_exp)+1 == self.state_equations.shape[0]
-        if hasattr(self, 'state_equations_functions'):
+        if getattr(self, 'state_equations_functions', None) is not None:
             assert len(event_bounds_exp)+1 == \
                 self.state_equations_functions.size
         self._event_bounds_expressions = event_bounds_exp
