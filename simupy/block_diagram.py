@@ -110,6 +110,16 @@ class BlockDiagram(object):
 
         for sys in systems:
             self.add_system(sys)
+    
+    @property
+    def initial_condition(self):
+        x0 = np.zeros(self.cum_states[-1])  # TODO: pre-allocate?
+        for sysidx in np.where(self.systems)[0]:
+            sys = self.systems[sysidx]
+            state_start = self.cum_states[sysidx]
+            state_end = self.cum_states[sysidx+1]
+            x0[state_start:state_end] = sys.initial_condition
+        return x0
 
     @property
     def dim_state(self):
@@ -117,11 +127,8 @@ class BlockDiagram(object):
 
     @property
     def dim_output(self):
-        # TODO: allow internal outputs to be "closed"? For now, no defensive
-        if self._outputs.size == 0:
-            return self.cum_outputs[-1]
-        else:
-            return self._outputs.size
+        # TODO: allow internal outputs to be "closed"? For now, no
+        return self.cum_outputs[-1]
 
     @property
     def dt(self):
@@ -130,6 +137,13 @@ class BlockDiagram(object):
     def prepare_to_integrate(self):
         for sys in self.systems:
             sys.prepare_to_integrate()
+
+        if np.sum(self.events) > 0:
+            self.event_equation_function = self.event_equation_function_implementation
+            self.update_equation_function = self.update_equation_function_implementation
+        else:
+            self.event_equation_function = None
+            self.update_equation_function = None
 
     def create_input(self, to_system_input, channels=[], inputs=[]):
         """
@@ -164,7 +178,7 @@ class BlockDiagram(object):
         if len(channels) != len(inputs) and len(channels) != 1:
             raise ValueError("Cannot broadcast channels to inputs")
 
-        if np.max(channels) > self.dim_input+1:
+        if np.max(channels) > self.dim_input-1:
             self.inputs = np.pad(self.inputs,
                                     ((0, np.max(channels) - self.dim_input+1),
                                      (0, 0)),
@@ -253,9 +267,9 @@ class BlockDiagram(object):
                                    (0, system.dim_input)),
                                   'constant', constant_values=0)
 
-    def output_equation_function(self, t, state, update_memoryless_event=False):
+    def output_equation_function(self, t, state, input_=None, update_memoryless_event=False):
         output = np.zeros(self.cum_outputs[-1])
-
+        input_ = input_ if input_ is not None else np.zeros(self.dim_input)
         # compute outputs for full systems, y[t_k]=h(t_k,x[t_k])
         for sysidx in np.where((np.diff(self.cum_states) > 0))[0]:
             sys = self.systems[sysidx]
@@ -283,6 +297,13 @@ class BlockDiagram(object):
             )
             input_values[input_index] = output[output_index]
 
+            input_index, as_sys_input_index = np.where(
+                self.inputs[:, input_start:input_end].T
+            )
+            
+            if as_sys_input_index.size:
+                input_values[input_index] = input_[as_sys_input_index]
+
             if sys.dim_input:
                 if self.events[sysidx] and update_memoryless_event:
                     sys.update_equation_function(t, input_values)
@@ -299,9 +320,7 @@ class BlockDiagram(object):
     def state_equation_function(self, t, state, input_=None, output=None):
         # TODO: how to define available inputs?? 
         dxdt = np.zeros(self.cum_states[-1])
-        output = output if output is not None else \
-            self.output_equation_function(t,state)
-        input_ = input_ if input_ is not None else np.zeros(self.dim_input)
+        output = output if output is not None else self.output_equation_function(t, state, input_)
 
         for sysidx in np.where((np.diff(self.cum_states) > 0))[0]:
             sys = self.systems[sysidx]
@@ -376,12 +395,12 @@ class BlockDiagram(object):
 
         return events
 
-    def event_equation_function(self, t, state, output=None):
+    def event_equation_function_implementation(self, t, state, output=None):
         output = output or self.output_equation_function(t,state)
         return np.prod(
             self.systems_event_equation_functions(t, state, output))
 
-    def update_equation_function(self, t, state, input_=None, output=None):
+    def update_equation_function_implementation(self, t, state, input_=None, output=None):
         next_state = state.copy()
         output = output or self.output_equation_function(t,state)
         input_ = input_ or np.zeros(self.dim_input)
@@ -527,14 +546,9 @@ class BlockDiagram(object):
                     ))
                 return -1
 
-
-        x0 = np.zeros(self.cum_states[-1])  # TODO: pre-allocate?
-        for sysidx in np.where(self.systems)[0]:
-            sys = self.systems[sysidx]
-            state_start = self.cum_states[sysidx]
-            state_end = self.cum_states[sysidx+1]
-            x0[state_start:state_end] = sys.initial_condition
+        for sys in self.systems:
             sys.prepare_to_integrate()
+        x0 = self.initial_condition
 
         # initial condition computation, populate initial condition in results
 
@@ -665,7 +679,7 @@ class BlockDiagram(object):
             unique_ts_to_collect, unique_ts_to_collect_idx = \
                 np.unique(ts_to_collect, return_index=True)
 
-            if unique_ts_to_collect.size <= 3:
+            if unique_ts_to_collect.size <= 2:
                 warnings.warn("BlockDiagram encountered an event that"+
                     " could not be resolved due to insufficient steps"+
                     ". This is likely chatter, but may be solved by "+
