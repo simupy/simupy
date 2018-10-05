@@ -679,36 +679,59 @@ class BlockDiagram(object):
             unique_ts_to_collect, unique_ts_to_collect_idx = \
                 np.unique(ts_to_collect, return_index=True)
 
-            if unique_ts_to_collect.size <= 2:
-                warnings.warn("BlockDiagram encountered an event that"+
-                    " could not be resolved due to insufficient steps"+
-                    ". This is likely chatter, but may be solved by "+
-                    "increasing tolerances.")
-                break
+            #
+
+            # use vars check_states, check_outputs, check_events, r.t, (r.y?)
+            # in interpolatant
+            PRE_CROSS_MINIMUM = 3 # interpolant requires 4, I think, so 3 before the crossing
+
+            crossed_size = max(
+                PRE_CROSS_MINIMUM - unique_ts_to_collect.size, 0
+                ) + 1
+            crossed_times = np.empty(crossed_size)
+            crossed_states = np.empty((crossed_size, self.cum_states[-1]))
+            crossed_outputs = np.empty((crossed_size, self.cum_outputs[-1]))
+            crossed_events = np.empty((crossed_size, self.systems.size))
+
+            for crossed_idx in range(crossed_size):
+                crossed_times[crossed_idx] = r.t
+                crossed_states[crossed_idx,:] = check_states
+                crossed_outputs[crossed_idx,:] = check_outputs
+                crossed_events[crossed_idx,:] = check_events
+
+                if crossed_idx == crossed_size - 1:
+                    break
+
+                r.integrate(next_t)
+
+                check_states, check_outputs, check_events = \
+                    continuous_time_integration_step(r.t, r.y, False)
+            
+            ts_for_interpolant = np.r_[unique_ts_to_collect, crossed_times]
 
             state_values = results.x[
                 prev_event_idx:results.res_idx,
             ]
             state_values = np.r_[
-                state_values,
-                check_states.reshape(1,-1)
+                state_values[unique_ts_to_collect_idx, :],
+                crossed_states
             ]
 
             state_traj_callable = callable_from_trajectory(
-                unique_ts_to_collect,
-                state_values[unique_ts_to_collect_idx, :]
+                ts_for_interpolant,
+                state_values
             )
 
             output_values = results.y[prev_event_idx:results.res_idx]
 
             output_values = np.r_[
-                output_values,
-                check_outputs.reshape(1,-1)
+                output_values[unique_ts_to_collect_idx, :],
+                crossed_outputs
             ]
 
             output_traj_callable = callable_from_trajectory(
-                unique_ts_to_collect,
-                output_values[unique_ts_to_collect_idx, :]
+                ts_for_interpolant,
+                output_values
             )
 
             for sysidx in event_index_crossed:
@@ -762,16 +785,6 @@ class BlockDiagram(object):
                     )
 
             next_event_t = np.min(event_ts[event_index_crossed])
-            state_traj_callable = callable_from_trajectory(
-                unique_ts_to_collect,
-                np.r_[
-                    results.x[
-                        prev_event_idx:results.res_idx,
-                    ],
-                    r.y.reshape(1, -1)
-                ][unique_ts_to_collect_idx, :]
-            )
-
             left_t = next_event_t-event_find_options['xtol']/2
             left_x = state_traj_callable(left_t)
 
