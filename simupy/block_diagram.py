@@ -688,25 +688,44 @@ class BlockDiagram(object):
             crossed_size = max(
                 PRE_CROSS_MINIMUM - unique_ts_to_collect.size, 0
                 ) + 1
-            crossed_times = np.empty(crossed_size)
-            crossed_states = np.empty((crossed_size, self.cum_states[-1]))
-            crossed_outputs = np.empty((crossed_size, self.cum_outputs[-1]))
-            crossed_events = np.empty((crossed_size, self.systems.size))
-
-            for crossed_idx in range(crossed_size):
-                crossed_times[crossed_idx] = r.t
-                crossed_states[crossed_idx,:] = check_states
-                crossed_outputs[crossed_idx,:] = check_outputs
-                crossed_events[crossed_idx,:] = check_events
-
-                if crossed_idx == crossed_size - 1:
-                    break
-
-                r.integrate(next_t)
-
-                check_states, check_outputs, check_events = \
-                    continuous_time_integration_step(r.t, r.y, False)
+            crossed_times = np.zeros(crossed_size)
+            crossed_states = np.zeros((crossed_size, self.cum_states[-1]))
+            crossed_outputs = np.zeros((crossed_size, self.cum_outputs[-1]))
+            crossed_events = np.zeros((crossed_size, self.systems.size))
+            # use array allow in scope of result collector; not sure if needed
+            crossed_idx = [0]
             
+            def collect_integrator_results_events(t, state):
+                dxdt, output, events = \
+                    continuous_time_integration_step(t, state,
+                        for_integrator=False)
+
+                test_sel = results.res_idx - np.arange(3)-1
+                if ((t in results.t[test_sel] and
+                        state in results.x[test_sel, :] and
+                        output in results.y[test_sel, :]) or 
+                    (t in crossed_times and state in crossed_states and
+                        output in crossed_outputs)):
+                    return
+
+                crossed_times[crossed_idx[0]] = t
+                crossed_states[crossed_idx[0],:] = state
+                crossed_outputs[crossed_idx[0],:] = output
+                crossed_events[crossed_idx[0],:] = events
+                crossed_idx[0] += 1
+
+                if (crossed_idx[0] >= crossed_size):
+                    return -1
+
+
+            r.set_initial_value(r.y, r.t)
+            r.set_solout(collect_integrator_results_events)
+            r.integrate(next_t)
+
+            if dense_output:
+                r.set_solout(collect_integrator_results)
+            else:
+                r.set_solout(lambda *args: None)
             ts_for_interpolant = np.r_[unique_ts_to_collect, crossed_times]
 
             state_values = results.x[
