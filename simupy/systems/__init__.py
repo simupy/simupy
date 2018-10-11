@@ -116,10 +116,17 @@ class DynamicalSystem(object):
             self.update_equation_function = self._state_equation_function
         else:
             self._prev_input = (0, np.zeros(self.dim_input))
+            self._prev_output = 0
             def _update_equation_function(*args):
                 self._prev_input = args
+                self._prev_output = self._output_equation_function(*self._prev_input)
+            def _memoized_output_equation_function(*args):
+                if args in self._prev_output.keys():
+                    return self._prev_output[args]
+                else:
+                    self._prev_output[args] = None
             self.update_equation_function = _update_equation_function
-            self.output_equation_function = lambda *args: self._output_equation_function(*self._prev_input)
+            self.output_equation_function = lambda *args: self._prev_output
 
 
     @property
