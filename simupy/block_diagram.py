@@ -846,18 +846,24 @@ class BlockDiagram(object):
                       right_t,
                       state_values
                     )
-                else:
+                elif sys.dim_input:
                     update_return_value = sys.update_equation_function(
                       right_t, input_values)
+                else:
+                    update_return_value = sys.update_equation_function(
+                      right_t)
                 if sys.dim_state:
                     right_x[state_start:state_end] = \
                         update_return_value.reshape(-1)
 
                     right_y[output_start:output_end] = \
-                        sys.output_equation_function(right_t, update_return_value)
+                        sys.output_equation_function(right_t, update_return_value).squeeze()
+                elif sys.dim_input:
+                    right_y[output_start:output_end] = \
+                        sys.output_equation_function(right_t, input_values).squeeze()
                 else:
                     right_y[output_start:output_end] = \
-                        sys.output_equation_function(right_t, input_values)
+                        sys.output_equation_function(right_t).squeeze()
 
             new_states, new_outputs, new_events = \
                 continuous_time_integration_step(
