@@ -587,8 +587,10 @@ class BlockDiagram(object):
                 break
 
             # loop to integrate until next_t, while handling events
-            
-            r.integrate(next_t)
+            try:
+                r.integrate(next_t)
+            except KeyboardInterrupt as kbi:
+                break
 
             """
             possible branches:
