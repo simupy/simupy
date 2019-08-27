@@ -2,10 +2,12 @@ import numpy as np
 import sympy as sp
 import matplotlib.pyplot as plt
 from simupy.systems.symbolic import DynamicalSystem, dynamicsymbols
-from simupy.block_diagram import BlockDiagram
+from simupy.block_diagram import BlockDiagram, DEFAULT_INTEGRATOR_OPTIONS
 from simupy.array import Array, r_
 
 # This example simulates the Van der Pol oscillator.
+
+DEFAULT_INTEGRATOR_OPTIONS['nsteps'] = 1000
 
 x = x1, x2 = Array(dynamicsymbols('x1:3'))
 
