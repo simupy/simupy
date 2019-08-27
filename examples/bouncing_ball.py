@@ -41,7 +41,7 @@ sys = SwitchedSystem(
 )
 bd = BlockDiagram(sys)
 res = bd.simulate(
-    25, integrator_options=int_opts, event_find_options=find_opts
+    20.36, integrator_options=int_opts, event_find_options=find_opts
 )
 
 expr_subs = constants.copy()
@@ -53,8 +53,6 @@ tstar = ((x2 + v1*(1 + mu)/(1-mu))/g).evalf(subs=expr_subs)
 tvar = dynamicsymbols._t
 impact_eq = (x2*tvar - g*tvar**2/2 + x1).subs(expr_subs)
 t_impact = sp.solve(impact_eq, tvar)[-1]
-
-plt.ion()
 
 # tstar is where the ball should come to a rest, however due to numerical
 # error, it continues to chatter.

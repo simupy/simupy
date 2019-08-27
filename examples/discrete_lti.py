@@ -34,7 +34,8 @@ elif use_model == 1:
     m = 1
     d = 1
     b = 1
-    Ac = np.c_[[0, 1], [1, -b/m]]
+    k = 1
+    Ac = np.c_[[0, -k/m], [1, -b/m]]
     Bc = np.r_[0, d/m].reshape(-1, 1)
     Cc = np.eye(2)
     Dc = np.zeros((2, 1))
@@ -45,9 +46,9 @@ ct_sys.initial_condition = ic
 
 n, m = Bc.shape
 
-evals = np.sort(np.abs(
+evals = np.sort(np.abs(np.real(
     linalg.eig(Ac, left=False, right=False, check_finite=False)
-))
+)))
 dT = 1/(2*evals[-1])
 Tsim = (8/np.min(evals[~np.isclose(evals[np.nonzero(evals)], 0)])
         if np.sum(np.isclose(evals[np.nonzero(evals)], 0)) > 0
@@ -140,13 +141,13 @@ dteq_res = dteq_bd.simulate(Tsim)
 plt.figure()
 for st in range(n):
     plt.subplot(n+m, 1, st+1)
-    plt.plot(dtdt_res.t, dtdt_res.y[:, st], '+')
-    plt.plot(dteq_res.t, dteq_res.y[:, st], 'x')
+    plt.plot(dtdt_res.t, dtdt_res.y[:, st],)
+    plt.plot(dteq_res.t, dteq_res.y[:, st],)
     plt.ylabel('$x_{}(t)$'.format(st+1))
 for st in range(m):
     plt.subplot(n+m, 1, st+n+1)
-    plt.plot(dtdt_res.t, dtdt_res.y[:, st+n], '+')
-    plt.plot(dteq_res.t, -(Kd@dteq_res.y.T).T, 'x')
+    plt.plot(dtdt_res.t, dtdt_res.y[:, st+n],)
+    plt.plot(dteq_res.t, -(Kd@dteq_res.y.T).T,)
     plt.ylabel('$u(t)$')
     plt.xlabel('$t$, s')
 plt.subplot(n+m, 1, 1)

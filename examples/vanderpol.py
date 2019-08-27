@@ -5,8 +5,6 @@ from simupy.systems.symbolic import DynamicalSystem, dynamicsymbols
 from simupy.block_diagram import BlockDiagram
 from simupy.array import Array, r_
 
-plt.ion()
-
 # This example simulates the Van der Pol oscillator.
 
 x = x1, x2 = Array(dynamicsymbols('x1:3'))

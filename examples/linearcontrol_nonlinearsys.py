@@ -5,6 +5,7 @@ from simupy.systems import LTISystem
 from simupy.systems.symbolic import DynamicalSystem, dynamicsymbols
 from simupy.block_diagram import BlockDiagram
 from sympy.tensor.array import Array
+from numpy import matlib
 
 legends = [r'$x_1(t)$', r'$x_2(t)$', r'$x_3(t)$', r'$u(t)$']
 tF = 6

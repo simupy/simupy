@@ -4,8 +4,8 @@ from scipy import interpolate
 
 def callable_from_trajectory(t, curves):
     """
-    Use scipy.interpolate splprep to build cubic b-spline interpolating
-    functions over a set of curves.
+    Use scipy.interpolate.make_interp_spline to build cubic b-spline
+    interpolating functions over a set of curves.
 
     Parameters
     ----------
@@ -20,15 +20,10 @@ def callable_from_trajectory(t, curves):
     interpolated_callable : callable
         Callable which interpolates the given curve/trajectories
     """
-    tck_splprep = interpolate.splprep(
-        x=[curves[:, i] for i in range(curves.shape[1])], u=t, s=0)
+    bspline = interpolate.make_interp_spline(
+        y=curves, x=t)
 
-    def interpolated_callable(t, *args):
-        return np.array(
-            interpolate.splev(t, tck_splprep[0], der=0)
-        ).T.squeeze()
-
-    return interpolated_callable
+    return bspline
 
 
 def discrete_callable_from_trajectory(t, curves):

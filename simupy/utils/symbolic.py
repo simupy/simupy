@@ -4,8 +4,7 @@ from sympy.utilities.lambdify import implemented_function
 from sympy.physics.mechanics import dynamicsymbols
 from simupy.array import r_, Array
 
-sinc = implemented_function(sp.Function('sinc'), lambda x: np.sinc(x/np.pi))
-step = implemented_function(sp.Function('step'), lambda x: 1.0*(x >= 0))
+DEFAULT_LAMBDIFY_MODULES = ({'ImmutableMatrix': np.matrix, "atan2": np.arctan2}, "numpy", {"Mod": np.mod, "atan2": np.arctan2})
 
 
 def process_vector_args(args):
@@ -38,9 +37,7 @@ def process_vector_args(args):
     return tuple(new_args)
 
 
-def lambdify_with_vector_args(args, expr, modules=(
-            {'ImmutableMatrix': np.matrix}, "numpy", {"Mod": np.mod})
-        ):
+def lambdify_with_vector_args(args, expr, modules=DEFAULT_LAMBDIFY_MODULES):
     """
     A wrapper around sympy's lambdify where process_vector_args is used so
     generated callable can take arguments as either vector or individual

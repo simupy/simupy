@@ -502,6 +502,16 @@ class BlockDiagram(object):
         points for continuous.
 
         """
+
+        if ('max_step' in integrator_options) and \
+             (integrator_options['max_step'] == 0.0):
+            integrator_options = integrator_options.copy()
+            # TODO: find the harmonic to ensure no skipped steps?
+            if np.any(self.dts!=0.0):
+                integrator_options['max_step'] = np.min(self.dts[self.dts!=0.0])/2
+
+
+
         # generate tresult arrays; initialize x0
         results = SimulationResult(self.cum_states[-1], self.cum_outputs[-1],
                                    tspan, self.systems.size)

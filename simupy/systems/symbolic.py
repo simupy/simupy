@@ -1,14 +1,15 @@
 import sympy as sp
 from sympy.physics.mechanics import dynamicsymbols
 from sympy.physics.mechanics.functions import find_dynamicsymbols
-from simupy.utils.symbolic import lambdify_with_vector_args, grad
+from simupy.utils.symbolic import (lambdify_with_vector_args, grad, 
+    DEFAULT_LAMBDIFY_MODULES)
 from simupy.array import Array, empty_array
 
 from simupy.systems import DynamicalSystem as DynamicalSystemBase
 
 DEFAULT_CODE_GENERATOR = lambdify_with_vector_args
 DEFAULT_CODE_GENERATOR_ARGS = {
-    'modules': "numpy"
+    'modules': DEFAULT_LAMBDIFY_MODULES
 }
 
 
