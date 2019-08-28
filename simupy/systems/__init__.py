@@ -138,8 +138,13 @@ class DynamicalSystem(object):
     @initial_condition.setter
     def initial_condition(self, initial_condition):
         if initial_condition is not None:
-            assert initial_condition.size == self.dim_state
-            self._initial_condition = np.array(initial_condition).reshape(-1)
+            if isinstance(initial_condition, np.ndarray):
+                size = initial_condition.size
+            else:
+                size = len(initial_condition)
+            assert size == self.dim_state
+            self._initial_condition = np.array(initial_condition,
+                dtype=np.float_).reshape(-1)
         else:
             self._initial_condition = None
             
