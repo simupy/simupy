@@ -132,7 +132,7 @@ class DynamicalSystem(object):
     @property
     def initial_condition(self):
         if self._initial_condition is None:
-            return np.zeros(self.dim_state)
+            self._initial_condition = np.zeros(self.dim_state)
         return self._initial_condition
 
     @initial_condition.setter
