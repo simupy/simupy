@@ -148,7 +148,7 @@ class DynamicalSystem(DynamicalSystemBase):
                    )
 
             if self.dim_state:
-                assert find_dynamicsymbols(output_equation) <= set(self.state)
+                assert find_dynamicsymbols(output_equation) <= set(self.state) or set(self.input)
             else:
                 assert find_dynamicsymbols(output_equation) <= set(self.input)
 
