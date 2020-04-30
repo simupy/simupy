@@ -45,7 +45,7 @@ def discrete_callable_from_trajectory(t, curves):
         Callable which interpolates the given discrete-time curve/trajectories
     """
     local_time = np.array(t).copy()
-    local_curves = np.array(curves).copy()
+    local_curves = np.array(curves).reshape(local_time.shape[0], -1).copy()
     def nearest_neighbor_callable(t, *args):
         return local_curves[
             np.argmax((local_time.reshape(1,-1)>=np.array([t]).reshape(-1,1)),

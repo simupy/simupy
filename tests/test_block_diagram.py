@@ -255,7 +255,7 @@ def test_fixed_integration_step_equivalent(control_systems):
         atol=TEST_ATOL, rtol=TEST_RTOL
     )
 
-
+##
 def test_feedback_equivalent(simulation_results):
     # (A-BK) should be exactly same as system A,B under feedback K
     results, ct_sys, ct_ctr, dt_sys, dt_ctr, ref, Tsim, tspan, intname = \
@@ -264,8 +264,8 @@ def test_feedback_equivalent(simulation_results):
     intopts = block_diagram.DEFAULT_INTEGRATOR_OPTIONS.copy()
     intopts['name'] = intname
 
-    dt_equiv_sys = LTISystem(dt_sys.F - dt_sys.G @ dt_ctr.K,
-                             dt_sys.G @ dt_ctr.K, dt=dt_sys.dt)
+    dt_equiv_sys = LTISystem(dt_sys.F + dt_sys.G @ dt_ctr.K,
+                             -dt_sys.G @ dt_ctr.K, dt=dt_sys.dt)
     dt_equiv_sys.initial_condition = dt_sys.initial_condition
 
     dt_bd = BlockDiagram(dt_equiv_sys, ref)
@@ -282,8 +282,8 @@ def test_feedback_equivalent(simulation_results):
         atol=TEST_ATOL, rtol=TEST_RTOL
     )
 
-    ct_equiv_sys = LTISystem(ct_sys.F - ct_sys.G @ ct_ctr.K,
-                             ct_sys.G @ ct_ctr.K)
+    ct_equiv_sys = LTISystem(ct_sys.F + ct_sys.G @ ct_ctr.K,
+                             -ct_sys.G @ ct_ctr.K)
     ct_equiv_sys.initial_condition = ct_sys.initial_condition
 
     ct_bd = BlockDiagram(ct_equiv_sys, ref)

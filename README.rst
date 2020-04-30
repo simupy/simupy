@@ -117,11 +117,20 @@ documentation and docstrings are also available for reference.
 Installation
 ------------
 
-SimuPy is ``pip`` installable
+Version 1.0 of SimuPy is ``pip`` installable
 
 .. code-block:: bash
 
    $ pip install simupy
+
+However, the latest features and examples are only available in the development
+version. To install,
+
+.. code-block:: bash
+
+  $ git clone https://github.com/simupy/simupy.git 
+  $ pip install -e simupy
+
 
 SimuPy has been tested locally against
 
