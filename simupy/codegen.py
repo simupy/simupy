@@ -208,7 +208,7 @@ class ModulePrinter(_EvaluatorPrinter):
         printer = self._exprrepr.__self__
         lines = []
         for module in set(printer.known_func_modules.values()) | set(printer.known_constant_modules.values()):
-            if module != '':
+            if module != '' and not (printer.for_class and module == 'self'):
                 lines.append("import {}".format(module))
         
         lines.append("\n")
