@@ -4,7 +4,75 @@ from sympy.printing.pycode import NumPyPrinter
 from sympy.utilities.lambdify import _EvaluatorPrinter
 from sympy.codegen.ast import AssignmentBase, Symbol, Element, Variable
 from sympy.core.function import AppliedUndef
-from sympy.core.compatibility import iterable
+from sympy.core.compatibility import iterable, PY3, string_types
+import keyword
+import re
+
+t = dynamicsymbols._t
+
+def staticfy_expressions(expr):
+    """
+    Converts dynamic symbols (i.e., symbols which are implied functions of time)
+    to static symbols in expr. Many codegen operations need dynamic symbols
+    converted to static.
+    """
+    dyn_syms = list(sp.physics.mechanics.functions.find_dynamicsymbols(expr))
+    dynamic_to_static = {}
+    for sym in dyn_syms:
+        if (len(sym.args) == 1) and sym.args[0] == t:
+            dynamic_to_static[sym] = sp.symbols(sym.__class__.__name__)
+    
+    if len(dynamic_to_static) == 0:
+        return expr
+    
+    new_expr = expr.subs(dynamic_to_static)
+    
+    if (sp.Function in expr.__class__.__mro__) and hasattr(expr, 'shape'):
+        new_expr.shape = expr.shape
+    
+    return new_expr
+
+def process_funcs_to_print(funcs_to_print):
+    """
+    Prepares a set of sympy expressions to be printed with CSE. The `dict`\s
+    are modified in-place.
+
+    funcs_to_print is an iterable of dicts with keys:
+        'extra_assignments', a dict of exta assignments before CSE
+        'input_args', an Array of the input arguments
+        'sym_expr', the symbolic expression to print with CSE
+    """
+
+    code_print_params = []
+    for funcs_to_print_dict in funcs_to_print:
+        extras_dict = {} #funcs_to_print_dict['extra_assignments'].copy()
+        for key,val in funcs_to_print_dict['extra_assignments'].items():
+            #print(key, val)
+            static_key = staticfy_expressions(key)
+            static_val = staticfy_expressions(val)
+            extras_dict[static_key] = static_val
+        funcs_to_print_dict['extra_assignments'] = extras_dict
+        funcs_to_print_dict['input_args'] = staticfy_expressions(funcs_to_print_dict['input_args'])
+        funcs_to_print_dict['sym_expr'] = staticfy_expressions(funcs_to_print_dict['sym_expr'])
+
+        tot_size = 1
+        if hasattr(funcs_to_print_dict['sym_expr'], 'shape'):
+            raveled_shape = funcs_to_print_dict['sym_expr'].shape
+            for dim in raveled_shape:
+                tot_size = tot_size*dim
+            funcs_to_print_dict['sym_expr'] = funcs_to_print_dict['sym_expr'].reshape(tot_size).tolist()
+
+        cse_out = sp.cse(funcs_to_print_dict['sym_expr'], order='none')
+        cse_subs = {k:v for k,v in cse_out[0]}
+        funcs_to_print_dict['extra_assignments'].update(cse_subs)
+
+        if tot_size > 1:
+            funcs_to_print_dict['sym_expr'] = sp.Array(cse_out[1]).reshape(*raveled_shape)
+        else:
+            funcs_to_print_dict['sym_expr'] = cse_out[1][0]
+
+        code_print_params.append( (funcs_to_print_dict['num_name'], funcs_to_print_dict['input_args'], funcs_to_print_dict['sym_expr'], funcs_to_print_dict['extra_assignments']) )
+    return code_print_params
 
 class Assignment(AssignmentBase):
     """
@@ -152,6 +220,10 @@ class ModuleNumPyPrinter(ArrayNumPyPrinter):
         self.known_constant_names = new_constant_names
         self.functions_not_supported = set()
         self.constants_not_supported = set()
+
+    def _traverse_matrix_indices(self, mat):
+        rows, cols = mat.shape
+        return ((i, j) for i in range(rows) for j in range(cols))
         
     def _print_Symbol(self, expr):
         super_ret = super()._print_Symbol(expr)
@@ -204,6 +276,19 @@ class ModuleNumPyPrinter(ArrayNumPyPrinter):
         
 
 class ModulePrinter(_EvaluatorPrinter):
+    _safe_star_args = re.compile(r'^\*{0,2}')
+
+    if PY3:
+        @classmethod
+        def _is_safe_ident(cls, ident):
+            return isinstance(ident, string_types) and cls._safe_star_args.sub('',ident).isidentifier() \
+                    and not keyword.iskeyword(ident)
+    else:
+        @classmethod
+        def _is_safe_ident(cls, ident):
+            return isinstance(ident, string_types) and cls._safe_ident_re.match(cls._safe_star_args.sub('',ident)) \
+                and not (keyword.iskeyword(ident) or ident == 'None')
+
     def codeprint(self, func_arg_expr_s):
         printer = self._exprrepr.__self__
         lines = []
