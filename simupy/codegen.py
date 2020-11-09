@@ -289,13 +289,14 @@ class ModulePrinter(_EvaluatorPrinter):
             return isinstance(ident, string_types) and cls._safe_ident_re.match(cls._safe_star_args.sub('',ident)) \
                 and not (keyword.iskeyword(ident) or ident == 'None')
 
-    def codeprint(self, func_arg_expr_s):
+    def codeprint(self, func_arg_expr_s, extra_pre_lines='', extra_post_lines=''):
         printer = self._exprrepr.__self__
         lines = []
         for module in set(printer.known_func_modules.values()) | set(printer.known_constant_modules.values()):
             if module != '' and not (printer.for_class and module == 'self'):
                 lines.append("import {}".format(module))
-        
+        if extra_pre_lines != '':
+            lines.append(extra_pre_lines)
         lines.append("\n")
         for func_arg_expr in func_arg_expr_s:
             if len(func_arg_expr)==4:
@@ -318,8 +319,10 @@ class ModulePrinter(_EvaluatorPrinter):
                         pass
                     else:
                         raise ValueError("Unknown symbol {} in ModulePrinter".format(str(const)))
-            
-        
+
+        if extra_post_lines != '':
+            lines.append(extra_post_lines)
+
         if len(printer.functions_not_supported):
             raise ValueError("Unknown functions in ModulePrinter", printer.functions_not_supported)
         return "\n".join(lines)
