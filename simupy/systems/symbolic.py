@@ -3,7 +3,7 @@ from sympy.physics.mechanics import dynamicsymbols
 from sympy.physics.mechanics.functions import find_dynamicsymbols
 from simupy.utils.symbolic import (lambdify_with_vector_args, grad, 
     DEFAULT_LAMBDIFY_MODULES)
-from simupy.array import Array, empty_array
+from simupy.array import Array
 
 from simupy.systems import DynamicalSystem as DynamicalSystemBase
 
@@ -12,6 +12,7 @@ DEFAULT_CODE_GENERATOR_ARGS = {
     'modules': DEFAULT_LAMBDIFY_MODULES
 }
 
+empty_array = lambda: []
 
 class DynamicalSystem(DynamicalSystemBase):
     def __init__(self, state_equation=None, state=None, input_=None,
@@ -148,7 +149,7 @@ class DynamicalSystem(DynamicalSystemBase):
                    )
 
             if self.dim_state:
-                assert find_dynamicsymbols(output_equation) <= set(self.state) or set(self.input)
+                assert find_dynamicsymbols(output_equation) <= set(self.state) # or set(self.input) TODO: augment state to allow inputs in output equation if two systems (one stateless and one statefull) are placed in parallel.
             else:
                 assert find_dynamicsymbols(output_equation) <= set(self.input)
 
