@@ -105,6 +105,8 @@ class BlockDiagram(object):
         self.cum_states = np.array([0], dtype=np.int_)
         self.cum_events = np.array([0], dtype=np.int_)
 
+        self.eval_order_cache = None;
+
         self.inputs = np.array([], dtype=np.bool_).reshape((0,0))
         self.dim_input = 0
 
@@ -189,6 +191,9 @@ class BlockDiagram(object):
         self.connections[:, inputs] = False
 
         self.inputs[channels, inputs] = True
+        
+        # Invalidate evaluation order
+        self.eval_order_cache = None;
 
 
     def connect(self, from_system_output, to_system_input, outputs=[], 
@@ -235,6 +240,9 @@ class BlockDiagram(object):
         self.connections[:, inputs] = False
 
         self.connections[outputs, inputs] = True
+        
+        # Invalidate evaluation order
+        self.eval_order_cache = None;
 
     def add_system(self, system):
         """
@@ -266,6 +274,9 @@ class BlockDiagram(object):
                                   ((0, 0),
                                    (0, system.dim_input)),
                                   'constant', constant_values=0)
+        
+        # Invalidate evaluation order
+        self.eval_order_cache = None;
 
     @property
     def eval_order(self):
@@ -273,48 +284,51 @@ class BlockDiagram(object):
         Evaluation order for all systems compatible with their input-dependencies.
         """
         
-        # We use Kahn's algorithm for sorting.
-        # For that, we need to determine the connections between systems.
-        # First cumulate all connections by the output axis
-        cum_outgoing_conns_by_output = np.vstack((np.zeros(self.cum_inputs[-1],dtype=int),np.cumsum(self.connections,axis=0)));
-        # Get only the cumulative sums of outgoing connections by source system
-        cum_outgoing_conns_by_source_system = cum_outgoing_conns_by_output[self.cum_outputs,:];
-        # Determine flags indicating whether a given source system is connected to a specific input
-        outgoing_conns_by_source_system = np.diff(cum_outgoing_conns_by_source_system,axis=0)>0;
-        # Cumulate all connections by the input axis
-        cum_incoming_conns_by_input = np.hstack((np.zeros((len(self.systems),1),dtype=int),np.cumsum(outgoing_conns_by_source_system,axis=1)));
-        # Get only the cumulative sums of incoming connections by systems
-        cum_incoming_conns_by_dest_system = cum_incoming_conns_by_input[:,self.cum_inputs];
-        # Determine flags indicating whether a given source system is connected to a target system
-        connections_by_system = np.diff(cum_incoming_conns_by_dest_system,axis=1)>0;
-        # Also determine the number of incoming connections by destination system
-        unsatisfied_connections_by_dest = np.sum(connections_by_system,axis=0);
+        if self.eval_order_cache is None:
+           # We use Kahn's algorithm for sorting.
+           # For that, we need to determine the connections between systems.
+           # First cumulate all connections by the output axis
+           cum_outgoing_conns_by_output = np.vstack((np.zeros(self.cum_inputs[-1],dtype=int),np.cumsum(self.connections,axis=0)));
+           # Get only the cumulative sums of outgoing connections by source system
+           cum_outgoing_conns_by_source_system = cum_outgoing_conns_by_output[self.cum_outputs,:];
+           # Determine flags indicating whether a given source system is connected to a specific input
+           outgoing_conns_by_source_system = np.diff(cum_outgoing_conns_by_source_system,axis=0)>0;
+           # Cumulate all connections by the input axis
+           cum_incoming_conns_by_input = np.hstack((np.zeros((len(self.systems),1),dtype=int),np.cumsum(outgoing_conns_by_source_system,axis=1)));
+           # Get only the cumulative sums of incoming connections by systems
+           cum_incoming_conns_by_dest_system = cum_incoming_conns_by_input[:,self.cum_inputs];
+           # Determine flags indicating whether a given source system is connected to a target system
+           connections_by_system = np.diff(cum_incoming_conns_by_dest_system,axis=1)>0;
+           # Also determine the number of incoming connections by destination system
+           unsatisfied_connections_by_dest = np.sum(connections_by_system,axis=0);
+           
+           # Now we run the algorithm
+           # S contains the list of systems which can currently provide outputs.
+           # In the beginning these are all stateful systems and all memoryless systems without inputs.
+           # In the beginning, these are all systems which do not have any inputs.
+           S = [sysidx for sysidx in range(len(self.systems)) if self.cum_states[sysidx]<self.cum_states[sysidx+1] or self.cum_inputs[sysidx]==self.cum_inputs[sysidx+1]];
+           # L will contain the order in which the systems will have to be evaluated.
+           L = [];
+           
+           # Keep going as long as we have systems which can be evaluated
+           while len(S)>0:
+               srcidx = S.pop();
+               # The system given by srcidx is ready to be evaluated.
+               L.append(srcidx);
+               # Iterate over all outgoing edges of srcidx
+               for destidx in range(len(self.systems)):
+                  if connections_by_system[srcidx,destidx]:
+                     # There is an edge from srcidx to destidx => remove it.
+                     connections_by_system[srcidx,destidx] = False;
+                     unsatisfied_connections_by_dest[destidx]=unsatisfied_connections_by_dest[destidx]-1;
+                     if unsatisfied_connections_by_dest[destidx]==0 and self.cum_states[destidx]==self.cum_states[destidx+1]:
+                        # All incoming connections for system destidx are satisfied => schedule it for calculation.
+                        # However, we do not re-schedule stateful systems, as these are already scheduled in the beginning
+                        S.append(destidx);
+           
+           self.eval_order_cache = L;
         
-        # Now we run the algorithm
-        # S contains the list of systems which can currently provide outputs.
-        # In the beginning these are all stateful systems and all memoryless systems without inputs.
-        # In the beginning, these are all systems which do not have any inputs.
-        S = [sysidx for sysidx in range(len(self.systems)) if self.cum_states[sysidx]<self.cum_states[sysidx+1] or self.cum_inputs[sysidx]==self.cum_inputs[sysidx+1]];
-        # L will contain the order in which the systems will have to be evaluated.
-        L = [];
-        
-        # Keep going as long as we have systems which can be evaluated
-        while len(S)>0:
-            srcidx = S.pop();
-            # The system given by srcidx is ready to be evaluated.
-            L.append(srcidx);
-            # Iterate over all outgoing edges of srcidx
-            for destidx in range(len(self.systems)):
-               if connections_by_system[srcidx,destidx]:
-                  # There is an edge from srcidx to destidx => remove it.
-                  connections_by_system[srcidx,destidx] = False;
-                  unsatisfied_connections_by_dest[destidx]=unsatisfied_connections_by_dest[destidx]-1;
-                  if unsatisfied_connections_by_dest[destidx]==0 and self.cum_states[destidx]==self.cum_states[destidx+1]:
-                     # All incoming connections for system destidx are satisfied => schedule it for calculation.
-                     # However, we do not re-schedule stateful systems, as these are already scheduled in the beginning
-                     S.append(destidx);
-        
-        return L;
+        return self.eval_order_cache;
 
     def output_equation_function(self, t, state, input_=None, update_memoryless_event=False):
         output = np.zeros(self.cum_outputs[-1])
