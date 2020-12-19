@@ -267,53 +267,99 @@ class BlockDiagram(object):
                                    (0, system.dim_input)),
                                   'constant', constant_values=0)
 
+    @property
+    def eval_order(self):
+        """
+        Evaluation order for all systems compatible with their input-dependencies.
+        """
+        
+        # We use Kahn's algorithm for sorting.
+        # For that, we need to determine the connections between systems.
+        # First cumulate all connections by the output axis
+        cum_outgoing_conns_by_output = np.vstack((np.zeros(self.cum_inputs[-1],dtype=int),np.cumsum(self.connections,axis=0)));
+        # Get only the cumulative sums of outgoing connections by source system
+        cum_outgoing_conns_by_source_system = cum_outgoing_conns_by_output[self.cum_outputs,:];
+        # Determine flags indicating whether a given source system is connected to a specific input
+        outgoing_conns_by_source_system = np.diff(cum_outgoing_conns_by_source_system,axis=0)>0;
+        # Cumulate all connections by the input axis
+        cum_incoming_conns_by_input = np.hstack((np.zeros((len(self.systems),1),dtype=int),np.cumsum(outgoing_conns_by_source_system,axis=1)));
+        # Get only the cumulative sums of incoming connections by systems
+        cum_incoming_conns_by_dest_system = cum_incoming_conns_by_input[:,self.cum_inputs];
+        # Determine flags indicating whether a given source system is connected to a target system
+        connections_by_system = np.diff(cum_incoming_conns_by_dest_system,axis=1)>0;
+        # Also determine the number of incoming connections by destination system
+        unsatisfied_connections_by_dest = np.sum(connections_by_system,axis=0);
+        
+        # Now we run the algorithm
+        # S contains the list of systems which can currently provide outputs.
+        # In the beginning these are all stateful systems and all memoryless systems without inputs.
+        # In the beginning, these are all systems which do not have any inputs.
+        S = [sysidx for sysidx in range(len(self.systems)) if self.cum_states[sysidx]<self.cum_states[sysidx+1] or self.cum_inputs[sysidx]==self.cum_inputs[sysidx+1]];
+        # L will contain the order in which the systems will have to be evaluated.
+        L = [];
+        
+        # Keep going as long as we have systems which can be evaluated
+        while len(S)>0:
+            srcidx = S.pop();
+            # The system given by srcidx is ready to be evaluated.
+            L.append(srcidx);
+            # Iterate over all outgoing edges of srcidx
+            for destidx in range(len(self.systems)):
+               if connections_by_system[srcidx,destidx]:
+                  # There is an edge from srcidx to destidx => remove it.
+                  connections_by_system[srcidx,destidx] = False;
+                  unsatisfied_connections_by_dest[destidx]=unsatisfied_connections_by_dest[destidx]-1;
+                  if unsatisfied_connections_by_dest[destidx]==0 and self.cum_states[destidx]==self.cum_states[destidx+1]:
+                     # All incoming connections for system destidx are satisfied => schedule it for calculation.
+                     # However, we do not re-schedule stateful systems, as these are already scheduled in the beginning
+                     S.append(destidx);
+        
+        return L;
+
     def output_equation_function(self, t, state, input_=None, update_memoryless_event=False):
         output = np.zeros(self.cum_outputs[-1])
         input_ = input_ if input_ is not None else np.zeros(self.dim_input)
-        # compute outputs for full systems, y[t_k]=h(t_k,x[t_k])
-        for sysidx in np.where((np.diff(self.cum_states) > 0))[0]:
+        for sysidx in self.eval_order:
             sys = self.systems[sysidx]
             output_start = self.cum_outputs[sysidx]
             output_end = self.cum_outputs[sysidx+1]
-            state_start = self.cum_states[sysidx]
-            state_end = self.cum_states[sysidx+1]
+            if self.cum_states[sysidx]<self.cum_states[sysidx+1]:
+               # compute outputs for full system, y[t_k]=h(t_k,x[t_k])
+               state_start = self.cum_states[sysidx]
+               state_end = self.cum_states[sysidx+1]
 
-            state_values = state[state_start:state_end]
-            output[output_start:output_end] = \
-                sys.output_equation_function(t, state_values).reshape(-1)
-
-        # compute outputs for memoryless systems, y[t_k]=h(t_k,u[t_k])
-        for sysidx in np.where((np.diff(self.cum_states) == 0))[0][::-1]:
-            sys = self.systems[sysidx]
-            output_start = self.cum_outputs[sysidx]
-            output_end = self.cum_outputs[sysidx+1]
-            input_start = self.cum_inputs[sysidx]
-            input_end = self.cum_inputs[sysidx+1]
-
-            input_values = np.zeros(sys.dim_input)
-            
-            input_index, output_index = np.where(
-                self.connections[:, input_start:input_end].T
-            )
-            input_values[input_index] = output[output_index]
-
-            input_index, as_sys_input_index = np.where(
-                self.inputs[:, input_start:input_end].T
-            )
-            
-            if as_sys_input_index.size:
-                input_values[input_index] = input_[as_sys_input_index]
-
-            if sys.dim_input:
-                if self.events[sysidx] and update_memoryless_event:
-                    sys.update_equation_function(t, input_values)
-                output[output_start:output_end] = \
-                  sys.output_equation_function(t, input_values).reshape(-1)
+               state_values = state[state_start:state_end]
+               output[output_start:output_end] = \
+                   sys.output_equation_function(t, state_values).reshape(-1)
             else:
-                if self.events[sysidx] and update_memoryless_event:
-                    sys.update_equation_function(t)
-                output[output_start:output_end] = \
-                  sys.output_equation_function(t).reshape(-1)
+               # compute outputs for memoryless system, y[t_k]=h(t_k,u[t_k])
+               input_start = self.cum_inputs[sysidx]
+               input_end = self.cum_inputs[sysidx+1]
+
+               input_values = np.zeros(sys.dim_input)
+               
+               input_index, output_index = np.where(
+                   self.connections[:, input_start:input_end].T
+               )
+               input_values[input_index] = output[output_index]
+
+               input_index, as_sys_input_index = np.where(
+                   self.inputs[:, input_start:input_end].T
+               )
+               
+               if as_sys_input_index.size:
+                   input_values[input_index] = input_[as_sys_input_index]
+
+               if sys.dim_input:
+                   if self.events[sysidx] and update_memoryless_event:
+                       sys.update_equation_function(t, input_values)
+                   output[output_start:output_end] = \
+                     sys.output_equation_function(t, input_values).reshape(-1)
+               else:
+                   if self.events[sysidx] and update_memoryless_event:
+                       sys.update_equation_function(t)
+                   output[output_start:output_end] = \
+                     sys.output_equation_function(t).reshape(-1)
 
         return output
 
