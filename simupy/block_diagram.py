@@ -329,6 +329,48 @@ class BlockDiagram(object):
            self.eval_order_cache = L;
         
         return self.eval_order_cache;
+    
+    def get_system_state_indices(self, system, states=[]):
+        """
+        Get the indices of the respective states within the state vector of this block diagram.
+        
+        Parameters
+        ----------
+        system: dynamical_system
+            The system (already added to BlockDiagram) for which the state indices will be determined.
+        states : list-like, optional
+            Local selector indices of the states to be found in the block state vector. If not specified or of
+            length 0, will consider all states of the respective system.
+        """
+        if len(states)==0:
+            states = np.arange(len(system.dim_state));
+        else:
+            states = np.asarray(states);
+        states = states + self.cum_states[
+                     np.where(self.systems==system)
+               ];
+        return states;
+    
+    def get_system_output_indices(self, system, outputs=[]):
+        """
+        Get the indices of the respective outputs within the output vector of this block diagram.
+        
+        Parameters
+        ----------
+        system: dynamical_system
+            The system (already added to BlockDiagram) for which the output indices will be determined.
+        outputs : list-like, optional
+            Local selector indices of the outputs to be found in the block output vector. If not specified or of
+            length 0, will consider all outputs of the respective system.
+        """
+        if len(outputs)==0:
+            outputs = np.arange(len(system.dim_output));
+        else:
+            outputs = np.asarray(outputs);
+        outputs = outputs + self.cum_outputs[
+                     np.where(self.systems==system)
+               ];
+        return outputs;
 
     def output_equation_function(self, t, state, input_=None, update_memoryless_event=False):
         output = np.zeros(self.cum_outputs[-1])
