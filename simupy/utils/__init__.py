@@ -25,6 +25,34 @@ def callable_from_trajectory(t, curves):
 
     return bspline
 
+def isclose(t1, y1, t2, y2, atol=1E-8, rtol=1E-5, mode='numpy'):
+    """
+    Compare two trajectories
+
+    Parameters
+    ---------- 
+    mode : {'numpy' or 'pep485'}
+    """
+    y1 = y1.reshape(t1.shape[0], -1)
+    y2 = y2.reshape(t2.shape[0], -1)
+    if y1.shape[1] != y2.shape[1]:
+        raise ValueError("y1 and y2 should be the same dimension to compare")
+    interp1 = interpolate.make_interp_spline(t1, y1)
+    interp2 = interpolate.make_interp_spline(t2, y2)
+    eval_t_list = list(set(t1) | set(t2))
+    eval_t_list.sort()
+    eval_t = np.array(eval_t_list)
+    eval_y1 = interp1(eval_t)
+    eval_y2 = interp2(eval_t)
+
+    if mode=='numpy':
+        return np.all(np.isclose(eval_y1, eval_y2, rtol=rtol, atol=atol), axis=0)
+    elif mode=='pep485':
+        return np.all(np.abs(a - b) <= np.max(rtol*np.max(a, b), atol), axis=0)
+
+
+
+
 
 def discrete_callable_from_trajectory(t, curves):
     """
