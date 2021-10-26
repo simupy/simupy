@@ -10,12 +10,12 @@ need_output_equation_function_msg = ("if dim_state == 0, DynamicalSystem must"
 zero_dim_output_msg = "A DynamicalSystem must provide an output"
 
 
-def full_state_output(*args):
+def full_state_output(t, x, *args):
     """
     A drop-in ``output_equation_function`` for stateful systems that provide
     output the full state directly.
     """
-    return np.r_[args][1:]
+    return x
 
 
 class DynamicalSystem(object):
@@ -43,7 +43,7 @@ class DynamicalSystem(object):
     def __init__(self, state_equation_function=None,
                  output_equation_function=None, event_equation_function=None,
                  update_equation_function=None, dim_state=0, dim_input=0,
-                 dim_output=0, dt=0, initial_condition=None):
+                 dim_output=0, num_events=0, dt=0, initial_condition=None):
         """
         Parameters
         ----------
@@ -63,6 +63,8 @@ class DynamicalSystem(object):
             Dimension of the system input. Optional, defaults to 0.
         dim_output : int, optional
             Dimension of the system output. Optional, defaults to dim_state.
+        num_events : int, optional
+            Dimension of the system event functions. Optional, defaults to 0.
         dt : float, optional
             Sample rate of the system. Optional, defaults to 0 representing a
             continuous time system. 
@@ -73,6 +75,8 @@ class DynamicalSystem(object):
         self.dim_state = dim_state
         self.dim_input = dim_input
         self.dim_output = dim_output or dim_state
+        self.num_events = num_events
+
 
         self.state_equation_function = state_equation_function
 
@@ -86,7 +90,12 @@ class DynamicalSystem(object):
 
         self.event_equation_function = event_equation_function
         self.update_equation_function = update_equation_function
-
+        """
+        if (((self.event_equation_function is None) != (self.num_events == 0)) or
+                ((self.update_equation_function is None) != ( self.num_events == 0))):
+            raise ValueError("Cannot provide event_equation_function or " + 
+                             "update_equation_function without providing dimension 
+        """
         self.dt = dt
 
         self.validate()
@@ -100,11 +109,10 @@ class DynamicalSystem(object):
         if dt <= 0:
             self._dt = 0
             return
-        if (self.event_equation_function is not None  
-                and self.update_equation_function is not None):
-            raise ValueError("Cannot set dt > 0 and the event API with " +
-                             "event_equation_function and " +
-                             "update_equation_function.")
+        if self.num_events != 0:
+            raise ValueError("Cannot set dt > 0 and use event API " +
+                             "with non-zero num_events")
+        self.num_events = 1
         self._dt = dt
         self.event_equation_function = lambda t, *args: (np.sin(np.pi*t/self.dt))
         #    if t else np.sin(np.finfo(np.float_).eps))
