@@ -88,14 +88,16 @@ class DynamicalSystem(object):
 
         self.initial_condition = initial_condition
 
-        self.event_equation_function = event_equation_function
-        self.update_equation_function = update_equation_function
-        """
-        if (((self.event_equation_function is None) != (self.num_events == 0)) or
-                ((self.update_equation_function is None) != ( self.num_events == 0))):
+        if ((num_events != 0) and ((event_equation_function is None) or
+        (update_equation_function is None))):
             raise ValueError("Cannot provide event_equation_function or " + 
-                             "update_equation_function without providing dimension 
-        """
+                             "update_Equation_function with num_events == 0")
+
+        self.event_equation_function = event_equation_function
+        # TODO: do some defensive checks and/or wrapping of update function to consume
+        # a channel number
+        self.update_equation_function = update_equation_function
+
         self.dt = dt
 
         self.validate()
@@ -121,18 +123,14 @@ class DynamicalSystem(object):
         self.state_equation_function = \
             lambda *args: np.zeros(self.dim_state)
         if self.dim_state:
-            self.update_equation_function = self._state_equation_function
+            self.update_equation_function = (
+                lambda *args, event_channels=0: self._state_equation_function(*args)
+            )
         else:
-            self._prev_input = (0, np.zeros(self.dim_input))
             self._prev_output = 0
-            def _update_equation_function(*args):
-                self._prev_input = args
-                self._prev_output = self._output_equation_function(*self._prev_input)
-            def _memoized_output_equation_function(*args):
-                if args in self._prev_output.keys():
-                    return self._prev_output[args]
-                else:
-                    self._prev_output[args] = None
+            def _update_equation_function(*args, event_channels=0):
+                self._prev_output = self._output_equation_function(*args)
+
             self.update_equation_function = _update_equation_function
             self.output_equation_function = lambda *args: self._prev_output
 
@@ -155,10 +153,14 @@ class DynamicalSystem(object):
                 dtype=np.float_).reshape(-1)
         else:
             self._initial_condition = None
-            
 
-    def prepare_to_integrate(self):
-        return
+    def prepare_to_integrate(self, t0, state_or_input=None):
+        if not self.dim_state and self.num_events:
+            self.update_equation_function(t0, state_or_input)
+        if self.dim_state or self.dim_input:
+            return self.output_equation_function(t0, state_or_input)
+        else:
+            return self.output_equation_function(t0)
 
     def validate(self):
         if self.dim_output == 0:
@@ -385,6 +387,7 @@ class LTISystem(DynamicalSystem):
         if len(args) not in (1, 2, 3):
             raise ValueError("LTI system expects 1, 2, or 3 args")
 
+        self.num_events = 0
         self.event_equation_function = None
         self.update_equation_function = None
 

@@ -125,8 +125,8 @@ class BlockDiagram(object):
 
     @property
     def initial_condition(self):
-        x0 = np.zeros(self.cum_states[-1])  # TODO: pre-allocate?
-        for sysidx in np.where(self.systems)[0]:
+        x0 = np.zeros(self.dim_state)  # TODO: pre-allocate?
+        for sysidx in range(len(self.systems)):
             sys = self.systems[sysidx]
             state_start = self.cum_states[sysidx]
             state_end = self.cum_states[sysidx + 1]
@@ -146,13 +146,62 @@ class BlockDiagram(object):
         # TODO: allow internal outputs to be "closed"? For now, no
         return self.cum_outputs[-1]
 
-    @property
-    def dt(self):
-        return self.dts.min()
+    # @property
+    # def dt(self):
+    #     return self._dt
 
-    def prepare_to_integrate(self):
-        for sys in self.systems:
-            sys.prepare_to_integrate()
+    def prepare_to_integrate(self, t, state):
+        # compute outputs for full systems, y[t_k]=h(t_k,x[t_k])
+        output = np.zeros(self.dim_output)
+
+        self._stateful_idx = np.where((self.states > 0))[0]
+        self._stateless_idx = np.where((self.states == 0))[0][::-1]
+        self._stateless_event_idx = np.where((self.states == 0) & self.events)[0]
+        self._stateful_event_idx = np.where((self.states > 0) & self.events)[0]
+
+        for sysidx in self._stateful_idx:
+            sys = self.systems[sysidx]
+            output_start = self.cum_outputs[sysidx]
+            output_end = self.cum_outputs[sysidx + 1]
+            state_start = self.cum_states[sysidx]
+            state_end = self.cum_states[sysidx + 1]
+
+            state_values = state[state_start:state_end]
+            output[output_start:output_end] = sys.prepare_to_integrate(
+                t, state_values
+            ).reshape(-1)
+
+        # compute outputs for memoryless systems, y[t_k]=h(t_k,u[t_k])
+        for sysidx in self._stateless_idx:
+            sys = self.systems[sysidx]
+            output_start = self.cum_outputs[sysidx]
+            output_end = self.cum_outputs[sysidx + 1]
+            input_start = self.cum_inputs[sysidx]
+            input_end = self.cum_inputs[sysidx + 1]
+
+            input_values = np.zeros(sys.dim_input)
+
+            input_index, output_index = np.where(
+                self.connections[:, input_start:input_end].T
+            )
+            input_values[input_index] = output[output_index]
+
+            input_index, as_sys_input_index = np.where(
+                self.inputs[:, input_start:input_end].T
+            )
+
+            if as_sys_input_index.size:
+                # TODO: 
+                input_values[input_index] = 0. # input_[as_sys_input_index]
+
+            if sys.dim_input:
+                output[output_start:output_end] = sys.prepare_to_integrate(
+                    t, input_values)
+            else:
+                output[output_start:output_end] = sys.prepare_to_integrate(t)
+        return output
+
+
 
     def create_input(self, to_system_input, channels=[], inputs=[]):
         """
@@ -274,6 +323,10 @@ class BlockDiagram(object):
         )
 
         self.dts = np.append(self.dts, getattr(system, "dt", 0))
+        if np.any(self.dts != 0.):
+            self.dt = np.min(self.dts[self.dts != 0.])
+        else:
+            self.dt = 0.
         self.connections = np.pad(
             self.connections,
             ((0, system.dim_output), (0, system.dim_input)),
@@ -284,13 +337,15 @@ class BlockDiagram(object):
             self.inputs, ((0, 0), (0, system.dim_input)), "constant", constant_values=0
         )
 
-    def output_equation_function(
-        self, t, state, input_=None, update_memoryless_event=False
-    ):
-        output = np.zeros(self.cum_outputs[-1])
-        input_ = input_ if input_ is not None else np.zeros(self.dim_input)
+    def output_equation_function(self, t, state_or_input,):
+        if self.dim_state:
+            state = state_or_input
+            output = np.zeros(self.dim_output)
+        else:
+            output = state_or_input
+
         # compute outputs for full systems, y[t_k]=h(t_k,x[t_k])
-        for sysidx in np.where((np.diff(self.cum_states) > 0))[0]:
+        for sysidx in self._stateful_idx:
             sys = self.systems[sysidx]
             output_start = self.cum_outputs[sysidx]
             output_end = self.cum_outputs[sysidx + 1]
@@ -303,7 +358,7 @@ class BlockDiagram(object):
             ).reshape(-1)
 
         # compute outputs for memoryless systems, y[t_k]=h(t_k,u[t_k])
-        for sysidx in np.where((np.diff(self.cum_states) == 0))[0][::-1]:
+        for sysidx in self._stateless_idx:
             sys = self.systems[sysidx]
             output_start = self.cum_outputs[sysidx]
             output_end = self.cum_outputs[sysidx + 1]
@@ -322,17 +377,13 @@ class BlockDiagram(object):
             )
 
             if as_sys_input_index.size:
-                input_values[input_index] = input_[as_sys_input_index]
+                input_values[input_index] = 0. # input_[as_sys_input_index]
 
             if sys.dim_input:
-                if self.events[sysidx] and update_memoryless_event:
-                    sys.update_equation_function(t, input_values)
                 output[output_start:output_end] = sys.output_equation_function(
                     t, input_values
                 ).reshape(-1)
             else:
-                if self.events[sysidx] and update_memoryless_event:
-                    sys.update_equation_function(t)
                 output[output_start:output_end] = sys.output_equation_function(
                     t
                 ).reshape(-1)
@@ -341,14 +392,14 @@ class BlockDiagram(object):
 
     def state_equation_function(self, t, state, input_=None, output=None):
         # TODO: how to define available inputs??
-        dxdt = np.zeros(self.cum_states[-1])
+        dxdt = np.zeros(self.dim_state)
         output = (
             output
             if output is not None
-            else self.output_equation_function(t, state, input_)
+            else self.output_equation_function(t, state,)
         )
 
-        for sysidx in np.where((np.diff(self.cum_states) > 0))[0]:
+        for sysidx in self._stateful_idx:
             sys = self.systems[sysidx]
 
             state_start = self.cum_states[sysidx]
@@ -383,20 +434,31 @@ class BlockDiagram(object):
 
         return dxdt
 
-    def systems_event_equation_functions(self, t, state, output):
-        events = np.zeros(self.systems.size)
+    def event_equation_function(self, t, state_or_input, output=None):
+        if self.dim_state:
+            state = state_or_input
+        output = output if output is not None else self.output_equation_function(t, state)
+        events = np.zeros(self.num_events)
 
         # compute events for stateful systems
-        for sysidx in np.where((np.diff(self.cum_states) > 0) & self.events)[0]:
+        for sysidx in self._stateful_event_idx:
             sys = self.systems[sysidx]
+
+            event_start = self.cum_events[sysidx]
+            event_end = self.cum_events[sysidx + 1]
+
             state_start = self.cum_states[sysidx]
             state_end = self.cum_states[sysidx + 1]
             state_values = state[state_start:state_end]
-            events[sysidx] = sys.event_equation_function(t, state_values).reshape(-1)
+            events[event_start:event_end] = sys.event_equation_function(t, state_values).reshape(-1)
 
         # compute events for memoryless systems
-        for sysidx in np.where((np.diff(self.cum_states) == 0) & self.events)[0]:
+        for sysidx in self._stateless_event_idx:
             sys = self.systems[sysidx]
+
+            event_start = self.cum_events[sysidx]
+            event_end = self.cum_events[sysidx + 1]
+
             input_start = self.cum_inputs[sysidx]
             input_end = self.cum_inputs[sysidx + 1]
 
@@ -408,46 +470,86 @@ class BlockDiagram(object):
             input_values[input_index] = output[output_index]
 
             if sys.dim_input:
-                events[sysidx] = sys.event_equation_function(t, input_values).reshape(
+                events[event_start:event_end] = sys.event_equation_function(t, input_values).reshape(
                     -1
                 )
             else:
-                events[sysidx] = sys.event_equation_function(t).reshape(-1)
+                events[event_start:event_end] = sys.event_equation_function(t).reshape(-1)
 
         return events
 
-    def event_equation_function_implementation(self, t, state, output=None):
-        output = output or self.output_equation_function(t, state)
-        return np.prod(self.systems_event_equation_functions(t, state, output))
-
-    def update_equation_function_implementation(
-        self, t, state, input_=None, output=None
+    def update_equation_function(
+        self, t, state, output=None, event_channels=None,
     ):
         next_state = state.copy()
-        output = output or self.output_equation_function(t, state)
-        input_ = input_ or np.zeros(self.dim_input)
+        output = output if output is not None else self.output_equation_function(t, state)
         # find which one(s) crossed
         # call that/those systems's update_equation_function & fill in next_state
+        sys_indices = np.argmax(event_channels[:, None] < self.cum_events, axis=1) - 1
+        unique_sys_indices = np.unique(sys_indices)
+        # sorted_sys_indices =
+        #if unique_sys_indices > 1:
+        #    print('more than !')
+        #    raise ValueError
+        for sysidx in unique_sys_indices:
+            sys_event_channels = (event_channels[sys_indices == sysidx] -
+                self.cum_events[sysidx])
+            sys = self.systems[sysidx]
+            output_start = self.cum_outputs[sysidx]
+            output_end = self.cum_outputs[sysidx + 1]
+            input_start = self.cum_inputs[sysidx]
+            input_end = self.cum_inputs[sysidx + 1]
+            input_values = output[
+                np.where(self.connections[:, input_start:input_end].T)[1]
+            ]
+            state_start = self.cum_states[sysidx]
+            state_end = self.cum_states[sysidx + 1]
+            state_values = state[state_start:state_end]
+            if sys.dim_state and sys.dim_input:
+                update_return_value = sys.update_equation_function(
+                    t, state_values, input_values, event_channels=sys_event_channels,
+                )
+            elif sys.dim_state:
+                update_return_value = sys.update_equation_function(
+                    t, state_values, event_channels=sys_event_channels,
+                )
+            elif sys.dim_input:
+                update_return_value = sys.update_equation_function(
+                    t, input_values, event_channels=sys_event_channels,
+                )
+            else:
+                update_return_value = sys.update_equation_function(right_t,
+                                        event_channels=sys_event_channels,)
+            if sys.dim_state:
+                next_state[state_start:state_end] = update_return_value.reshape(-1)
+            #"""
+
+                output[output_start:output_end] = sys.output_equation_function(
+                    t, update_return_value
+                ).squeeze()
+            elif sys.dim_input:
+                output[output_start:output_end] = sys.output_equation_function(
+                    t, input_values
+                ).squeeze()
+            else:
+                output[output_start:output_end] = sys.output_equation_function(
+                    t
+                ).squeeze()
+            #"""
+
         return next_state
 
-    def computation_step(self, t, state, output=None, selector=True, do_events=False):
+    def computation_step(self, t, state, output=None, do_events=False):
         """
         callable to compute system outputs and state derivatives
         """
-        # TODO: make sure this still works
-
-        # TODO: p sure I just had output_equation_function here
-        # I guess the outputs_in wasn't really necessary?
-        output = (
-            output if output is not None else self.output_equation_function(t, state)
-        )
-
         # compute state equation for full systems,
         # x[t_k']=f(t_k,x[t_k],u[t_k])
-        dxdt = self.state_equation_function(t, state, output=output)
+        output = output if output is not None else self.output_equation_function(t, state)
+        dxdt = self.state_equation_function(t, state, output)
 
         if do_events:
-            events = self.systems_event_equation_functions(t, state, output)
+            events = self.event_equation_function(t, state, output)
 
             return dxdt, output, events
 
@@ -536,20 +638,22 @@ class BlockDiagram(object):
             integrator_options = integrator_options.copy()
             # TODO: find the harmonic to ensure no skipped steps?
             if np.any(self.dts != 0.0):
-                integrator_options["max_step"] = np.min(self.dts[self.dts != 0.0]) / 2
+                integrator_options["max_step"] = self.dt / 4
 
         # generate tresult arrays; initialize x0
         results = SimulationResult(
-            self.cum_states[-1], self.cum_outputs[-1], tspan, self.systems.size
+            self.dim_state, self.dim_output, self.num_events, tspan, 
         )
 
-        def continuous_time_integration_step(t, state, for_integrator=True):
+        def continuous_time_integration_step(
+            t, state, output=None, for_integrator=True
+        ):
             """
             function to manipulate stored states and integrator state
             to pass to between computation_step and integrator
             """
             comp_result = self.computation_step(
-                t, state.reshape(-1), selector=True, do_events=~for_integrator
+                t, state.reshape(-1), output, do_events=not for_integrator
             )
             if not for_integrator:
                 return (state,) + comp_result[1:]
@@ -586,10 +690,9 @@ class BlockDiagram(object):
                 )
                 return -1
 
-        for sys in self.systems:
-            sys.prepare_to_integrate()
         x0 = self.initial_condition
 
+        y0 = self.prepare_to_integrate(t0, x0)
         # initial condition computation, populate initial condition in results
 
         #
@@ -597,14 +700,14 @@ class BlockDiagram(object):
         #
 
         # compute first output for stateful systems
-        y0 = self.output_equation_function(t0, x0, update_memoryless_event=True)
+        # y0 = self.output_equation_function(t0, x0, update_memoryless_event=True)
 
         (
             dx_dt_0,
             y0,
             e0,
         ) = self.computation_step(  # TODO: this is where logic for events needs to happen
-            t0, x0, y0, selector=True, do_events=True
+            t0, x0, y0, do_events=True
         )
         # initial_computation[0] is saved for the next round of selected DTs
         results.new_result(t0, x0, y0, e0)
@@ -671,7 +774,7 @@ class BlockDiagram(object):
                 check_states,
                 check_outputs,
                 check_events,
-            ) = continuous_time_integration_step(r.t, r.y, False)
+            ) = continuous_time_integration_step(r.t, r.y, for_integrator=False)
 
             if np.any(np.isnan(check_outputs)):
                 warnings.warn(
@@ -715,10 +818,7 @@ class BlockDiagram(object):
 
             # interpolate to find first t crossing
             # holds t's where event occured
-            event_ts = np.zeros(self.systems.size)
-            # holds callable for root finding
-            event_searchables = np.empty(self.systems.size, dtype=object)
-            event_callables = np.empty(self.systems.size, dtype=object)
+            event_ts = np.zeros(self.num_events) + r.t
 
             ts_to_collect = np.r_[
                 results.t[prev_event_idx : results.res_idx],
@@ -738,9 +838,9 @@ class BlockDiagram(object):
 
             crossed_size = max(PRE_CROSS_MINIMUM - unique_ts_to_collect.size, 0) + 1
             crossed_times = np.zeros(crossed_size)
-            crossed_states = np.zeros((crossed_size, self.cum_states[-1]))
-            crossed_outputs = np.zeros((crossed_size, self.cum_outputs[-1]))
-            crossed_events = np.zeros((crossed_size, self.systems.size))
+            crossed_states = np.zeros((crossed_size, self.dim_state))
+            crossed_outputs = np.zeros((crossed_size, self.dim_output))
+            crossed_events = np.zeros((crossed_size, self.num_events))
             # use array allow in scope of result collector; not sure if needed
             crossed_idx = [0]
 
@@ -780,138 +880,67 @@ class BlockDiagram(object):
                 r.set_solout(lambda *args: None)
             ts_for_interpolant = np.r_[unique_ts_to_collect, crossed_times]
 
-            state_values = results.x[
-                prev_event_idx : results.res_idx,
+            event_values = np.r_[
+                results.e[prev_event_idx : results.res_idx], crossed_events
             ]
+            event_traj_callable = callable_from_trajectory(
+                ts_for_interpolant, event_values
+            )
             state_values = np.r_[
-                state_values[unique_ts_to_collect_idx, :], crossed_states
+                results.x[prev_event_idx : results.res_idx], crossed_states
             ]
-
             state_traj_callable = callable_from_trajectory(
                 ts_for_interpolant, state_values
             )
+            left_bracket = results.t[prev_event_idx] + np.finfo(np.float_).eps
 
-            output_values = results.y[prev_event_idx : results.res_idx]
+            for event_idx in event_index_crossed:
+                # I made need to do some checking to protect against a missed sign
+                # change. Previously, interpolated state and output to call
+                # event_equation_function's with interpolated inputs. I believe if we
+                # assume sufficient smoothness of state, output, and event functions
+                # during interval, we can just directly interpolate event functions.
+                # Keep an eye on both issues.
 
-            output_values = np.r_[
-                output_values[unique_ts_to_collect_idx, :], crossed_outputs
-            ]
-
-            output_traj_callable = callable_from_trajectory(
-                ts_for_interpolant, output_values
-            )
-
-            for sysidx in event_index_crossed:
-                sys = self.systems[sysidx]
-
-                state_start = self.cum_states[sysidx]
-                state_end = self.cum_states[sysidx + 1]
-
-                input_start = self.cum_inputs[sysidx]
-                input_end = self.cum_inputs[sysidx + 1]
-
-                if sys.dim_state:
-                    event_searchables[sysidx] = lambda t: sys.event_equation_function(
-                        t, state_traj_callable(t)[..., state_start:state_end]
-                    )
-                else:
-                    event_searchables[sysidx] = lambda t: sys.event_equation_function(
-                        t,
-                        output_traj_callable(t)[
-                            ...,
-                            np.where(self.connections[:, input_start:input_end].T)[1],
-                        ],
-                    )
-                if (
-                    np.prod(
-                        np.sign(
-                            np.r_[
-                                event_searchables[sysidx](results.t[prev_event_idx]),
-                                event_searchables[sysidx](r.t),
-                            ]
-                        )
-                    )
-                    not in [0, -1]
-                ):
-                    e_checks = np.r_[
-                        results.e[prev_event_idx : results.res_idx, sysidx],
-                        check_events[sysidx],
-                    ]
-                    left_bracket_idx = np.where(
-                        np.sign(e_checks[:-1]) != np.sign(e_checks[-1])
-                    )[0][-1]
-                    left_bracket = ts_to_collect[left_bracket_idx]
-                else:
-                    left_bracket = results.t[prev_event_idx]
-                    event_ts[sysidx] = event_finder(
-                        event_searchables[sysidx],
-                        left_bracket + np.finfo(np.float_).eps,
-                        r.t,
-                        **event_find_options
-                    )
+                # state and output interpolant are also used to perform update; not
+                # sure if that's truly necessary; 
+                event_ts[event_idx] = event_finder(
+                    # event_searchables[sysidx],
+                    lambda t: event_traj_callable(t)[event_idx],
+                    left_bracket,
+                    r.t,
+                    **event_find_options
+                )
 
             next_event_t = np.min(event_ts[event_index_crossed])
             left_t = next_event_t - event_find_options["xtol"] / 2
             left_x = state_traj_callable(left_t)
 
             new_states, new_outputs, new_events = continuous_time_integration_step(
-                left_t, left_x, False
+                left_t, left_x, for_integrator=False
             )
             results.new_result(left_t, new_states, new_outputs, new_events)
 
             right_t = next_event_t + event_find_options["xtol"] / 2
             right_x = state_traj_callable(right_t).reshape(-1)
-            right_y = output_traj_callable(right_t).reshape(-1)
+            # right_y = output_traj_callable(right_t).reshape(-1)
 
             # need to update the output for any stateful, probably do full pattern (i.e., output of system with state and event, output of system (with event only?), etc. Or just leave like this ssince it works??) from continuous_time_integration_step (for_integrator = False)
             # TODO: when cleaning up the integration loops, clean the event update too!
-            update_equation_function_indexes = np.where(
-                event_cross_check & (event_ts == next_event_t)
-            )[0]
 
-            for sysidx in update_equation_function_indexes:
-                sys = self.systems[sysidx]
-                output_start = self.cum_outputs[sysidx]
-                output_end = self.cum_outputs[sysidx + 1]
-                input_start = self.cum_inputs[sysidx]
-                input_end = self.cum_inputs[sysidx + 1]
-                input_values = right_y[
-                    np.where(self.connections[:, input_start:input_end].T)[1]
-                ]
-                state_start = self.cum_states[sysidx]
-                state_end = self.cum_states[sysidx + 1]
-                state_values = right_x[state_start:state_end]
-                if sys.dim_state and sys.dim_input:
-                    update_return_value = sys.update_equation_function(
-                        right_t, state_values, input_values
-                    )
-                elif sys.dim_state:
-                    update_return_value = sys.update_equation_function(
-                        right_t, state_values
-                    )
-                elif sys.dim_input:
-                    update_return_value = sys.update_equation_function(
-                        right_t, input_values
-                    )
-                else:
-                    update_return_value = sys.update_equation_function(right_t)
-                if sys.dim_state:
-                    right_x[state_start:state_end] = update_return_value.reshape(-1)
+            # TODO: should I just make the API to modify in place??
+            # I think it saves some computation to provide output to update_equation
+            # but is that only for block diagram? an autonomous system integrated
+            # directly would not benefit from it; it might be worth making a special
+            # check for BlockDiagram subclass...
+            right_x = self.update_equation_function(
+                right_t, right_x, event_channels=event_index_crossed,
+            )
+            right_y = self.output_equation_function(right_t, right_x)
 
-                    right_y[output_start:output_end] = sys.output_equation_function(
-                        right_t, update_return_value
-                    ).squeeze()
-                elif sys.dim_input:
-                    right_y[output_start:output_end] = sys.output_equation_function(
-                        right_t, input_values
-                    ).squeeze()
-                else:
-                    right_y[output_start:output_end] = sys.output_equation_function(
-                        right_t
-                    ).squeeze()
 
             new_states, new_outputs, new_events = continuous_time_integration_step(
-                right_t, right_x, False
+                right_t, right_x, right_y, False
             )
             results.new_result(right_t, new_states, new_outputs, new_events)
 

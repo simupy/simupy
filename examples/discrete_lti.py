@@ -90,18 +90,20 @@ for st in range(n):
     plt.plot(dtct_res.t, dtct_res.y[:, st], '+-')
     plt.plot(dtdt_res.t, dtdt_res.y[:, st], 'x-')
     plt.ylabel('$x_{}(t)$'.format(st+1))
+    plt.grid(True)
 for st in range(m):
     plt.subplot(n+m, 1, st+n+1)
     plt.plot(dtct_res.t, dtct_res.y[:, st+n], '+-')
     plt.plot(dtdt_res.t, dtdt_res.y[:, st+n], 'x-')
     plt.ylabel('$u(t)$')
-    plt.xlabel('$t$, s')
+    plt.grid(True)
+plt.xlabel('$t$, s')
 
 plt.subplot(n+m, 1, 1)
 plt.title('Equality of discrete-time equivalent and original\n' +
           'continuous-time system subject to same control input')
 plt.legend(['continuous-time system', 'discrete-time equivalent'])
-plt.show()
+# plt.show()
 
 # Equivalence between controlled system and over-all system
 ctct_bd = BlockDiagram(ct_sys, ct_ctr)
@@ -120,18 +122,20 @@ for st in range(n):
     plt.plot(ctct_res.t, ctct_res.y[:, st], '+')
     plt.plot(cteq_res.t, cteq_res.y[:, st], 'x')
     plt.ylabel('$x_{}(t)$'.format(st+1))
+    plt.grid(True)
 for st in range(m):
     plt.subplot(n+m, 1, st+n+1)
     plt.plot(ctct_res.t, ctct_res.y[:, st+n], '+')
     plt.plot(cteq_res.t, -(Kc@cteq_res.y.T).T, 'x')
     plt.ylabel('$u(t)$')
-    plt.xlabel('$t$, s')
+    plt.grid(True)
+plt.xlabel('$t$, s')
 plt.subplot(n+m, 1, 1)
 plt.title('Equality of system under feedback control and\n' +
           'equivalent closed-loop, continuous time')
 plt.legend([r'$\dot{x}(t) = A\ x(t) + B\ u(t)$; $u(t) = K\ x(t)$',
             r'$\dot{x}(t) = (A - B\ K)\ x(t)$'])
-plt.show()
+# plt.show()
 
 dteq_sys = LTISystem(Ad - Bd @ Kd, np.zeros((n, 0)), dt=dT)
 dteq_sys.initial_condition = ic
@@ -143,13 +147,15 @@ for st in range(n):
     plt.subplot(n+m, 1, st+1)
     plt.plot(dtdt_res.t, dtdt_res.y[:, st],)
     plt.plot(dteq_res.t, dteq_res.y[:, st],)
+    plt.grid(True)
     plt.ylabel('$x_{}(t)$'.format(st+1))
 for st in range(m):
     plt.subplot(n+m, 1, st+n+1)
     plt.plot(dtdt_res.t, dtdt_res.y[:, st+n],)
     plt.plot(dteq_res.t, -(Kd@dteq_res.y.T).T,)
+    plt.grid(True)
     plt.ylabel('$u(t)$')
-    plt.xlabel('$t$, s')
+plt.xlabel('$t$, s')
 plt.subplot(n+m, 1, 1)
 plt.title('Equality of system under feedback control and\n' +
           'equivalent closed-loop, discrete time')
