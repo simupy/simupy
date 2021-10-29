@@ -902,20 +902,19 @@ class BlockDiagram(object):
             right_t = next_event_t + event_find_options["xtol"] / 2
             right_x = state_traj_callable(right_t).reshape(-1)
             if isinstance(self, BlockDiagram):
-                right_y = (output_traj_callable(right_t).reshape(-1),)
+                right_y = output_traj_callable(right_t).reshape(-1)
+                right_x = self.update_equation_function(
+                    right_t,
+                    right_x,
+                    right_y,
+                    event_channels=event_index_crossed,
+                )
             else:
-                right_y = tuple()
-
-            right_x = self.update_equation_function(
-                right_t,
-                right_x,
-                *right_y,
-                event_channels=event_index_crossed,
-            )
-
-            if isinstance(self, BlockDiagram):
-                right_y = right_y[0]
-            else:
+                right_x = self.update_equation_function(
+                    right_t,
+                    right_x,
+                    event_channels=event_index_crossed,
+                )
                 right_y = self.output_equation_function(right_t, right_x)
 
             new_states, new_outputs, new_events = continuous_time_integration_step(
