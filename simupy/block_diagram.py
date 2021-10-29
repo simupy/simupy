@@ -637,8 +637,8 @@ class BlockDiagram(object):
         ):
             integrator_options = integrator_options.copy()
             # TODO: find the harmonic to ensure no skipped steps?
-            if np.any(self.dts != 0.0):
-                integrator_options["max_step"] = self.dt #/ 2
+            if self.dt != 0.0:
+                integrator_options["max_step"] = self.dt
 
         # generate tresult arrays; initialize x0
         results = SimulationResult(
@@ -700,7 +700,6 @@ class BlockDiagram(object):
         #
 
         # compute first output for stateful systems
-        # y0 = self.output_equation_function(t0, x0, update_memoryless_event=True)
 
         (
             dx_dt_0,
