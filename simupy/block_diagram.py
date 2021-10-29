@@ -191,17 +191,16 @@ class BlockDiagram(object):
             )
 
             if as_sys_input_index.size:
-                # TODO: 
-                input_values[input_index] = 0. # input_[as_sys_input_index]
+                # TODO:
+                input_values[input_index] = 0.0  # input_[as_sys_input_index]
 
             if sys.dim_input:
                 output[output_start:output_end] = sys.prepare_to_integrate(
-                    t, input_values)
+                    t, input_values
+                )
             else:
                 output[output_start:output_end] = sys.prepare_to_integrate(t)
         return output
-
-
 
     def create_input(self, to_system_input, channels=[], inputs=[]):
         """
@@ -323,10 +322,11 @@ class BlockDiagram(object):
         )
 
         self.dts = np.append(self.dts, getattr(system, "dt", 0))
-        if np.any(self.dts != 0.):
-            self.dt = np.min(self.dts[self.dts != 0.])
+        if np.any(self.dts != 0.0):
+            self.dt = np.min(self.dts[self.dts != 0.0])
         else:
-            self.dt = 0.
+            self.dt = 0.0
+
         self.connections = np.pad(
             self.connections,
             ((0, system.dim_output), (0, system.dim_input)),
@@ -337,7 +337,11 @@ class BlockDiagram(object):
             self.inputs, ((0, 0), (0, system.dim_input)), "constant", constant_values=0
         )
 
-    def output_equation_function(self, t, state_or_input,):
+    def output_equation_function(
+        self,
+        t,
+        state_or_input,
+    ):
         if self.dim_state:
             state = state_or_input
             output = np.zeros(self.dim_output)
@@ -377,7 +381,7 @@ class BlockDiagram(object):
             )
 
             if as_sys_input_index.size:
-                input_values[input_index] = 0. # input_[as_sys_input_index]
+                input_values[input_index] = 0.0  # input_[as_sys_input_index]
 
             if sys.dim_input:
                 output[output_start:output_end] = sys.output_equation_function(
@@ -396,7 +400,10 @@ class BlockDiagram(object):
         output = (
             output
             if output is not None
-            else self.output_equation_function(t, state,)
+            else self.output_equation_function(
+                t,
+                state,
+            )
         )
 
         for sysidx in self._stateful_idx:
@@ -437,7 +444,9 @@ class BlockDiagram(object):
     def event_equation_function(self, t, state_or_input, output=None):
         if self.dim_state:
             state = state_or_input
-        output = output if output is not None else self.output_equation_function(t, state)
+        output = (
+            output if output is not None else self.output_equation_function(t, state)
+        )
         events = np.zeros(self.num_events)
 
         # compute events for stateful systems
@@ -450,7 +459,9 @@ class BlockDiagram(object):
             state_start = self.cum_states[sysidx]
             state_end = self.cum_states[sysidx + 1]
             state_values = state[state_start:state_end]
-            events[event_start:event_end] = sys.event_equation_function(t, state_values).reshape(-1)
+            events[event_start:event_end] = sys.event_equation_function(
+                t, state_values
+            ).reshape(-1)
 
         # compute events for memoryless systems
         for sysidx in self._stateless_event_idx:
@@ -470,30 +481,39 @@ class BlockDiagram(object):
             input_values[input_index] = output[output_index]
 
             if sys.dim_input:
-                events[event_start:event_end] = sys.event_equation_function(t, input_values).reshape(
+                events[event_start:event_end] = sys.event_equation_function(
+                    t, input_values
+                ).reshape(-1)
+            else:
+                events[event_start:event_end] = sys.event_equation_function(t).reshape(
                     -1
                 )
-            else:
-                events[event_start:event_end] = sys.event_equation_function(t).reshape(-1)
 
         return events
 
     def update_equation_function(
-        self, t, state, output=None, event_channels=None,
+        self,
+        t,
+        state,
+        output=None,
+        event_channels=None,
     ):
         next_state = state.copy()
-        output = output if output is not None else self.output_equation_function(t, state)
+        output = (
+            output if output is not None else self.output_equation_function(t, state)
+        )
         # find which one(s) crossed
         # call that/those systems's update_equation_function & fill in next_state
         sys_indices = np.argmax(event_channels[:, None] < self.cum_events, axis=1) - 1
         unique_sys_indices = np.unique(sys_indices)
         # sorted_sys_indices =
-        #if unique_sys_indices > 1:
+        # if unique_sys_indices > 1:
         #    print('more than !')
         #    raise ValueError
         for sysidx in unique_sys_indices:
-            sys_event_channels = (event_channels[sys_indices == sysidx] -
-                self.cum_events[sysidx])
+            sys_event_channels = (
+                event_channels[sys_indices == sysidx] - self.cum_events[sysidx]
+            )
             sys = self.systems[sysidx]
             output_start = self.cum_outputs[sysidx]
             output_end = self.cum_outputs[sysidx + 1]
@@ -507,22 +527,30 @@ class BlockDiagram(object):
             state_values = state[state_start:state_end]
             if sys.dim_state and sys.dim_input:
                 update_return_value = sys.update_equation_function(
-                    t, state_values, input_values, event_channels=sys_event_channels,
+                    t,
+                    state_values,
+                    input_values,
+                    event_channels=sys_event_channels,
                 )
             elif sys.dim_state:
                 update_return_value = sys.update_equation_function(
-                    t, state_values, event_channels=sys_event_channels,
+                    t,
+                    state_values,
+                    event_channels=sys_event_channels,
                 )
             elif sys.dim_input:
                 update_return_value = sys.update_equation_function(
-                    t, input_values, event_channels=sys_event_channels,
+                    t,
+                    input_values,
+                    event_channels=sys_event_channels,
                 )
             else:
-                update_return_value = sys.update_equation_function(right_t,
-                                        event_channels=sys_event_channels,)
+                update_return_value = sys.update_equation_function(
+                    right_t,
+                    event_channels=sys_event_channels,
+                )
             if sys.dim_state:
                 next_state[state_start:state_end] = update_return_value.reshape(-1)
-            #"""
 
                 output[output_start:output_end] = sys.output_equation_function(
                     t, update_return_value
@@ -535,8 +563,6 @@ class BlockDiagram(object):
                 output[output_start:output_end] = sys.output_equation_function(
                     t
                 ).squeeze()
-            #"""
-
         return next_state
 
     def computation_step(self, t, state, output=None, do_events=False):
@@ -545,7 +571,9 @@ class BlockDiagram(object):
         """
         # compute state equation for full systems,
         # x[t_k']=f(t_k,x[t_k],u[t_k])
-        output = output if output is not None else self.output_equation_function(t, state)
+        output = (
+            output if output is not None else self.output_equation_function(t, state)
+        )
         dxdt = self.state_equation_function(t, state, output)
 
         if do_events:
@@ -642,7 +670,10 @@ class BlockDiagram(object):
 
         # generate tresult arrays; initialize x0
         results = SimulationResult(
-            self.dim_state, self.dim_output, self.num_events, tspan, 
+            self.dim_state,
+            self.dim_output,
+            self.num_events,
+            tspan,
         )
 
         def continuous_time_integration_step(
@@ -810,7 +841,9 @@ class BlockDiagram(object):
             prev_event_idx = np.where(
                 results.t[: results.res_idx, None] == prev_event_t
             )[0][-1]
-            prev_event_idx = max(min(prev_event_idx, results.res_idx - PRE_CROSS_MINIMUM), 0)
+            prev_event_idx = max(
+                min(prev_event_idx, results.res_idx - PRE_CROSS_MINIMUM), 0
+            )
 
             # find which system(s) crossed
             event_cross_check = np.sign(results.e[results.res_idx - 1, :]) != np.sign(
@@ -835,14 +868,11 @@ class BlockDiagram(object):
             state_values = np.r_[
                 results.x[prev_event_idx : results.res_idx], r.y[None, :]
             ]
-            state_traj_callable = callable_from_trajectory(
-                ts_interpolant, state_values
-            )
+            state_traj_callable = callable_from_trajectory(ts_interpolant, state_values)
 
             output_values = np.r_[
-                results.y[prev_event_idx : results.res_idx], 
-                self.output_equation_function(r.t, r.y)[None, :]
-
+                results.y[prev_event_idx : results.res_idx],
+                self.output_equation_function(r.t, r.y)[None, :],
             ]
             output_traj_callable = callable_from_trajectory(
                 ts_interpolant, output_values
@@ -852,14 +882,13 @@ class BlockDiagram(object):
 
             for event_idx in event_index_crossed:
                 event_ts[event_idx] = event_finder(
-                    lambda t: self.event_equation_function(t,
-                                    state_traj_callable(t),
-                                    output_traj_callable(t))[event_idx],
+                    lambda t: self.event_equation_function(
+                        t, state_traj_callable(t), output_traj_callable(t)
+                    )[event_idx],
                     left_bracket,
                     right_bracket,
-                    **event_find_options
+                    **event_find_options,
                 )
-
 
             next_event_t = np.min(event_ts[event_index_crossed])
             left_t = next_event_t - event_find_options["xtol"] / 2
@@ -873,15 +902,21 @@ class BlockDiagram(object):
             right_t = next_event_t + event_find_options["xtol"] / 2
             right_x = state_traj_callable(right_t).reshape(-1)
             if isinstance(self, BlockDiagram):
-                right_y = output_traj_callable(right_t).reshape(-1),
+                right_y = (output_traj_callable(right_t).reshape(-1),)
             else:
                 right_y = tuple()
 
             right_x = self.update_equation_function(
-                right_t, right_x, *right_y, event_channels=event_index_crossed,
+                right_t,
+                right_x,
+                *right_y,
+                event_channels=event_index_crossed,
             )
-            right_y = self.output_equation_function(right_t, right_x)
 
+            if isinstance(self, BlockDiagram):
+                right_y = right_y[0]
+            else:
+                right_y = self.output_equation_function(right_t, right_x)
 
             new_states, new_outputs, new_events = continuous_time_integration_step(
                 right_t, right_x, right_y, False
