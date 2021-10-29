@@ -638,7 +638,7 @@ class BlockDiagram(object):
             integrator_options = integrator_options.copy()
             # TODO: find the harmonic to ensure no skipped steps?
             if np.any(self.dts != 0.0):
-                integrator_options["max_step"] = self.dt / 4
+                integrator_options["max_step"] = self.dt #/ 2
 
         # generate tresult arrays; initialize x0
         results = SimulationResult(
@@ -803,12 +803,15 @@ class BlockDiagram(object):
             #
             # need to handle event
             #
+            PRE_CROSS_MINIMUM = (
+                3  # interpolant requires 4, I think, so 3 before the crossing
+            )
 
             # results index from previous event crossing
             prev_event_idx = np.where(
                 results.t[: results.res_idx, None] == prev_event_t
             )[0][-1]
-            prev_event_idx = max(min(prev_event_idx, results.res_idx - 3), 0)
+            prev_event_idx = max(min(prev_event_idx, results.res_idx - PRE_CROSS_MINIMUM), 0)
 
             # find which system(s) crossed
             event_cross_check = np.sign(results.e[results.res_idx - 1, :]) != np.sign(
@@ -828,89 +831,36 @@ class BlockDiagram(object):
                 ts_to_collect, return_index=True
             )
 
-            #
+            ts_interpolant = np.r_[unique_ts_to_collect, r.t]
 
-            # use vars check_states, check_outputs, check_events, r.t, (r.y?)
-            # in interpolatant
-            PRE_CROSS_MINIMUM = (
-                3  # interpolant requires 4, I think, so 3 before the crossing
-            )
-
-            crossed_size = max(PRE_CROSS_MINIMUM - unique_ts_to_collect.size, 0) + 1
-            crossed_times = np.zeros(crossed_size)
-            crossed_states = np.zeros((crossed_size, self.dim_state))
-            crossed_outputs = np.zeros((crossed_size, self.dim_output))
-            crossed_events = np.zeros((crossed_size, self.num_events))
-            # use array allow in scope of result collector; not sure if needed
-            crossed_idx = [0]
-
-            def collect_integrator_results_events(t, state):
-                dxdt, output, events = continuous_time_integration_step(
-                    t, state, for_integrator=False
-                )
-
-                test_sel = results.res_idx - np.arange(3) - 1
-                if (
-                    t in results.t[test_sel]
-                    and state in results.x[test_sel, :]
-                    and output in results.y[test_sel, :]
-                ) or (
-                    t in crossed_times
-                    and state in crossed_states
-                    and output in crossed_outputs
-                ):
-                    return
-
-                crossed_times[crossed_idx[0]] = t
-                crossed_states[crossed_idx[0], :] = state
-                crossed_outputs[crossed_idx[0], :] = output
-                crossed_events[crossed_idx[0], :] = events
-                crossed_idx[0] += 1
-
-                if crossed_idx[0] >= crossed_size:
-                    return -1
-
-            r.set_initial_value(r.y, r.t)
-            r.set_solout(collect_integrator_results_events)
-            r.integrate(next_t)
-
-            if dense_output:
-                r.set_solout(collect_integrator_results)
-            else:
-                r.set_solout(lambda *args: None)
-            ts_for_interpolant = np.r_[unique_ts_to_collect, crossed_times]
-
-            event_values = np.r_[
-                results.e[prev_event_idx : results.res_idx], crossed_events
-            ]
-            event_traj_callable = callable_from_trajectory(
-                ts_for_interpolant, event_values
-            )
             state_values = np.r_[
-                results.x[prev_event_idx : results.res_idx], crossed_states
+                results.x[prev_event_idx : results.res_idx], r.y[None, :]
             ]
             state_traj_callable = callable_from_trajectory(
-                ts_for_interpolant, state_values
+                ts_interpolant, state_values
             )
-            left_bracket = results.t[prev_event_idx] + np.finfo(np.float_).eps
+
+            output_values = np.r_[
+                results.y[prev_event_idx : results.res_idx], 
+                self.output_equation_function(r.t, r.y)[None, :]
+
+            ]
+            output_traj_callable = callable_from_trajectory(
+                ts_interpolant, output_values
+            )
+
+            left_bracket, right_bracket = ts_interpolant[-2:]
 
             for event_idx in event_index_crossed:
-                # I made need to do some checking to protect against a missed sign
-                # change. Previously, interpolated state and output to call
-                # event_equation_function's with interpolated inputs. I believe if we
-                # assume sufficient smoothness of state, output, and event functions
-                # during interval, we can just directly interpolate event functions.
-                # Keep an eye on both issues.
-
-                # state and output interpolant are also used to perform update; not
-                # sure if that's truly necessary; 
                 event_ts[event_idx] = event_finder(
-                    # event_searchables[sysidx],
-                    lambda t: event_traj_callable(t)[event_idx],
+                    lambda t: self.event_equation_function(t,
+                                    state_traj_callable(t),
+                                    output_traj_callable(t))[event_idx],
                     left_bracket,
-                    r.t,
+                    right_bracket,
                     **event_find_options
                 )
+
 
             next_event_t = np.min(event_ts[event_index_crossed])
             left_t = next_event_t - event_find_options["xtol"] / 2
@@ -923,18 +873,13 @@ class BlockDiagram(object):
 
             right_t = next_event_t + event_find_options["xtol"] / 2
             right_x = state_traj_callable(right_t).reshape(-1)
-            # right_y = output_traj_callable(right_t).reshape(-1)
+            if isinstance(self, BlockDiagram):
+                right_y = output_traj_callable(right_t).reshape(-1),
+            else:
+                right_y = tuple()
 
-            # need to update the output for any stateful, probably do full pattern (i.e., output of system with state and event, output of system (with event only?), etc. Or just leave like this ssince it works??) from continuous_time_integration_step (for_integrator = False)
-            # TODO: when cleaning up the integration loops, clean the event update too!
-
-            # TODO: should I just make the API to modify in place??
-            # I think it saves some computation to provide output to update_equation
-            # but is that only for block diagram? an autonomous system integrated
-            # directly would not benefit from it; it might be worth making a special
-            # check for BlockDiagram subclass...
             right_x = self.update_equation_function(
-                right_t, right_x, event_channels=event_index_crossed,
+                right_t, right_x, *right_y, event_channels=event_index_crossed,
             )
             right_y = self.output_equation_function(right_t, right_x)
 
