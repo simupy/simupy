@@ -113,8 +113,7 @@ ctct_res = ctct_bd.simulate(Tsim)
 
 cteq_sys = LTISystem(Ac - Bc @ Kc, np.zeros((n, 0)))
 cteq_sys.initial_condition = ic
-cteq_bd = BlockDiagram(cteq_sys)
-cteq_res = cteq_bd.simulate(Tsim)
+cteq_res = cteq_sys.simulate(Tsim)
 
 plt.figure()
 for st in range(n):
@@ -139,8 +138,7 @@ plt.legend([r'$\dot{x}(t) = A\ x(t) + B\ u(t)$; $u(t) = K\ x(t)$',
 
 dteq_sys = LTISystem(Ad - Bd @ Kd, np.zeros((n, 0)), dt=dT)
 dteq_sys.initial_condition = ic
-dteq_bd = BlockDiagram(dteq_sys)
-dteq_res = dteq_bd.simulate(Tsim)
+dteq_res = dteq_sys.simulate(Tsim)
 
 plt.figure()
 for st in range(n):

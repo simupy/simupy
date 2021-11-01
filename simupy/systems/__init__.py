@@ -1,4 +1,5 @@
 import numpy as np
+from simupy.block_diagram import SimulationMixin
 import warnings
 
 need_state_equation_function_msg = ("if dim_state > 0, DynamicalSystem must"
@@ -18,7 +19,9 @@ def full_state_output(t, x, *args):
     return x
 
 
-class DynamicalSystem(object):
+
+
+class DynamicalSystem(SimulationMixin):
     """
     A dynamical system which models systems of the form::
 
@@ -116,7 +119,7 @@ class DynamicalSystem(object):
                              "with non-zero num_events")
         self.num_events = 1
         self._dt = dt
-        self.event_equation_function = lambda t, *args: (np.sin(np.pi*t/self.dt))
+        self.event_equation_function = lambda t, *args: np.atleast_1d(np.sin(np.pi*t/self.dt))
         #    if t else np.sin(np.finfo(np.float_).eps))
         self._state_equation_function = self.state_equation_function
         self._output_equation_function = self.output_equation_function
@@ -431,9 +434,13 @@ class LTISystem(DynamicalSystem):
         self.output_matrix = output_matrix
 
         self.initial_condition = initial_condition
-        self.state_equation_function = \
-            (lambda t, x, u=np.zeros(self.dim_input): \
-                (state_matrix@x + input_matrix@u))
+        if self.dim_input:
+            self.state_equation_function = \
+                (lambda t, x, u=np.zeros(self.dim_input): \
+                    (state_matrix@x + input_matrix@u))
+        else:
+            self.state_equation_function = lambda t, x, u=np.zeros(0): state_matrix@x
+
         self.output_equation_function = \
             lambda t, x: (output_matrix@x)
 
