@@ -246,7 +246,7 @@ class SimulationMixin:
             else:
                 results.new_result(t, state, output, events)
 
-            if np.any(np.isnan(output)):
+            if np.any(np.isnan(output)) or np.any(np.isnan(state)):
                 warnings.warn(
                     nan_warning_message.format(
                         "variable step-size collection", t, state, output
@@ -453,6 +453,14 @@ class SimulationMixin:
             new_states, new_outputs, new_events = continuous_time_integration_step(
                 right_t, right_x, right_y, False
             )
+            if np.any(np.isnan(new_states)) or np.any(np.isnan(new_outputs)):
+                warnings.warn(
+                    nan_warning_message.format(
+                        "update after event", t, state, output
+                    )
+                )
+ 
+
             results.new_result(right_t, new_states, new_outputs, new_events)
 
             # set x (r.y), store in result as t+epsilon? if not dense,
