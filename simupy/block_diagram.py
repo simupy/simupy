@@ -26,7 +26,7 @@ DEFAULT_EVENT_FIND_OPTIONS = {
 }
 
 nan_warning_message = (
-    "BlockDiagram encountered NaN outputs and quit during"
+    "Simulation encountered NaN outputs and quit during"
     + " {}. This may have been intentional! NaN outputs at "
     + "time t={}, state x={}, output y={}"
 )
@@ -86,12 +86,14 @@ class SimulationResult(object):
                 np.copy(self.t[self.res_idx - n]),
                 np.copy(self.x[self.res_idx - n, :]),
                 np.copy(self.y[self.res_idx - n, :]),
+                np.copy(self.e[self.res_idx - n, :]),
             )
         else:
             return (
                 self.t[self.res_idx - n],
                 self.x[self.res_idx - n, :],
                 self.y[self.res_idx - n, :],
+                self.e[self.res_idx - n, :],
             )
 
 class SimulationMixin:
@@ -108,7 +110,10 @@ class SimulationMixin:
 
         if do_events:
             if self.num_events:
-                events = self.event_equation_function(t, state, output)
+                if isinstance(self, BlockDiagram):
+                    events = self.event_equation_function(t, state, output)
+                else:
+                    events = self.event_equation_function(t, state, )
             else:
                 events = np.zeros(0)
 
@@ -329,7 +334,7 @@ class SimulationMixin:
             """
 
             if dense_output:
-                latest_t, latest_states, latest_outputs = results.last_result()
+                latest_t, latest_states, latest_outputs, latest_events = results.last_result()
                 if r.t == next_t or np.any(np.isnan(latest_outputs)):
                     break
 
@@ -407,17 +412,25 @@ class SimulationMixin:
                 results.y[prev_event_idx : results.res_idx],
                 self.output_equation_function(r.t, r.y)[None, :],
             ]
-            output_traj_callable = callable_from_trajectory(
-                ts_interpolant, output_values
-            )
+            if self.dim_output:
+                output_traj_callable = callable_from_trajectory(
+                    ts_interpolant, output_values
+                )
 
             left_bracket, right_bracket = ts_interpolant[-2:]
 
             for event_idx in event_index_crossed:
-                event_ts[event_idx] = event_finder(
-                    lambda t: self.event_equation_function(
+                if isinstance(self, BlockDiagram):
+                    event_find_function = (lambda t: self.event_equation_function(
                         t, state_traj_callable(t), output_traj_callable(t)
-                    )[event_idx],
+                    )[event_idx])
+                else:
+                    event_find_function = (lambda t: self.event_equation_function(
+                        t, state_traj_callable(t),
+                    )[event_idx])
+
+                event_ts[event_idx] = event_finder(
+                    event_find_function, 
                     left_bracket,
                     right_bracket,
                     **event_find_options,
@@ -456,10 +469,10 @@ class SimulationMixin:
             if np.any(np.isnan(new_states)) or np.any(np.isnan(new_outputs)):
                 warnings.warn(
                     nan_warning_message.format(
-                        "update after event", t, state, output
+                        "update after event channel " + str(event_index_crossed), right_t, new_states, new_outputs
                     )
                 )
- 
+                break
 
             results.new_result(right_t, new_states, new_outputs, new_events)
 
