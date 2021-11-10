@@ -2,7 +2,7 @@ import numpy as np
 from scipy import interpolate
 
 
-def callable_from_trajectory(t, curves):
+def callable_from_trajectory(t, curves, k=3):
     """
     Use scipy.interpolate.make_interp_spline to build cubic b-spline
     interpolating functions over a set of curves.
@@ -21,7 +21,7 @@ def callable_from_trajectory(t, curves):
         Callable which interpolates the given curve/trajectories
     """
     bspline = interpolate.make_interp_spline(
-        y=curves, x=t)
+        y=curves, x=t, k=k)
 
     return bspline
 

@@ -402,11 +402,13 @@ class SimulationMixin:
             )
 
             ts_interpolant = np.r_[unique_ts_to_collect, r.t]
+            k_interp = min(3, unique_ts_to_collect.shape[0])
 
             state_values = np.r_[
                 results.x[prev_event_idx : results.res_idx], r.y[None, :]
             ]
-            state_traj_callable = callable_from_trajectory(ts_interpolant, state_values)
+            state_traj_callable = callable_from_trajectory(ts_interpolant, state_values,
+                                                           k=k_interp)
 
             output_values = np.r_[
                 results.y[prev_event_idx : results.res_idx],
@@ -414,7 +416,7 @@ class SimulationMixin:
             ]
             if self.dim_output:
                 output_traj_callable = callable_from_trajectory(
-                    ts_interpolant, output_values
+                    ts_interpolant, output_values, k=k_interp
                 )
 
             left_bracket, right_bracket = ts_interpolant[-2:]
