@@ -371,17 +371,11 @@ class SimulationMixin:
             #
             # need to handle event
             #
-            PRE_CROSS_MINIMUM = (
-                3  # interpolant requires 4, I think, so 3 before the crossing
-            )
 
             # results index from previous event crossing
             prev_event_idx = np.where(
                 results.t[: results.res_idx, None] == prev_event_t
             )[0][-1]
-            prev_event_idx = max(
-                min(prev_event_idx, results.res_idx - PRE_CROSS_MINIMUM), 0
-            )
 
             # find which system(s) crossed
             event_cross_check = np.sign(results.e[results.res_idx - 1, :]) != np.sign(
