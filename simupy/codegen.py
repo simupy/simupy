@@ -52,7 +52,8 @@ def process_funcs_to_print(funcs_to_print):
             static_val = staticfy_expressions(val)
             extras_dict[static_key] = static_val
         funcs_to_print_dict['extra_assignments'] = extras_dict
-        funcs_to_print_dict['input_args'] = staticfy_expressions(funcs_to_print_dict['input_args'])
+        if funcs_to_print_dict['input_args'] is not None:
+            funcs_to_print_dict['input_args'] = staticfy_expressions(funcs_to_print_dict['input_args'])
         funcs_to_print_dict['sym_expr'] = staticfy_expressions(funcs_to_print_dict['sym_expr'])
 
         tot_size = 1
