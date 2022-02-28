@@ -29,12 +29,12 @@ of the form
 
 .. math::
     x[k+1] &= f([k],x[k],u(k)]) \\
-    y[k+1] &= h([k],x[k+1])
+    y[k+1] &= h([k+1],x[k+1])
 
 and
 
 .. math::
-    y[k+1] = h([k], u(k))
+    y[k] = h([k], u(k))
 
 
 where :math:`[k]` indicates signal values over the half-open interval 

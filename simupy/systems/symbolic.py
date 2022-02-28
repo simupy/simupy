@@ -204,9 +204,15 @@ class DynamicalSystem(DynamicalSystemBase):
                 **self.code_generator_args
             )
 
-    def prepare_to_integrate(self):
+    def prepare_to_integrate(self, t0, state_or_input=None):
         self.update_output_equation_function()
         self.update_state_equation_function()
+        if not self.dim_state and self.num_events:
+            self.update_equation_function(t0, state_or_input)
+        if self.dim_state or self.dim_input:
+            return self.output_equation_function(t0, state_or_input)
+        else:
+            return self.output_equation_function(t0)
 
     def copy(self):
         copy = self.__class__(

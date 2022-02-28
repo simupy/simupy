@@ -1,4 +1,5 @@
 import numpy as np
+from simupy.block_diagram import SimulationMixin
 import warnings
 
 need_state_equation_function_msg = ("if dim_state > 0, DynamicalSystem must"
@@ -10,15 +11,17 @@ need_output_equation_function_msg = ("if dim_state == 0, DynamicalSystem must"
 zero_dim_output_msg = "A DynamicalSystem must provide an output"
 
 
-def full_state_output(*args):
+def full_state_output(t, x, *args):
     """
     A drop-in ``output_equation_function`` for stateful systems that provide
     output the full state directly.
     """
-    return np.r_[args][1:]
+    return x
 
 
-class DynamicalSystem(object):
+
+
+class DynamicalSystem(SimulationMixin):
     """
     A dynamical system which models systems of the form::
 
@@ -43,7 +46,7 @@ class DynamicalSystem(object):
     def __init__(self, state_equation_function=None,
                  output_equation_function=None, event_equation_function=None,
                  update_equation_function=None, dim_state=0, dim_input=0,
-                 dim_output=0, dt=0, initial_condition=None):
+                 dim_output=0, num_events=0, dt=0, initial_condition=None):
         """
         Parameters
         ----------
@@ -63,6 +66,8 @@ class DynamicalSystem(object):
             Dimension of the system input. Optional, defaults to 0.
         dim_output : int, optional
             Dimension of the system output. Optional, defaults to dim_state.
+        num_events : int, optional
+            Dimension of the system event functions. Optional, defaults to 0.
         dt : float, optional
             Sample rate of the system. Optional, defaults to 0 representing a
             continuous time system. 
@@ -73,6 +78,8 @@ class DynamicalSystem(object):
         self.dim_state = dim_state
         self.dim_input = dim_input
         self.dim_output = dim_output or dim_state
+        self.num_events = num_events
+
 
         self.state_equation_function = state_equation_function
 
@@ -84,7 +91,14 @@ class DynamicalSystem(object):
 
         self.initial_condition = initial_condition
 
+        if ((num_events != 0) and ((event_equation_function is None) or
+        (update_equation_function is None))):
+            raise ValueError("Cannot provide event_equation_function or " + 
+                             "update_Equation_function with num_events == 0")
+
         self.event_equation_function = event_equation_function
+        # TODO: do some defensive checks and/or wrapping of update function to consume
+        # a channel number
         self.update_equation_function = update_equation_function
 
         self.dt = dt
@@ -100,31 +114,26 @@ class DynamicalSystem(object):
         if dt <= 0:
             self._dt = 0
             return
-        if (self.event_equation_function is not None  
-                and self.update_equation_function is not None):
-            raise ValueError("Cannot set dt > 0 and the event API with " +
-                             "event_equation_function and " +
-                             "update_equation_function.")
+        if self.num_events != 0:
+            raise ValueError("Cannot set dt > 0 and use event API " +
+                             "with non-zero num_events")
+        self.num_events = 1
         self._dt = dt
-        self.event_equation_function = lambda t, *args: (np.sin(np.pi*t/self.dt))
+        self.event_equation_function = lambda t, *args: np.atleast_1d(np.sin(np.pi*t/self.dt))
         #    if t else np.sin(np.finfo(np.float_).eps))
         self._state_equation_function = self.state_equation_function
         self._output_equation_function = self.output_equation_function
         self.state_equation_function = \
             lambda *args: np.zeros(self.dim_state)
         if self.dim_state:
-            self.update_equation_function = self._state_equation_function
+            self.update_equation_function = (
+                lambda *args, event_channels=0: self._state_equation_function(*args)
+            )
         else:
-            self._prev_input = (0, np.zeros(self.dim_input))
             self._prev_output = 0
-            def _update_equation_function(*args):
-                self._prev_input = args
-                self._prev_output = self._output_equation_function(*self._prev_input)
-            def _memoized_output_equation_function(*args):
-                if args in self._prev_output.keys():
-                    return self._prev_output[args]
-                else:
-                    self._prev_output[args] = None
+            def _update_equation_function(*args, event_channels=0):
+                self._prev_output = self._output_equation_function(*args)
+
             self.update_equation_function = _update_equation_function
             self.output_equation_function = lambda *args: self._prev_output
 
@@ -147,10 +156,14 @@ class DynamicalSystem(object):
                 dtype=np.float_).reshape(-1)
         else:
             self._initial_condition = None
-            
 
-    def prepare_to_integrate(self):
-        return
+    def prepare_to_integrate(self, t0, state_or_input=None):
+        if not self.dim_state and self.num_events:
+            self.update_equation_function(t0, state_or_input)
+        if self.dim_state or self.dim_input:
+            return self.output_equation_function(t0, state_or_input)
+        else:
+            return self.output_equation_function(t0)
 
     def validate(self):
         if self.dim_output == 0:
@@ -377,6 +390,7 @@ class LTISystem(DynamicalSystem):
         if len(args) not in (1, 2, 3):
             raise ValueError("LTI system expects 1, 2, or 3 args")
 
+        self.num_events = 0
         self.event_equation_function = None
         self.update_equation_function = None
 
@@ -420,9 +434,13 @@ class LTISystem(DynamicalSystem):
         self.output_matrix = output_matrix
 
         self.initial_condition = initial_condition
-        self.state_equation_function = \
-            (lambda t, x, u=np.zeros(self.dim_input): \
-                (state_matrix@x + input_matrix@u))
+        if self.dim_input:
+            self.state_equation_function = \
+                (lambda t, x, u=np.zeros(self.dim_input): \
+                    (state_matrix@x + input_matrix@u))
+        else:
+            self.state_equation_function = lambda t, x, u=np.zeros(0): state_matrix@x
+
         self.output_equation_function = \
             lambda t, x: (output_matrix@x)
 
