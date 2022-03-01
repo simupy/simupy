@@ -97,8 +97,8 @@ def isclose(res1, res2, atol=1E-8, rtol=1E-5, mode='numpy', for_="output"):
     eval_t_list.sort()
     eval_t = np.array(eval_t_list)
 
-    eval_y1 = trajectory_interpolant(res1)(eval_t)
-    eval_y2 = trajectory_interpolant(res2)(eval_t)
+    eval_y1 = trajectory_interpolant(res1, for_)(eval_t)
+    eval_y2 = trajectory_interpolant(res2, for_)(eval_t)
 
     if mode=='numpy':
         return np.all(np.isclose(eval_y1, eval_y2, rtol=rtol, atol=atol), axis=0)
