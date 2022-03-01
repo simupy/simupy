@@ -90,16 +90,12 @@ class SimulationResult(object):
         to_file
         """
 
+        res = cls(0, 0, 0, np.array([0.,0.]))
         with np.load(file) as data:
-            t = data["t"]
-            x = data["x"]
-            y = data["y"]
-            e = data["e"]
-        res = cls(x.shape[1], y.shape[1], e.shape[1], t[[0,-1]])
-        res.t = t
-        res.x = x
-        res.y = y
-        res.e = e
+            res.t = data["t"]
+            res.x = data["x"]
+            res.y = data["y"]
+            res.e = data["e"]
         return res
 
 

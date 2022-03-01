@@ -25,7 +25,54 @@ def callable_from_trajectory(t, curves, k=3):
 
     return bspline
 
-def isclose(t1, y1, t2, y2, atol=1E-8, rtol=1E-5, mode='numpy'):
+def trajectory_interpolant(res, for_="state", k=3, bc_type=None):
+    """
+    Construct an interpolating spline from a trajectory that handles potential
+    discontinuities from events.
+
+    Parameters
+    ----------
+    res : `SimulationResult` object
+        The `SimulationResult` object that will be interpolated
+    for_ : {"state" or "output"}
+        Indicate whether to interpolate the state or output of the SimulationResult.
+
+    Returns
+    -------
+    interpolated_callable : callable
+        Callable which interpolates the given curve/trajectories
+    """
+    if for_=="state":
+        vals = res.x
+    elif for_=="output":
+        vals = res.y
+    else:
+        raise ValueError("Unsupported `for_` value")
+
+    event_idxs = np.where(np.diff(np.sign(res.e[:, -1]))!=0)[0]+1
+    prev_idx = 0
+    interps = []
+    extra_val = k+1
+    for event_idx in event_idxs:
+        interps.append(interpolate.make_interp_spline(res.t[prev_idx:event_idx], vals[prev_idx:event_idx, :], k=k, bc_type=bc_type))
+        prev_idx = event_idx
+    if prev_idx < res.t.shape[0]:
+        interps.append(interpolate.make_interp_spline(res.t[event_idx:], vals[event_idx:, :], k=k, bc_type=bc_type))
+
+    ttl = []
+    for interp in interps:
+        if interp is interps[0]:
+            ttl.append(interp.t[:-extra_val])
+        elif interp is interps[-1]:
+            ttl.append(interp.t[extra_val:])
+        else:
+            ttl.append(interp.t[extra_val:-extra_val])
+
+    cc = np.concatenate([interp.c for interp in interps])
+    tt = np.concatenate(ttl)
+    return interpolate.BSpline.construct_fast(tt, cc, k)
+
+def isclose(res1, res2, atol=1E-8, rtol=1E-5, mode='numpy', for_="output"):
     """
     Compare two trajectories
 
@@ -33,17 +80,25 @@ def isclose(t1, y1, t2, y2, atol=1E-8, rtol=1E-5, mode='numpy'):
     ---------- 
     mode : {'numpy' or 'pep485'}
     """
-    y1 = y1.reshape(t1.shape[0], -1)
-    y2 = y2.reshape(t2.shape[0], -1)
-    if y1.shape[1] != y2.shape[1]:
-        raise ValueError("y1 and y2 should be the same dimension to compare")
-    interp1 = interpolate.make_interp_spline(t1, y1)
-    interp2 = interpolate.make_interp_spline(t2, y2)
-    eval_t_list = list(set(t1) | set(t2))
+    if for_=="state":
+        shape1 = res1.x.shape[1]
+        shape2 = res2.x.shape[1]
+    elif for_=="output":
+        shape1 = res1.y.shape[1]
+        shape2 = res2.y.shape[1]
+    else:
+        raise ValueError("Unsupported `for_` value")
+
+    if shape1 != shape2:
+        raise ValueError("res1 and res2 %s should be the same dimension to compare" %
+                         for_)
+
+    eval_t_list = list(set(res1.t) | set(res2.t))
     eval_t_list.sort()
     eval_t = np.array(eval_t_list)
-    eval_y1 = interp1(eval_t)
-    eval_y2 = interp2(eval_t)
+
+    eval_y1 = trajectory_interpolant(res1)(eval_t)
+    eval_y2 = trajectory_interpolant(res2)(eval_t)
 
     if mode=='numpy':
         return np.all(np.isclose(eval_y1, eval_y2, rtol=rtol, atol=atol), axis=0)
