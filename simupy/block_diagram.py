@@ -46,6 +46,66 @@ class SimulationResult(object):
 
     max_allocation = 2 ** 7
 
+    def to_file(self, file, compress=True):
+        """
+        Save attributes of ``SimulationResult`` object to binary file in NumPy ``.npz`` 
+        format so that the object can be re-created.
+
+        Parameters
+        ----------
+        file : file, str, or pathlib.Path
+            File or filename to which the data is saved.  If file is a file-object,
+            then the filename is unchanged.  If file is a string or Path, a ``.npz``
+            extension will be appended to the file name if it does not already
+            have one.
+        compress : bool, optional
+            Whether to compress the archive of attributes.  Optional, 
+            default is True.
+
+        See Also
+        --------
+        from_file
+        """
+        save_dict = dict(t=self.t, x=self.x, y=self.y, e=self.e)
+        if compress:
+            np.savez_compressed(file, **save_dict)
+        else:
+            np.savez(file, **save_dict)
+
+    @classmethod
+    def from_file(cls, file):
+        """
+        Create a ``SimulationResult`` object from a NumPy archive containing the
+        necessary attributes.
+
+        Parameters
+        ----------
+        file : file-like object, string, or pathlib.Path
+            The file to read. File-like objects must support the
+            ``seek()`` and ``read()`` methods. Pickled files require that the
+            file-like object support the ``readline()`` method as well.
+
+        See Also
+        --------
+        to_file
+        """
+
+        with np.load(file) as data:
+            t = data["t"]
+            x = data["x"]
+            y = data["y"]
+            e = data["e"]
+        res = cls(x.shape[1], y.shape[1], e.shape[1], t[[0,-1]])
+        res.t = t
+        res.x = x
+        res.y = y
+        res.e = e
+        return res
+
+
+
+
+
     def __init__(self, dim_states, dim_outputs, num_events, tspan, initial_size=0):
         if initial_size == 0:
             initial_size = tspan.size
