@@ -25,7 +25,7 @@ def callable_from_trajectory(t, curves, k=3):
 
     return bspline
 
-def trajectory_interpolant(res, for_="state", k=3, bc_type=None):
+def trajectory_interpolant(res, for_="output", k=3, bc_type="natural"):
     """
     Construct an interpolating spline from a trajectory that handles potential
     discontinuities from events.
@@ -52,24 +52,37 @@ def trajectory_interpolant(res, for_="state", k=3, bc_type=None):
     event_idxs = np.where(np.diff(np.sign(res.e[:, -1]))!=0)[0]+1
     prev_idx = 0
     interps = []
-    extra_val = k+1
+    extra_val = int((k+1)//2)
     for event_idx in event_idxs:
-        interps.append(interpolate.make_interp_spline(res.t[prev_idx:event_idx], vals[prev_idx:event_idx, :], k=k, bc_type=bc_type))
+        interps.append(
+            interpolate.make_interp_spline(
+                res.t[prev_idx:event_idx],
+                vals[prev_idx:event_idx, :],
+                k=k, bc_type=bc_type
+            )
+        )
         prev_idx = event_idx
     if prev_idx < res.t.shape[0]:
-        interps.append(interpolate.make_interp_spline(res.t[event_idx:], vals[event_idx:, :], k=k, bc_type=bc_type))
+        interps.append(
+            interpolate.make_interp_spline(
+                res.t[event_idx:],
+                vals[event_idx:, :],
+                k=k, bc_type=bc_type
+            )
+        )
 
-    ttl = []
+    ccl = []
     for interp in interps:
-        if interp is interps[0]:
-            ttl.append(interp.t[:-extra_val])
-        elif interp is interps[-1]:
-            ttl.append(interp.t[extra_val:])
-        else:
-            ttl.append(interp.t[extra_val:-extra_val])
+        if interp is not interps[0]:
+            ccl.append(interp.c[[0]*extra_val, :])
 
-    cc = np.concatenate([interp.c for interp in interps])
-    tt = np.concatenate(ttl)
+        ccl.append(interp.c)
+
+        if interp is not interps[-1]:
+            ccl.append(interp.c[[-1]*extra_val, :])
+
+    cc = np.concatenate(ccl)
+    tt = np.concatenate([interp.t for interp in interps])
     return interpolate.BSpline.construct_fast(tt, cc, k)
 
 def isclose(res1, res2, atol=1E-8, rtol=1E-5, mode='numpy', for_="output"):
@@ -103,6 +116,8 @@ def isclose(res1, res2, atol=1E-8, rtol=1E-5, mode='numpy', for_="output"):
     if mode=='numpy':
         return np.all(np.isclose(eval_y1, eval_y2, rtol=rtol, atol=atol), axis=0)
     elif mode=='pep485':
+        a = eval_y1
+        b = eval_y2
         return np.all(np.abs(a - b) <= np.max(rtol*np.max(a, b), atol), axis=0)
 
 
