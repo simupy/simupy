@@ -25,7 +25,7 @@ def callable_from_trajectory(t, curves, k=3):
 
     return bspline
 
-def trajectory_interpolant(res, for_="output", k=3, bc_type="natural"):
+def trajectory_interpolant(res, for_="output", cols=slice(None), k=3, bc_type="natural"):
     """
     Construct an interpolating spline from a trajectory that handles potential
     discontinuities from events.
@@ -43,13 +43,13 @@ def trajectory_interpolant(res, for_="output", k=3, bc_type="natural"):
         Callable which interpolates the given curve/trajectories
     """
     if for_=="state":
-        vals = res.x
+        vals = res.x[:, cols]
     elif for_=="output":
-        vals = res.y
+        vals = res.y[:, cols]
     else:
         raise ValueError("Unsupported `for_` value")
 
-    event_idxs = np.where(np.diff(np.sign(res.e[:, -1]))!=0)[0]+1
+    event_idxs = np.unique(np.where(np.diff(np.sign(res.e), axis=0)!=0)[0])+1
     prev_idx = 0
     interps = []
     extra_val = int((k+1)//2)
@@ -85,14 +85,8 @@ def trajectory_interpolant(res, for_="output", k=3, bc_type="natural"):
     tt = np.concatenate([interp.t for interp in interps])
     return interpolate.BSpline.construct_fast(tt, cc, k)
 
-def isclose(res1, res2, atol=1E-8, rtol=1E-5, mode='numpy', for_="output"):
-    """
-    Compare two trajectories
+def trajectory_linear_combination(res1, res2, coeff1=1, coeff2=1, for_="output", cols=slice(None), k=3, bc_type="natural"):
 
-    Parameters
-    ---------- 
-    mode : {'numpy' or 'pep485'}
-    """
     if for_=="state":
         shape1 = res1.x.shape[1]
         shape2 = res2.x.shape[1]
@@ -102,23 +96,64 @@ def isclose(res1, res2, atol=1E-8, rtol=1E-5, mode='numpy', for_="output"):
     else:
         raise ValueError("Unsupported `for_` value")
 
-    if shape1 != shape2:
-        raise ValueError("res1 and res2 %s should be the same dimension to compare" %
-                         for_)
-
     eval_t_list = list(set(res1.t) | set(res2.t))
     eval_t_list.sort()
     eval_t = np.array(eval_t_list)
 
-    eval_y1 = trajectory_interpolant(res1, for_)(eval_t)
-    eval_y2 = trajectory_interpolant(res2, for_)(eval_t)
+    interp1 = trajectory_interpolant(res1, for_, cols, k, bc_type)
+    interp2 = trajectory_interpolant(res2, for_, cols, k, bc_type)
 
+    for t in eval_t:
+        if t not in interp1.t:
+            interp1 = interpolate.insert(t, interp1)
+        if t not in interp2.t:
+            interp2 = interpolate.insert(t, interp2)
+
+    if not np.all(interp1.t == interp2.t):
+        raise ValueError("Expected to construct the same knot structure for each interpolant")
+
+    if not np.all(np.unique(interp1.t) == eval_t):
+        raise ValueError("Expected the knots to lie on eval_t")
+
+    return interpolate.BSpline.construct_fast(interp1.t,
+                                              interp1.c*coeff1 + interp2.c*coeff2,
+                                              k)
+
+def trajectory_norm(interp, p=2):
+    eval_t = np.unique(interp.t)
+    if p == np.inf:
+        return np.max(np.abs(interp(eval_t)), axis=0)
+    if p == -np.inf:
+        return np.min(np.abs(interp(eval_t)), axis=0)
+    if isinstance(p, int):
+        integrand = interpolate.BSpline.construct_fast(interp.t, np.abs(interp.c)**p,
+                                                       interp.k)
+        return (integrand.antiderivative()(eval_t[-1])**(1/p))/np.diff(eval_t[[0,-1]])
+    raise ValueError("unexpected value for p")
+
+
+def isclose(res1, res2, p=np.Inf, atol=1E-8, rtol=1E-5, mode='numpy', for_="output",
+            cols=slice(None), k=3, bc_type="natural"):
+    """
+    Compare two trajectories
+
+    Parameters
+    ---------- 
+    mode : {'numpy' or 'pep485'}
+    """
+    traj_diff = trajectory_linear_combination(res1, res2, coeff1=1, coeff2=-1,
+                                              for_=for_, cols=cols, k=k, bc_type=bc_type)
+    diff_norm = trajectory_norm(traj_diff, p)
+    res1_norm = trajectory_norm(trajectory_interpolant(res1, for_=for_, cols=cols, k=k,
+                                                       bc_type=bc_type), p)
+    res2_norm = trajectory_norm(trajectory_interpolant(res2, for_=for_, cols=cols, k=k,
+                                                       bc_type=bc_type), p)
     if mode=='numpy':
-        return np.all(np.isclose(eval_y1, eval_y2, rtol=rtol, atol=atol), axis=0)
+        return (diff_norm <= (atol + rtol*res2_norm))
     elif mode=='pep485':
-        a = eval_y1
-        b = eval_y2
-        return np.all(np.abs(a - b) <= np.max(rtol*np.max(a, b), atol), axis=0)
+        return (diff_norm <= np.max(
+                np.stack(rtol*np.max(np.stack(res1_norm, res2_norm), axis=1), atol),
+            ))
 
 
 
