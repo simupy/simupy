@@ -50,9 +50,12 @@ def trajectory_interpolant(res, for_="output", cols=slice(None), k=3, bc_type="n
         raise ValueError("Unsupported `for_` value")
 
     event_idxs = np.unique(np.where(np.diff(np.sign(res.e), axis=0)!=0)[0])+1
+    if event_idxs[0] == 1:
+        event_idxs = event_idxs[1:]
     prev_idx = 0
     interps = []
     extra_val = int((k+1)//2)
+    event_idx = 0
     for event_idx in event_idxs:
         interps.append(
             interpolate.make_interp_spline(
