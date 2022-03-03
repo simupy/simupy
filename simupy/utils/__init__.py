@@ -154,10 +154,10 @@ def isclose(res1, res2, p=np.Inf, atol=1E-8, rtol=1E-5, mode='numpy', for_="outp
     if mode=='numpy':
         return (diff_norm <= (atol + rtol*res2_norm))
     elif mode=='pep485':
-        return (diff_norm <= np.max(
-                np.stack([rtol*np.max(np.stack([res1_norm, res2_norm]), axis=0), atol]),
-                axis=0
-            ))
+        return (diff_norm <= np.clip(
+                    rtol*np.max(np.stack([res1_norm, res2_norm]), axis=0),
+                    a_min=atol, a_max=None)
+                )
 
 
 
