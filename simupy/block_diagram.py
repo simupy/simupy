@@ -997,7 +997,7 @@ class BlockDiagram(SimulationMixin):
                 )
             else:
                 update_return_value = sys.update_equation_function(
-                    right_t,
+                    t,
                     event_channels=sys_event_channels,
                 )
             if sys.dim_state:

@@ -158,8 +158,15 @@ class DynamicalSystem(SimulationMixin):
             self._initial_condition = None
 
     def prepare_to_integrate(self, t0, state_or_input=None):
+        # if dim_state >0, the initial state should have all information required to
+        # simulate; for state-less systems, call update equation as default
+        # initialization
         if not self.dim_state and self.num_events:
-            self.update_equation_function(t0, state_or_input)
+            if self.dim_input:
+                self.update_equation_function(t0, state_or_input)
+            else:
+                self.update_equation_function(t0,)
+        # regardless, 
         if self.dim_state or self.dim_input:
             return self.output_equation_function(t0, state_or_input)
         else:
