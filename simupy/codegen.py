@@ -249,6 +249,8 @@ class ModuleNumPyPrinter(ArrayNumPyPrinter):
                 module = self.known_func_modules[func]
             elif self.for_class:
                 module = 'self'
+            else:
+                module = ''
             if func in self.known_func_names:
                 func_name = self.known_func_names[func]
             else:
