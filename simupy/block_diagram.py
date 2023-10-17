@@ -25,6 +25,9 @@ DEFAULT_EVENT_FIND_OPTIONS = {
     "maxiter": 100,
 }
 
+class NaNWarning(UserWarning):
+    '''Raised when there are NaN values in the simulation output. '''
+        
 nan_warning_message = (
     "Simulation encountered NaN outputs and quit during"
     + " {}. This may have been intentional! NaN outputs at "
@@ -311,7 +314,8 @@ class SimulationMixin:
                 warnings.warn(
                     nan_warning_message.format(
                         "variable step-size collection", t, state, output
-                    )
+                    ),
+                    NaNWarning
                 )
                 return -1
 
@@ -356,7 +360,8 @@ class SimulationMixin:
                         tspan[t_idx - 1],
                         results.x[results.res_idx - 1, :],
                         results.y[results.res_idx - 1, :],
-                    )
+                    ),
+                    NaNWarning
                 )
                 break
 
@@ -407,7 +412,8 @@ class SimulationMixin:
                         r.t,
                         check_states,
                         check_outputs,
-                    )
+                    ),
+                    NaNWarning
                 )
                 break
 
@@ -522,7 +528,8 @@ class SimulationMixin:
                 warnings.warn(
                     nan_warning_message.format(
                         "update after event channel " + str(event_index_crossed), right_t, new_states, new_outputs
-                    )
+                    ),
+                    NaNWarning
                 )
                 break
 
