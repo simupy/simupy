@@ -22,7 +22,7 @@ The argument rules for ``event_equation_function`` and
 ``output_equation_function`` and ``state_equation_function``, respectively.
 Generally, ``update_equation_function`` is used to change what
 ``state_equation_function``, ``output_equation_function``, and
-``event_equation_function`` compute based on the occurance of the
+``event_equation_function`` compute based on the occurrence of the
 discontinuity. If ``dim_state``\>0, ``update_equation_function`` must return
 the state immediately after the discontinuity.
 
