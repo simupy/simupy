@@ -135,7 +135,7 @@ def trajectory_norm(interp, p=2):
     raise ValueError("unexpected value for p")
 
 
-def isclose(res1, res2, p=np.Inf, atol=1E-8, rtol=1E-5, mode='numpy', for_="output",
+def isclose(res1, res2, p=np.inf, atol=1E-8, rtol=1E-5, mode='numpy', for_="output",
             cols=slice(None), k=3, bc_type="natural"):
     """
     Compare two trajectories

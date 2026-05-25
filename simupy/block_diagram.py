@@ -556,7 +556,7 @@ class BlockDiagram(SimulationMixin):
         self.systems = np.array([], dtype=object)
         self.connections = np.array([], dtype=np.bool_).reshape((0, 0))
 
-        self.dts = np.array([], dtype=np.float_)
+        self.dts = np.array([], dtype=float)
 
         self.events = np.array([], dtype=np.int_)
         self.states = np.array([], dtype=np.int_)

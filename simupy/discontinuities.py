@@ -242,7 +242,7 @@ class SwitchedSystem(SwitchedSystemBase, DiscontinuousSystem):
         self.event_bounds = np.array(
             [sp.N(bound, subs=self.constants_values)
              for bound in event_bounds_exp],
-            dtype=np.float_
+            dtype=float
         )
 
 

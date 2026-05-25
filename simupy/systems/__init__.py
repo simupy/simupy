@@ -120,7 +120,7 @@ class DynamicalSystem(SimulationMixin):
         self.num_events = 1
         self._dt = dt
         self.event_equation_function = lambda t, *args: np.atleast_1d(np.sin(np.pi*t/self.dt))
-        #    if t else np.sin(np.finfo(np.float_).eps))
+        #    if t else np.sin(np.finfo(float).eps))
         self._state_equation_function = self.state_equation_function
         self._output_equation_function = self.output_equation_function
         self.state_equation_function = \
@@ -153,7 +153,7 @@ class DynamicalSystem(SimulationMixin):
                 size = len(initial_condition)
             assert size == self.dim_state
             self._initial_condition = np.array(initial_condition,
-                dtype=np.float_).reshape(-1)
+                dtype=float).reshape(-1)
         else:
             self._initial_condition = None
 

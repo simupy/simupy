@@ -1,7 +1,10 @@
 from sympy.tensor.array import Array
 from sympy import ImmutableDenseMatrix as Matrix
-from numpy.lib.index_tricks import RClass, CClass, AxisConcatenator
+import numpy as np
 
+RClass = np.r_.__class__
+CClass = np.c_.__class__
+AxisConcatenator = RClass.__bases__[0]
 
 class SymAxisConcatenatorMixin:
     """
